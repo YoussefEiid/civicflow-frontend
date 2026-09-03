@@ -1,0 +1,565 @@
+import React, { useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useData } from '../../context/DataContext';
+import { useToast } from '../../context/ToastContext';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { StatusBadge } from '../../components/ui/StatusBadge';
+import { PriorityBadge, DeadlineBadge } from '../../components/common/PriorityBadge';
+import { Pagination } from '../../components/ui/Pagination';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { ChangeStatusModal } from '../../components/request/ChangeStatusModal';
+import { RequestItem, RequestStatus, RequestPriority } from '../../types';
+import { exportRequestsToCsv } from '../../services/api';
+import {
+  Plus,
+  Search,
+  Filter,
+  Download,
+  Eye,
+  Edit,
+  Trash2,
+  RefreshCw,
+  Clock,
+  ArrowUpDown,
+  Flame,
+  FileSpreadsheet,
+  X
+} from 'lucide-react';
+
+export const RequestsListPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { requests, ministries, employees, handleDeleteRequest, handleChangeStatus } = useData();
+  const { success } = useToast();
+
+  // URL query params
+  const urlStatus = searchParams.get('status') || 'all';
+  const urlOverdue = searchParams.get('overdue') === 'true';
+
+  // Filters State
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState(urlStatus);
+  const [ministryFilter, setMinistryFilter] = useState('all');
+  const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [overdueOnly, setOverdueOnly] = useState(urlOverdue);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Sorting State
+  const [sortField, setSortField] = useState<'receiveDate' | 'expectedCompletionDate' | 'requestNumber'>('receiveDate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
+
+  // Modals state
+  const [statusModalRequest, setStatusModalRequest] = useState<RequestItem | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Filtering Logic
+  const filteredRequests = useMemo(() => {
+    let list = [...requests];
+
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      list = list.filter(
+        (r) =>
+          r.requestNumber.toLowerCase().includes(q) ||
+          r.customerName.toLowerCase().includes(q) ||
+          r.customerPhone.includes(q) ||
+          r.title.toLowerCase().includes(q)
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      list = list.filter((r) => r.status === statusFilter);
+    }
+
+    if (ministryFilter !== 'all') {
+      list = list.filter((r) => r.ministryId === ministryFilter);
+    }
+
+    if (employeeFilter !== 'all') {
+      list = list.filter((r) => r.assignedEmployeeId === employeeFilter);
+    }
+
+    if (priorityFilter !== 'all') {
+      list = list.filter((r) => r.priority === priorityFilter);
+    }
+
+    if (typeFilter !== 'all') {
+      list = list.filter((r) => r.requestType === typeFilter);
+    }
+
+    if (overdueOnly) {
+      list = list.filter((r) => r.deadlineStatus === 'متأخر');
+    }
+
+    if (fromDate) {
+      list = list.filter((r) => r.receiveDate >= fromDate);
+    }
+
+    if (toDate) {
+      list = list.filter((r) => r.receiveDate <= toDate);
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      const aVal = a[sortField] || '';
+      const bVal = b[sortField] || '';
+      if (sortDirection === 'asc') return aVal.localeCompare(bVal);
+      return bVal.localeCompare(aVal);
+    });
+
+    return list;
+  }, [
+    requests,
+    search,
+    statusFilter,
+    ministryFilter,
+    employeeFilter,
+    priorityFilter,
+    typeFilter,
+    overdueOnly,
+    fromDate,
+    toDate,
+    sortField,
+    sortDirection
+  ]);
+
+  // Pagination Slice
+  const totalPages = Math.ceil(filteredRequests.length / pageSize);
+  const paginatedRequests = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredRequests.slice(start, start + pageSize);
+  }, [filteredRequests, currentPage, pageSize]);
+
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setMinistryFilter('all');
+    setEmployeeFilter('all');
+    setPriorityFilter('all');
+    setTypeFilter('all');
+    setOverdueOnly(false);
+    setFromDate('');
+    setToDate('');
+    setCurrentPage(1);
+    setSearchParams({});
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await handleDeleteRequest(deleteId);
+      success('تم حذف المعاملة', 'تم حذف الطلب من المنظومة بنجاح');
+      setDeleteId(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const hasActiveFilters =
+    search !== '' ||
+    statusFilter !== 'all' ||
+    ministryFilter !== 'all' ||
+    employeeFilter !== 'all' ||
+    priorityFilter !== 'all' ||
+    typeFilter !== 'all' ||
+    overdueOnly ||
+    fromDate !== '' ||
+    toDate !== '';
+
+  return (
+    <div className="space-y-6">
+      {/* Top Header & Main Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">الطلبات والمعاملات</h1>
+          <p className="text-xs text-slate-500 mt-1">
+            إدارة ومتابعة كافة المعاملات الصادرة والواردة، وتحديث الحالات ومدد الإنجاز
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => exportRequestsToCsv(filteredRequests)}
+            icon={<Download className="w-4 h-4" />}
+          >
+            تصدير Excel
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => navigate('/requests/new')}
+            icon={<Plus className="w-4 h-4" />}
+          >
+            + إضافة طلب
+          </Button>
+        </div>
+      </div>
+
+      {/* Filter Bar & Search */}
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-subtle space-y-4">
+        {/* Main Search Row */}
+        <div className="flex flex-col md:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="ابحث باسم المراجع أو رقم الطلب أو رقم الهاتف..."
+              className="w-full pl-4 pr-10 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-600 transition"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            {/* Quick Overdue Filter Toggle */}
+            <button
+              onClick={() => {
+                setOverdueOnly(!overdueOnly);
+                setCurrentPage(1);
+              }}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition border select-none ${
+                overdueOnly
+                  ? 'bg-rose-50 border-rose-300 text-rose-800 ring-2 ring-rose-200'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Flame className={`w-4 h-4 ${overdueOnly ? 'text-rose-600' : 'text-slate-400'}`} />
+              <span>الطلبات المتأخرة فقط</span>
+            </button>
+
+            {/* Advanced Filters Toggle */}
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition border select-none ${
+                showAdvancedFilters || hasActiveFilters
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Filter className="w-4 h-4 text-blue-600" />
+              <span>فلاتر متقدمة</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Expandable Advanced Filters */}
+        {showAdvancedFilters && (
+          <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 animate-in fade-in duration-150">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">الحالة</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
+              >
+                <option value="all">كافة الحالات</option>
+                <option value="استلام الطلب">استلام الطلب</option>
+                <option value="قيد المراجعة">قيد المراجعة</option>
+                <option value="تم إرسال الطلب للجهة">تم إرسال الطلب للجهة</option>
+                <option value="قيد المعالجة">قيد المعالجة</option>
+                <option value="مطلوب مستندات">مطلوب مستندات</option>
+                <option value="موافقة">موافقة</option>
+                <option value="مرفوض">مرفوض</option>
+                <option value="الإجابة جاهزة">الإجابة جاهزة</option>
+                <option value="تم إشعار المراجع">تم إشعار المراجع</option>
+                <option value="تم التسليم">تم التسليم</option>
+                <option value="مغلق">مغلق</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">الجهة / الوزارة</label>
+              <select
+                value={ministryFilter}
+                onChange={(e) => {
+                  setMinistryFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
+              >
+                <option value="all">كافة الجهات الحكومية</option>
+                {ministries.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">الموظف المسؤول</label>
+              <select
+                value={employeeFilter}
+                onChange={(e) => {
+                  setEmployeeFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
+              >
+                <option value="all">كافة الموظفين</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.name} ({emp.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">الأولوية</label>
+              <select
+                value={priorityFilter}
+                onChange={(e) => {
+                  setPriorityFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
+              >
+                <option value="all">كافة الأولويات</option>
+                <option value="عاجل">عاجل</option>
+                <option value="مهم">مهم</option>
+                <option value="عادي">عادي</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">من تاريخ</label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">إلى تاريخ</label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
+              />
+            </div>
+
+            <div className="sm:col-span-2 flex items-end justify-end gap-2">
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-slate-500">
+                  إعادة ضبط الفلاتر
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Requests Table / Cards Container */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-subtle overflow-hidden">
+        {paginatedRequests.length === 0 ? (
+          <EmptyState
+            title="لا توجد طلبات تطابق معايير البحث"
+            description="جرب تعديل خيارات البحث أو الفلاتر المحددة، أو قم بإنشاء معاملة جديدة."
+            actionText="+ إضافة معاملة جديدة"
+            onAction={() => navigate('/requests/new')}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs">
+              <thead className="bg-slate-50/90 text-slate-600 border-b border-slate-200">
+                <tr>
+                  <th
+                    onClick={() => handleSort('requestNumber')}
+                    className="py-3.5 px-4 font-bold cursor-pointer hover:text-blue-600 select-none"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>رقم الطلب</span>
+                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  </th>
+                  <th className="py-3.5 px-4 font-bold">المراجع</th>
+                  <th className="py-3.5 px-4 font-bold">الهاتف</th>
+                  <th className="py-3.5 px-4 font-bold">عنوان المعاملة</th>
+                  <th className="py-3.5 px-4 font-bold">الجهة / الوزارة</th>
+                  <th className="py-3.5 px-4 font-bold">الحالة</th>
+                  <th className="py-3.5 px-4 font-bold">الأولوية</th>
+                  <th className="py-3.5 px-4 font-bold">الموظف</th>
+                  <th
+                    onClick={() => handleSort('receiveDate')}
+                    className="py-3.5 px-4 font-bold cursor-pointer hover:text-blue-600 select-none"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>تاريخ الاستلام</span>
+                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSort('expectedCompletionDate')}
+                    className="py-3.5 px-4 font-bold cursor-pointer hover:text-blue-600 select-none"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>الموعد المتوقع</span>
+                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
+                  </th>
+                  <th className="py-3.5 px-4 font-bold">الحالة الزمنية</th>
+                  <th className="py-3.5 px-4 font-bold text-center">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginatedRequests.map((req) => (
+                  <tr
+                    key={req.id}
+                    className="hover:bg-blue-50/30 transition group cursor-pointer"
+                    onClick={(e) => {
+                      // Prevent navigation if clicking action buttons
+                      if ((e.target as HTMLElement).closest('button')) return;
+                      navigate(`/requests/${req.id}`);
+                    }}
+                  >
+                    <td className="py-3.5 px-4 font-bold text-blue-600 font-mono group-hover:underline">
+                      {req.requestNumber}
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-slate-900">{req.customerName}</td>
+                    <td className="py-3.5 px-4 text-slate-500 font-mono">{req.customerPhone}</td>
+                    <td className="py-3.5 px-4 max-w-xs truncate text-slate-700 font-medium">
+                      {req.title}
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-700 font-semibold">{req.ministryName}</td>
+                    <td className="py-3.5 px-4">
+                      <StatusBadge status={req.status} size="sm" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <PriorityBadge priority={req.priority} />
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-600">{req.assignedEmployeeName}</td>
+                    <td className="py-3.5 px-4 text-slate-500 font-mono">{req.receiveDate}</td>
+                    <td className="py-3.5 px-4 text-slate-700 font-bold font-mono">
+                      {req.expectedCompletionDate}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <DeadlineBadge
+                        status={req.deadlineStatus}
+                        daysRemainingOrOverdue={req.daysRemainingOrOverdue}
+                      />
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => setStatusModalRequest(req)}
+                          className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                          title="تغيير الحالة"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/requests/${req.id}`)}
+                          className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                          title="عرض التفاصيل"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/requests/${req.id}/edit`)}
+                          className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                          title="تعديل"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteId(req.id)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                          title="حذف"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredRequests.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      {/* Change Status Modal */}
+      {statusModalRequest && (
+        <ChangeStatusModal
+          isOpen={!!statusModalRequest}
+          onClose={() => setStatusModalRequest(null)}
+          request={statusModalRequest}
+          onSubmit={async (newStatus, note) => {
+            await handleChangeStatus(statusModalRequest.id, newStatus, note);
+            success('تم تغيير الحالة بنجاح', `تم تحديث حالة المعاملة #${statusModalRequest.requestNumber}`);
+          }}
+        />
+      )}
+
+      {/* Delete Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmDelete}
+        title="تأكيد حذف المعاملة"
+        message="هل أنت متأكد من رغبتك في حذف هذا الطلب نهائياً؟ لن يمكن استرجاع بياناته بعد الحذف."
+        confirmText="نعم، احذف المعاملة"
+        variant="danger"
+        isLoading={isDeleting}
+      />
+    </div>
+  );
+};
