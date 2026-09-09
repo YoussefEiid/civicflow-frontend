@@ -13,6 +13,7 @@ import { AddFinalResponseModal } from '../../components/request/AddFinalResponse
 import { SendNotificationModal } from '../../components/request/SendNotificationModal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { addRequestAttachment, addFinalResponse } from '../../services/api';
+import { requestService } from '../../services/requestService';
 import {
   User,
   Phone,
@@ -353,17 +354,22 @@ export const RequestDetailsPage: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      <a
-                        href="#download-mock"
-                        onClick={(e) => {
+                      <button
+                        type="button"
+                        onClick={async (e) => {
                           e.preventDefault();
-                          success('جاري التحميل', `بدأ تحميل الملف: ${att.name}`);
+                          try {
+                            await requestService.downloadAttachment(att.id, att.name);
+                            success('تم التحميل', `تم تحميل الملف: ${att.name}`);
+                          } catch {
+                            // Handled via toast or API
+                          }
                         }}
                         className="p-1.5 text-slate-400 hover:text-blue-600 transition"
                         title="تحميل المرفق"
                       >
                         <Download className="w-4 h-4" />
-                      </a>
+                      </button>
                     </div>
                   ))}
                 </div>

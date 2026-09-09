@@ -49,8 +49,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Static uploads serving
-app.use('/uploads', express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)));
+// Static uploads serving is restricted to non-production environments
+// In production, all document downloads must go through authenticated/authorized API endpoints
+if (env.NODE_ENV !== 'production') {
+  app.use('/uploads', express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)));
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

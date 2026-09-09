@@ -7,12 +7,17 @@ import { TDocumentDefinitions } from 'pdfmake/interfaces.js';
 const require = createRequire(import.meta.url);
 const pdfmake = require('pdfmake');
 
-// Resolve system fonts with fallbacks
+// Resolve fonts with priority on project-relative fonts, then system fallbacks
 const getFontPaths = () => {
-  const winArial = 'C:\\Windows\\Fonts\\arial.ttf';
-  const winArialBold = 'C:\\Windows\\Fonts\\arialbd.ttf';
+  const localRegular = path.resolve(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
+  const localBold = path.resolve(process.cwd(), 'assets', 'fonts', 'Cairo-Bold.ttf');
+  const localBackendRegular = path.resolve(process.cwd(), 'backend', 'assets', 'fonts', 'Cairo-Regular.ttf');
+  const localBackendBold = path.resolve(process.cwd(), 'backend', 'assets', 'fonts', 'Cairo-Bold.ttf');
+
   const winTahoma = 'C:\\Windows\\Fonts\\tahoma.ttf';
   const winTahomaBold = 'C:\\Windows\\Fonts\\tahomabd.ttf';
+  const winArial = 'C:\\Windows\\Fonts\\arial.ttf';
+  const winArialBold = 'C:\\Windows\\Fonts\\arialbd.ttf';
 
   let primary = {
     normal: 'Helvetica',
@@ -21,7 +26,21 @@ const getFontPaths = () => {
     bolditalics: 'Helvetica-BoldOblique'
   };
 
-  if (fs.existsSync(winTahoma) && fs.existsSync(winTahomaBold)) {
+  if (fs.existsSync(localRegular) && fs.existsSync(localBold)) {
+    primary = {
+      normal: localRegular,
+      bold: localBold,
+      italics: localRegular,
+      bolditalics: localBold
+    };
+  } else if (fs.existsSync(localBackendRegular) && fs.existsSync(localBackendBold)) {
+    primary = {
+      normal: localBackendRegular,
+      bold: localBackendBold,
+      italics: localBackendRegular,
+      bolditalics: localBackendBold
+    };
+  } else if (fs.existsSync(winTahoma) && fs.existsSync(winTahomaBold)) {
     primary = {
       normal: winTahoma,
       bold: winTahomaBold,

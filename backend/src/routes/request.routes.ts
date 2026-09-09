@@ -51,6 +51,11 @@ requestRouter.get(
   requirePermission('requests.attachments'),
   downloadAttachment
 );
+requestRouter.get(
+  '/attachments/:attachmentId/download',
+  requirePermission('requests.attachments'),
+  downloadAttachment
+);
 requestRouter.delete(
   '/:id/attachments/:attachmentId',
   requirePermission('requests.attachments'),

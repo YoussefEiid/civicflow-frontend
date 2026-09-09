@@ -122,11 +122,12 @@ export const addAttachment = async (req: Request, res: Response, next: NextFunct
 export const downloadAttachment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id: requestId, attachmentId } = req.params;
+    const targetAttachmentId = attachmentId || requestId;
 
     const attachment = await prisma.requestAttachment.findFirst({
       where: {
-        id: attachmentId,
-        requestId
+        id: targetAttachmentId,
+        ...(requestId && attachmentId ? { requestId } : {})
       }
     });
 
