@@ -11,12 +11,16 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const { success, error: toastError } = useToast();
 
-  const [email, setEmail] = useState('ahmed.ali@civicflow.gov');
-  const [password, setPassword] = useState('demo123456');
+  const [email, setEmail] = useState('admin@civicflow.gov');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!password) {
+      toastError('كلمة المرور مطلوبة', 'يرجى إدخال كلمة المرور للمتابعة');
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -29,11 +33,6 @@ export const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillQuickDemo = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('demo123456');
   };
 
   return (
@@ -49,7 +48,7 @@ export const LoginPage: React.FC = () => {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="admin@civicflow.gov.sa"
+          placeholder="admin@civicflow.gov"
           required
           icon={<Mail className="w-4 h-4" />}
         />
@@ -78,46 +77,11 @@ export const LoginPage: React.FC = () => {
         </div>
       </form>
 
-      {/* Demo Credentials Quick selector */}
-      <div className="mt-8 pt-6 border-t border-slate-100">
-        <p className="text-xs font-bold text-slate-500 mb-2.5 flex items-center gap-1">
+      <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+        <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
           <Shield className="w-3.5 h-3.5 text-blue-600" />
-          حسابات تجريبية سريعة للعرض (اضغط للاختيار):
+          منظومة آمنة ومخصصة للموظفين والمشرفين المصرح لهم فقط
         </p>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => fillQuickDemo('ahmed.ali@civicflow.gov')}
-            className="p-2 text-right rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-xs transition"
-          >
-            <p className="font-bold text-slate-800">أحمد علي</p>
-            <p className="text-[10px] text-slate-500">مدير النظام (كامل الصلاحيات)</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => fillQuickDemo('m.hassan@civicflow.gov')}
-            className="p-2 text-right rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-xs transition"
-          >
-            <p className="font-bold text-slate-800">محمد حسن</p>
-            <p className="text-[10px] text-slate-500">مشرف المعاملات</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => fillQuickDemo('sara.m@civicflow.gov')}
-            className="p-2 text-right rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-xs transition"
-          >
-            <p className="font-bold text-slate-800">سارة محمود</p>
-            <p className="text-[10px] text-slate-500">موظف متابعة (SLA)</p>
-          </button>
-          <button
-            type="button"
-            onClick={() => fillQuickDemo('khaled.i@civicflow.gov')}
-            className="p-2 text-right rounded-lg border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:border-blue-300 text-xs transition"
-          >
-            <p className="font-bold text-slate-800">خالد إبراهيم</p>
-            <p className="text-[10px] text-slate-500">موظف استقبال</p>
-          </button>
-        </div>
       </div>
     </div>
   );

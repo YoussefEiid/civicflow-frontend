@@ -181,14 +181,15 @@ async function main() {
 
   // 4. Seed Users
   const saltRounds = 10;
-  const defaultPasswordHash = await bcrypt.hash('demo123456', saltRounds);
+  const adminPasswordHash = await bcrypt.hash(process.env.INITIAL_ADMIN_PASSWORD || 'CivicFlow@2026!', saltRounds);
+  const defaultPasswordHash = adminPasswordHash;
 
   const adminUser = await prisma.user.create({
     data: {
-      name: 'أحمد علي',
-      email: 'ahmed.ali@civicflow.gov',
-      phone: '0500000001',
-      passwordHash: defaultPasswordHash,
+      name: 'مدير المنظومة',
+      email: 'admin@civicflow.gov',
+      phone: '0500000000',
+      passwordHash: adminPasswordHash,
       roleId: adminRole.id,
       department: 'الإدارة العامة والمتابعة',
       status: UserStatus.ACTIVE,
@@ -196,6 +197,7 @@ async function main() {
       lastLogin: new Date()
     }
   });
+  const clientAdminUser = adminUser;
 
   const supervisorUser = await prisma.user.create({
     data: {
