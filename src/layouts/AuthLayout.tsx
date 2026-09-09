@@ -1,8 +1,14 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { Shield, Sparkles } from 'lucide-react';
 
 export const AuthLayout: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
+
+  if (isAuthenticated && user) {
+    return <Navigate to="/dashboard" replace />;
+  }
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden" dir="rtl">
       {/* Background Decorative Grid */}

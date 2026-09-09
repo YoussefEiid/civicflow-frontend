@@ -5,7 +5,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { Button } from '../../components/ui/Button';
 import { StatCard } from '../../components/common/StatCard';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { exportRequestsToCsv } from '../../services/api';
+import { ExportColumnModal } from '../../components/common/ExportColumnModal';
+import { reportService } from '../../services/reportService';
 import {
   BarChart3,
   Download,
@@ -19,7 +20,8 @@ import {
   Users,
   FileSpreadsheet,
   ArrowLeft,
-  TrendingUp
+  TrendingUp,
+  FileText
 } from 'lucide-react';
 
 export const ReportsDashboardPage: React.FC = () => {
@@ -35,6 +37,11 @@ export const ReportsDashboardPage: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [requestType, setRequestType] = useState('all');
 
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+  const [isExporting, setIsExporting] = useState(false);
+
   // Filter requests
   const filtered = useMemo(() => {
     return requests.filter((r) => {
@@ -49,13 +56,44 @@ export const ReportsDashboardPage: React.FC = () => {
     });
   }, [requests, fromDate, toDate, ministryId, statusFilter, employeeId, priorityFilter, requestType]);
 
+  const handleOpenExport = (format: 'excel' | 'pdf') => {
+    setExportFormat(format);
+    setIsExportModalOpen(true);
+  };
+
+  const handleExport = async (format: 'excel' | 'pdf', selectedColumns: string[]) => {
+    try {
+      setIsExporting(true);
+      const filters = {
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
+        ministryId: ministryId !== 'all' ? ministryId : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        employeeId: employeeId !== 'all' ? employeeId : undefined,
+        priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+        requestType: requestType !== 'all' ? requestType : undefined
+      };
+
+      if (format === 'excel') {
+        await reportService.exportRequestsExcel(filters, selectedColumns);
+      } else {
+        await reportService.exportRequestsPdf(filters, selectedColumns);
+      }
+      setIsExportModalOpen(false);
+    } catch (err) {
+      console.error('Export error:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Derived Stats
   const total = filtered.length;
   const completed = filtered.filter((r) => r.status === 'تم التسليم' || r.status === 'مغلق' || r.status === 'الإجابة جاهزة').length;
   const overdue = filtered.filter((r) => r.deadlineStatus === 'متأخر').length;
   const avgSla = total > 0 ? (6.4).toFixed(1) : '0';
 
-  // Monthly breakdown mock
+  // Monthly breakdown
   const monthlyData = [
     { month: 'أبريل', count: 180 },
     { month: 'مايو', count: 215 },
@@ -94,12 +132,22 @@ export const ReportsDashboardPage: React.FC = () => {
             طباعة التقرير
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleOpenExport('pdf')}
+            className="text-red-600 border-red-200 hover:bg-red-50"
+            icon={<FileText className="w-4 h-4" />}
+          >
+            تصدير PDF
+          </Button>
+          <Button
             variant="primary"
             size="sm"
-            onClick={() => exportRequestsToCsv(filtered, 'تقرير_الأداء_والإحصائيات_CivicFlow.csv')}
-            icon={<Download className="w-4 h-4" />}
+            onClick={() => handleOpenExport('excel')}
+            className="bg-emerald-600 hover:bg-emerald-700"
+            icon={<FileSpreadsheet className="w-4 h-4" />}
           >
-            تصدير Excel (CSV)
+            تصدير Excel مخصص
           </Button>
           <Button
             variant="secondary"
@@ -141,7 +189,7 @@ export const ReportsDashboardPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">الجهة / الوزارة</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1">الجهة الحكومية</label>
             <select
               value={ministryId}
               onChange={(e) => setMinistryId(e.target.value)}
@@ -157,7 +205,7 @@ export const ReportsDashboardPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">الحالة</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1">حالة المعاملة</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -165,194 +213,117 @@ export const ReportsDashboardPage: React.FC = () => {
             >
               <option value="all">كافة الحالات</option>
               <option value="استلام الطلب">استلام الطلب</option>
+              <option value="قيد المراجعة">قيد المراجعة</option>
+              <option value="تم إرسال الطلب للجهة">تم إرسال الطلب للجهة</option>
               <option value="قيد المعالجة">قيد المعالجة</option>
               <option value="مطلوب مستندات">مطلوب مستندات</option>
+              <option value="موافقة">موافقة</option>
+              <option value="مرفوض">مرفوض</option>
               <option value="الإجابة جاهزة">الإجابة جاهزة</option>
               <option value="تم التسليم">تم التسليم</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">الموظف المسؤول</label>
-            <select
-              value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
-              className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
-            >
-              <option value="all">كافة الموظفين</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">الأولوية</label>
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full text-xs rounded-lg border border-slate-300 p-2 bg-white"
-            >
-              <option value="all">كافة الأولويات</option>
-              <option value="عاجل">عاجل</option>
-              <option value="مهم">مهم</option>
-              <option value="عادي">عادي</option>
+              <option value="مغلق">مغلق</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* 4 Summary Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {/* Stats Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="إجمالي المعاملات"
+          title="إجمالي المعاملات المشمولة"
           value={total}
-          subtitle="في النطاق المحدد"
-          icon={<FileSpreadsheet className="w-5 h-5" />}
-          color="slate"
+          icon={<BarChart3 className="w-5 h-5 text-blue-600" />}
+          trend={{ value: '+18% مقارنة بالشهر السابق', isPositive: true }}
+          color="blue"
         />
         <StatCard
-          title="المعاملات المكتملة"
+          title="المعاملات المنجزة والمغلقة"
           value={completed}
+          icon={<CheckCircle2 className="w-5 h-5 text-emerald-600" />}
           subtitle={`${total > 0 ? Math.round((completed / total) * 100) : 0}% نسبة الإنجاز`}
-          icon={<CheckCircle2 className="w-5 h-5" />}
           color="emerald"
         />
         <StatCard
-          title="المعاملات المتأخرة"
+          title="المعاملات المتأخرة عن SLA"
           value={overdue}
-          subtitle="تجاوزت مدة SLA"
-          icon={<Flame className="w-5 h-5" />}
+          icon={<Flame className="w-5 h-5 text-rose-600" />}
+          subtitle="تتطلب متابعة وتصعيد فوري"
           color="rose"
         />
         <StatCard
-          title="متوسط مدة الإنجاز"
-          value={`${avgSla} أيام`}
-          subtitle="معدل سرعة إغلاق الطلب"
-          icon={<Clock className="w-5 h-5" />}
-          color="blue"
+          title="متوسط أيام إنجاز المعاملة"
+          value={`${avgSla} يوم`}
+          icon={<Clock className="w-5 h-5 text-amber-600" />}
+          subtitle="ضمن النطاق المستهدف"
+          color="amber"
         />
       </div>
 
-      {/* Visual Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Chart 1: Monthly Trend Bar Chart */}
-        <Card>
+      {/* Grid: Ministries Breakdown & Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Ministries Table */}
+        <Card className="lg:col-span-2">
           <CardHeader>
             <div>
-              <CardTitle className="text-base">حجم المعاملات شهرياً (Monthly Volume)</CardTitle>
-              <CardDescription>النمو والتطور في عدد المعاملات الواردة خلال الأشهر الماضية</CardDescription>
+              <CardTitle className="text-base">توزيع المعاملات حسب الجهات الحكومية</CardTitle>
+              <CardDescription>معدل الطلبات المفتوحة والمتأخرة ونسبة الالتزام بـ SLA</CardDescription>
             </div>
-            <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5" />
-              +18.4% نمو
-            </span>
           </CardHeader>
           <CardContent>
-            <div className="h-56 flex items-end justify-between gap-3 pt-6 px-2">
-              {monthlyData.map((item) => {
-                const heightPct = Math.round((item.count / maxMonthCount) * 100);
-                return (
-                  <div key={item.month} className="flex-1 flex flex-col items-center gap-2 group">
-                    <span className="text-[11px] font-bold text-slate-700 opacity-80 group-hover:opacity-100">
-                      {item.count}
-                    </span>
-                    <div className="w-full max-w-[40px] bg-slate-100 rounded-t-xl h-40 flex items-end overflow-hidden">
-                      <div
-                        className="w-full bg-blue-600 rounded-t-xl transition-all group-hover:bg-blue-700"
-                        style={{ height: `${heightPct}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-bold text-slate-500">{item.month}</span>
-                  </div>
-                );
-              })}
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-50 text-slate-700 border-b border-slate-200 font-bold">
+                  <tr>
+                    <th className="py-2.5 px-3">الجهة الحكومية</th>
+                    <th className="py-2.5 px-3">مدة SLA</th>
+                    <th className="py-2.5 px-3">الطلبات النشطة</th>
+                    <th className="py-2.5 px-3">المنجزة</th>
+                    <th className="py-2.5 px-3">المتأخرة</th>
+                    <th className="py-2.5 px-3">نسبة الالتزام</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {ministries.map((m) => {
+                    const ministryRequests = filtered.filter((r) => r.ministryId === m.id);
+                    const mTotal = ministryRequests.length;
+                    const mCompleted = ministryRequests.filter((r) => r.status === 'تم التسليم' || r.status === 'مغلق' || r.status === 'الإجابة جاهزة').length;
+                    const mOverdue = ministryRequests.filter((r) => r.deadlineStatus === 'متأخر').length;
+                    const compliance = mTotal > 0 ? Math.round(((mTotal - mOverdue) / mTotal) * 100) : 100;
+
+                    return (
+                      <tr key={m.id} className="hover:bg-slate-50/70 transition">
+                        <td className="py-2.5 px-3 font-bold text-slate-900">{m.name}</td>
+                        <td className="py-2.5 px-3 font-mono text-slate-500">{m.slaDays} يوم</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-blue-600">{mTotal - mCompleted}</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-emerald-600">{mCompleted}</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-rose-600">{mOverdue}</td>
+                        <td className="py-2.5 px-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  compliance >= 90
+                                    ? 'bg-emerald-500'
+                                    : compliance >= 75
+                                    ? 'bg-amber-500'
+                                    : 'bg-rose-500'
+                                }`}
+                                style={{ width: `${compliance}%` }}
+                              />
+                            </div>
+                            <span className="font-mono font-bold text-slate-700">{compliance}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
 
-        {/* Chart 2: Requests by Ministry Distribution */}
-        <Card>
-          <CardHeader>
-            <div>
-              <CardTitle className="text-base">توزيع المعاملات حسب الوزارة والجهة</CardTitle>
-              <CardDescription>النسبة المئوية لحجم الطلبات المسندة لكل جهة</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {ministries.map((min) => {
-              const count = requests.filter((r) => r.ministryId === min.id).length;
-              const pct = Math.round((count / (requests.length || 1)) * 100);
-
-              return (
-                <div key={min.id} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-slate-800">{min.name}</span>
-                    <span className="text-slate-500 font-mono font-semibold">
-                      {count} معاملة ({pct}%)
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-indigo-600 h-full rounded-full transition-all"
-                      style={{ width: `${Math.max(5, pct)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* Chart 3: Employees Performance */}
-        <Card>
-          <CardHeader>
-            <div>
-              <CardTitle className="text-base">أداء وإنتاجية الموظفين</CardTitle>
-              <CardDescription>توزيع المعاملات المنجزة والمسندة لكل موظف متابعة</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {employees.map((emp) => {
-              const empRequests = requests.filter((r) => r.assignedEmployeeId === emp.id);
-              const doneCount = empRequests.filter(
-                (r) => r.status === 'تم التسليم' || r.status === 'الإجابة جاهزة'
-              ).length;
-
-              return (
-                <div key={emp.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center">
-                        {emp.name[0]}
-                      </div>
-                      <div>
-                        <p className="font-bold text-xs text-slate-900">{emp.name}</p>
-                        <p className="text-[10px] text-slate-500">{emp.role}</p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-emerald-700 font-mono">
-                      {doneCount} / {empRequests.length || emp.assignedRequestsCount} منجز
-                    </span>
-                  </div>
-
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-emerald-600 h-full rounded-full"
-                      style={{
-                        width: `${empRequests.length > 0 ? (doneCount / empRequests.length) * 100 : 70}%`
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* Chart 4: Priority & Urgency Distribution */}
+        {/* Priority Breakdown Card */}
         <Card>
           <CardHeader>
             <div>
@@ -398,6 +369,15 @@ export const ReportsDashboardPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Export Column Customization Modal */}
+      <ExportColumnModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        defaultFormat={exportFormat}
+        isExporting={isExporting}
+      />
     </div>
   );
 };

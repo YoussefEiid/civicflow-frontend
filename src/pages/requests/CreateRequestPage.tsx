@@ -7,7 +7,9 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { calculateExpectedDate } from '../../services/api';
-import { RequestPriority, RequestType, RequestAttachment } from '../../types';
+import { cityService } from '../../services/cityService';
+import { requestTypeService } from '../../services/requestTypeService';
+import { RequestPriority, RequestType, RequestAttachment, City, RequestTypeEntity } from '../../types';
 import {
   User,
   UserPlus,
@@ -20,13 +22,19 @@ import {
   X,
   ArrowRight,
   Sparkles,
-  ShieldAlert
+  ShieldAlert,
+  MapPin,
+  Layers
 } from 'lucide-react';
 
 export const CreateRequestPage: React.FC = () => {
   const navigate = useNavigate();
   const { customers, ministries, employees, handleCreateRequest, handleCreateCustomer } = useData();
   const { success, warning } = useToast();
+
+  // Dynamic lists from backend
+  const [cities, setCities] = useState<City[]>([]);
+  const [dbRequestTypes, setDbRequestTypes] = useState<RequestTypeEntity[]>([]);
 
   // Customer selection mode: 'existing' or 'new'
   const [customerMode, setCustomerMode] = useState<'existing' | 'new'>('existing');
@@ -37,6 +45,7 @@ export const CreateRequestPage: React.FC = () => {
   const [custPhone, setCustPhone] = useState('');
   const [custAltPhone, setCustAltPhone] = useState('');
   const [custNationalId, setCustNationalId] = useState('');
+  const [custCityId, setCustCityId] = useState('');
   const [custAddress, setCustAddress] = useState('');
   const [custNotes, setCustNotes] = useState('');
 
@@ -44,6 +53,7 @@ export const CreateRequestPage: React.FC = () => {
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [requestType, setRequestType] = useState<RequestType>('إصدار تصريح');
+  const [requestTypeId, setRequestTypeId] = useState<string>('');
   const [ministryId, setMinistryId] = useState<string>(ministryDefault());
   const [priority, setPriority] = useState<RequestPriority>('عادي');
   const [assignedEmployeeId, setAssignedEmployeeId] = useState<string>(employees[0]?.id || 'emp-3');
@@ -56,6 +66,26 @@ export const CreateRequestPage: React.FC = () => {
   const [mockFileName, setMockFileName] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const [cList, tList] = await Promise.all([
+          cityService.getActive().catch(() => []),
+          requestTypeService.getActive().catch(() => [])
+        ]);
+        if (cList.length > 0) setCities(cList);
+        if (tList.length > 0) {
+          setDbRequestTypes(tList);
+          setRequestType(tList[0].name);
+          setRequestTypeId(tList[0].id);
+        }
+      } catch (err) {
+        console.warn('Could not load dynamic cities or request types:', err);
+      }
+    };
+    fetchOptions();
+  }, []);
 
   function ministryDefault() {
     return ministries[0]?.id || 'min-1';
@@ -282,6 +312,20 @@ export const CreateRequestPage: React.FC = () => {
                   onChange={(e) => setCustNationalId(e.target.value)}
                   placeholder="10XXXXXXXX"
                 />
+                <div>
+                  <Select
+                    label="المدينة / المحافظة"
+                    value={custCityId}
+                    onChange={(e) => setCustCityId(e.target.value)}
+                  >
+                    <option value="">اختر المدينة...</option>
+                    {cities.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
                 <div className="sm:col-span-2">
                   <Input
                     label="العنوان الوطني / السكن"
@@ -320,17 +364,31 @@ export const CreateRequestPage: React.FC = () => {
                 <Select
                   label="نوع الطلب"
                   value={requestType}
-                  onChange={(e) => setRequestType(e.target.value as RequestType)}
+                  onChange={(e) => {
+                    const selected = dbRequestTypes.find((t) => t.name === e.target.value);
+                    setRequestType(e.target.value as RequestType);
+                    if (selected) setRequestTypeId(selected.id);
+                  }}
                   required
                 >
-                  <option value="إصدار تصريح">إصدار تصريح</option>
-                  <option value="تجديد رخصة">تجديد رخصة</option>
-                  <option value="طلب شهادة رسمية">طلب شهادة رسمية</option>
-                  <option value="شكوى وتظلم">شكوى وتظلم</option>
-                  <option value="استعلام إداري">استعلام إداري</option>
-                  <option value="طلب إعفاء">طلب إعفاء</option>
-                  <option value="معاملة توثيق">معاملة توثيق</option>
-                  <option value="أخرى">أخرى</option>
+                  {dbRequestTypes.length > 0 ? (
+                    dbRequestTypes.map((t) => (
+                      <option key={t.id} value={t.name}>
+                        {t.name}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="إصدار تصريح">إصدار تصريح</option>
+                      <option value="تجديد رخصة">تجديد رخصة</option>
+                      <option value="طلب شهادة رسمية">طلب شهادة رسمية</option>
+                      <option value="شكوى وتظلم">شكوى وتظلم</option>
+                      <option value="استعلام إداري">استعلام إداري</option>
+                      <option value="طلب إعفاء">طلب إعفاء</option>
+                      <option value="معاملة توثيق">معاملة توثيق</option>
+                      <option value="أخرى">أخرى</option>
+                    </>
+                  )}
                 </Select>
               </div>
 

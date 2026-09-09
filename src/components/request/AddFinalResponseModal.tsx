@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { FinalResponse, RequestItem } from '../../types';
-import { CheckCircle2, ShieldCheck, FileCheck } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, FileCheck, Upload } from 'lucide-react';
 
 interface AddFinalResponseModalProps {
   isOpen: boolean;
   onClose: () => void;
   request: RequestItem;
-  onSubmit: (response: Omit<FinalResponse, 'id' | 'issuedAt'>) => Promise<void>;
+  onSubmit: (response: Omit<FinalResponse, 'id' | 'issuedAt'> & { file?: File }) => Promise<void>;
 }
 
 export const AddFinalResponseModal: React.FC<AddFinalResponseModalProps> = ({
@@ -23,9 +23,19 @@ export const AddFinalResponseModal: React.FC<AddFinalResponseModalProps> = ({
   const [summary, setSummary] = useState('');
   const [documentNumber, setDocumentNumber] = useState(`DOC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
   const [attachmentName, setAttachmentName] = useState('الوثيقة_الرسمية_المعتمدة.pdf');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [issuedBy, setIssuedBy] = useState('أحمد علي');
   const [deliveredToCustomer, setDeliveredToCustomer] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const f = e.target.files[0];
+      setSelectedFile(f);
+      setAttachmentName(f.name);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +49,8 @@ export const AddFinalResponseModal: React.FC<AddFinalResponseModalProps> = ({
         documentNumber,
         issuedBy,
         attachmentName: attachmentName ? attachmentName : undefined,
-        deliveredToCustomer
+        deliveredToCustomer,
+        file: selectedFile || undefined
       });
       onClose();
     } catch (err) {
@@ -52,6 +63,14 @@ export const AddFinalResponseModal: React.FC<AddFinalResponseModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="تسجيل الإجابة والقرار النهائي للمعاملة" maxWidth="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        />
+
         <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3">
           <ShieldCheck className="w-6 h-6 text-blue-600 shrink-0" />
           <div className="text-xs text-blue-950">
@@ -96,12 +115,25 @@ export const AddFinalResponseModal: React.FC<AddFinalResponseModalProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
-            label="اسم المرفق الصادر"
-            value={attachmentName}
-            onChange={(e) => setAttachmentName(e.target.value)}
-            placeholder="الوثيقة_المعتمدة.pdf"
-          />
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-sm font-semibold text-slate-700">المرفق الصادر</label>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-bold"
+              >
+                <Upload className="w-3 h-3" />
+                اختيار ملف من الجهاز
+              </button>
+            </div>
+            <Input
+              value={attachmentName}
+              onChange={(e) => setAttachmentName(e.target.value)}
+              placeholder="الوثيقة_المعتمدة.pdf"
+            />
+          </div>
+
           <Input
             label="الموظف المعتمد"
             value={issuedBy}

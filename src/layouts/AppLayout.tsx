@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { Sidebar } from '../components/common/Sidebar';
 import { Header } from '../components/common/Header';
 import { MobileNav } from '../components/common/MobileNav';
 
 export const AppLayout: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 font-sans" dir="rtl">

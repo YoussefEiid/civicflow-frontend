@@ -21,9 +21,43 @@ export type RequestType =
   | 'استعلام إداري'
   | 'طلب إعفاء'
   | 'معاملة توثيق'
-  | 'أخرى';
+  | 'أخرى'
+  | string;
+
+export interface City {
+  id: string;
+  name: string;
+  code?: string;
+  isActive: boolean;
+  customersCount?: number;
+  requestsCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RequestTypeEntity {
+  id: string;
+  name: string;
+  code?: string;
+  description?: string;
+  isActive: boolean;
+  requestsCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export type DeadlineStatus = 'ضمن المدة' | 'اقترب الموعد' | 'متأخر';
+
+export type DocumentType =
+  | 'INTERNAL'
+  | 'IDENTITY'
+  | 'REQUEST_DOCUMENT'
+  | 'SENDING_DOCUMENT'
+  | 'APPROVAL_DOCUMENT'
+  | 'REJECTION_DOCUMENT'
+  | 'FINAL_RESPONSE'
+  | 'DELIVERY_PROOF'
+  | 'GENERAL';
 
 export interface RequestAttachment {
   id: string;
@@ -33,6 +67,10 @@ export interface RequestAttachment {
   uploadedAt: string;
   uploadedBy: string;
   url?: string;
+  documentType?: DocumentType | string;
+  isPublic?: boolean;
+  isIdentity?: boolean;
+  stage?: string;
 }
 
 export interface RequestTimelineEvent {
@@ -61,17 +99,23 @@ export interface RequestItem {
   id: string;
   requestNumber: string; // e.g. REQ-1025
   customerId: string;
+  customerNumber?: string;
   customerName: string;
   customerPhone: string;
   customerAltPhone?: string;
+  nationalId?: string;
   customerAddress?: string;
+  cityId?: string;
+  cityName?: string;
   title: string;
   details: string;
   requestType: RequestType;
+  requestTypeId?: string;
   ministryId: string;
   ministryName: string;
   status: RequestStatus;
   priority: RequestPriority;
+  rejectionReason?: string;
   assignedEmployeeId: string;
   assignedEmployeeName: string;
   receiveDate: string; // YYYY-MM-DD
@@ -89,10 +133,13 @@ export interface RequestItem {
 
 export interface Customer {
   id: string;
+  customerNumber?: string;
   name: string;
   phone: string;
   altPhone?: string;
   nationalId?: string;
+  cityId?: string;
+  cityName?: string;
   email?: string;
   address: string;
   notes?: string;

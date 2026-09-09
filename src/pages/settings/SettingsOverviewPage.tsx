@@ -15,7 +15,9 @@ import {
   RotateCcw,
   ChevronLeft,
   CheckCircle2,
-  FileCode2
+  FileCode2,
+  MapPin,
+  Layers
 } from 'lucide-react';
 
 export const SettingsOverviewPage: React.FC = () => {
@@ -29,6 +31,18 @@ export const SettingsOverviewPage: React.FC = () => {
       desc: 'اسم المنظومة، معلومات المكتب، العنوان، وأوقات العمل الرسمية',
       icon: <Settings className="w-6 h-6 text-blue-600" />,
       path: '/settings/general'
+    },
+    {
+      title: 'إدارة المدن والمحافظات',
+      desc: 'إدارة قائمة المدن والمناطق المعتمدة وربطها بالمراجعين والمعاملات',
+      icon: <MapPin className="w-6 h-6 text-brand-600" />,
+      path: '/settings/cities'
+    },
+    {
+      title: 'أنواع وتصنيفات الطلبات',
+      desc: 'تهيئة أنواع المعاملات، الأوصاف، وربطها ببوابة التقديم الإلكترونية',
+      icon: <Layers className="w-6 h-6 text-violet-600" />,
+      path: '/settings/request-types'
     },
     {
       title: 'تهيئة حالات الطلبات',

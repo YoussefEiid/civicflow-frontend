@@ -1,0 +1,40 @@
+import { apiClient } from './apiClient';
+import { Customer } from '../types';
+
+export interface CustomerFilters {
+  search?: string;
+  status?: string;
+  cityId?: string;
+}
+
+export const customerService = {
+  getCustomers: async (filters?: string | CustomerFilters, status?: string): Promise<Customer[]> => {
+    let params: any = {};
+    if (typeof filters === 'string') {
+      params = { search: filters, status };
+    } else if (filters) {
+      params = { ...filters };
+    }
+
+    const data = await apiClient.get<{ customers: Customer[]; total: number }>('/customers', {
+      params
+    });
+    return data.customers;
+  },
+
+  getCustomerById: async (id: string): Promise<Customer> => {
+    return apiClient.get<Customer>(`/customers/${id}`);
+  },
+
+  createCustomer: async (customerData: Partial<Customer>): Promise<Customer> => {
+    return apiClient.post<Customer>('/customers', customerData);
+  },
+
+  updateCustomer: async (id: string, updates: Partial<Customer>): Promise<Customer> => {
+    return apiClient.patch<Customer>(`/customers/${id}`, updates);
+  },
+
+  deleteCustomer: async (id: string): Promise<void> => {
+    await apiClient.delete(`/customers/${id}`);
+  }
+};

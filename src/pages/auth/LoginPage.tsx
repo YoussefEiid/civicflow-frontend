@@ -9,10 +9,10 @@ import { Lock, Mail, ArrowRight, Shield, CheckCircle2 } from 'lucide-react';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { success } = useToast();
+  const { success, error: toastError } = useToast();
 
   const [email, setEmail] = useState('ahmed.ali@civicflow.gov');
-  const [password, setPassword] = useState('••••••••');
+  const [password, setPassword] = useState('demo123456');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,8 +23,9 @@ export const LoginPage: React.FC = () => {
       await login(email, password);
       success('تم تسجيل الدخول بنجاح', 'مرحباً بك في منظومة CivicFlow');
       navigate('/dashboard');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Login error:', err);
+      toastError('فشل تسجيل الدخول', err?.message || 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
     } finally {
       setIsLoading(false);
     }

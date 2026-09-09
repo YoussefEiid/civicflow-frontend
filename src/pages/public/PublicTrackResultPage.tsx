@@ -1,10 +1,8 @@
-import React from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useData } from '../../context/DataContext';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { PriorityBadge, DeadlineBadge } from '../../components/common/PriorityBadge';
 import {
   Search,
   ArrowRight,
@@ -17,8 +15,12 @@ import {
   Download,
   Printer,
   FileCheck2,
-  AlertTriangle
+  AlertTriangle,
+  FileText,
+  Lock,
+  Layers
 } from 'lucide-react';
+import { publicService } from '../../services/publicService';
 
 const PUBLIC_STEPS = [
   'استلام الطلب',
@@ -32,28 +34,56 @@ const PUBLIC_STEPS = [
 
 export const PublicTrackResultPage: React.FC = () => {
   const { requestNumber } = useParams<{ requestNumber: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { requests } = useData();
 
-  // Search by request number (case-insensitive) or by ID
-  const cleanQuery = (requestNumber || '').toUpperCase().replace('#', '').trim();
-  const request = requests.find(
-    (r) =>
-      r.requestNumber.toUpperCase() === cleanQuery ||
-      r.requestNumber.toUpperCase() === `REQ-${cleanQuery}` ||
-      r.id === cleanQuery.toLowerCase()
-  );
+  const queryNumber = requestNumber || searchParams.get('q') || '';
+  const [loading, setLoading] = useState(true);
+  const [request, setRequest] = useState<any | null>(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  if (!request) {
+  useEffect(() => {
+    if (!queryNumber) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchTrack = async () => {
+      try {
+        setLoading(true);
+        setErrorMsg('');
+        const data = await publicService.trackRequest(queryNumber);
+        setRequest(data);
+      } catch (err: any) {
+        setErrorMsg(err.message || 'لم يتم العثور على المعاملة');
+        setRequest(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrack();
+  }, [queryNumber]);
+
+  if (loading) {
     return (
-      <div className="text-center py-16 space-y-6">
+      <div className="text-center py-20 space-y-4">
+        <div className="w-12 h-12 border-4 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="text-xs text-gray-500 font-semibold">جاري الاستعلام عن بيانات المعاملة من المنظومة...</p>
+      </div>
+    );
+  }
+
+  if (!request || errorMsg) {
+    return (
+      <div className="text-center py-16 space-y-6 max-w-md mx-auto">
         <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
           <AlertTriangle className="w-8 h-8" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-900">لم يتم العثور على المعاملة</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            لا توجد معاملة مسجلة برقم <span className="font-mono font-bold text-slate-800">{requestNumber}</span>.
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">لم يتم العثور على المعاملة</h2>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
+            لا توجد معاملة مسجلة بالرقم <span className="font-mono font-bold text-slate-800 dark:text-gray-200">{queryNumber}</span>.
           </p>
         </div>
         <Button
@@ -70,8 +100,8 @@ export const PublicTrackResultPage: React.FC = () => {
   const currentIdx = PUBLIC_STEPS.indexOf(request.status);
 
   return (
-    <div className="space-y-6 py-6 max-w-3xl mx-auto">
-      {/* Top back action */}
+    <div className="space-y-6 py-6 max-w-3xl mx-auto" dir="rtl">
+      {/* Top action */}
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
@@ -93,7 +123,7 @@ export const PublicTrackResultPage: React.FC = () => {
       </div>
 
       {/* Main Status Banner */}
-      <Card className="border-blue-200 overflow-hidden shadow-lg">
+      <Card className="border-blue-200 dark:border-blue-900 overflow-hidden shadow-lg">
         <div className="bg-gradient-to-l from-slate-900 via-slate-800 to-blue-950 p-6 sm:p-8 text-white">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <span className="text-xl sm:text-2xl font-black font-mono text-blue-300">
@@ -105,41 +135,59 @@ export const PublicTrackResultPage: React.FC = () => {
           <h2 className="text-lg sm:text-xl font-bold text-white mb-2">{request.title}</h2>
 
           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300 pt-2 border-t border-slate-700/60">
-            <span className="flex items-center gap-1.5">
-              <Building2 className="w-4 h-4 text-blue-400" />
-              الجهة المعنية: <strong className="text-white">{request.ministryName}</strong>
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-emerald-400" />
-              تاريخ التقديم: <strong className="text-white font-mono">{request.receiveDate}</strong>
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-amber-400" />
-              الموعد المتوقع: <strong className="text-white font-mono">{request.expectedCompletionDate}</strong>
-            </span>
+            {request.ministryName && (
+              <span className="flex items-center gap-1.5">
+                <Building2 className="w-4 h-4 text-blue-400" />
+                الجهة المعنية: <strong className="text-white">{request.ministryName}</strong>
+              </span>
+            )}
+            {request.requestType && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-purple-400" />
+                  نوع الطلب: <strong className="text-white">{request.requestType}</strong>
+                </span>
+              </>
+            )}
+            {request.receiveDate && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-emerald-400" />
+                  تاريخ التقديم: <strong className="text-white font-mono">{request.receiveDate}</strong>
+                </span>
+              </>
+            )}
+            {request.expectedCompletionDate && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  الموعد المتوقع: <strong className="text-white font-mono">{request.expectedCompletionDate}</strong>
+                </span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Public Timeline */}
+        {/* Public Timeline & Stage Documents */}
         <CardContent className="p-6 sm:p-8 space-y-6">
-          <h3 className="font-bold text-base text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+          <h3 className="font-bold text-base text-slate-900 dark:text-white mb-4 pb-2 border-b border-slate-100 dark:border-gray-700 flex items-center gap-2">
             <Clock className="w-4 h-4 text-blue-600" />
             المسار الإجرائي للمعاملة
           </h3>
 
-          <div className="relative border-r-2 border-slate-200 pr-6 mr-3 space-y-6">
+          <div className="relative border-r-2 border-slate-200 dark:border-gray-700 pr-6 mr-3 space-y-6">
             {PUBLIC_STEPS.map((step, idx) => {
               const isPassed = currentIdx > idx;
               const isCurrent = request.status === step;
-              const isUpcoming = currentIdx < idx && !isCurrent;
 
-              let nodeColor = 'bg-slate-100 border-slate-300 text-slate-400';
+              let nodeColor = 'bg-slate-100 dark:bg-gray-700 border-slate-300 dark:border-gray-600 text-slate-400';
               if (isPassed) {
                 nodeColor = 'bg-emerald-600 border-emerald-600 text-white shadow-xs';
               } else if (isCurrent) {
-                nodeColor = 'bg-blue-600 border-blue-600 text-white shadow-md ring-4 ring-blue-100';
+                nodeColor = 'bg-blue-600 border-blue-600 text-white shadow-md ring-4 ring-blue-100 dark:ring-blue-900';
               }
 
               return (
@@ -159,21 +207,21 @@ export const PublicTrackResultPage: React.FC = () => {
                   <div
                     className={`p-3.5 rounded-xl border transition ${
                       isCurrent
-                        ? 'bg-blue-50/60 border-blue-200'
+                        ? 'bg-blue-50/60 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                         : isPassed
-                        ? 'bg-slate-50 border-slate-200'
-                        : 'bg-white border-slate-100 opacity-50'
+                        ? 'bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700'
+                        : 'bg-white dark:bg-gray-800/40 border-slate-100 dark:border-gray-700 opacity-50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm text-slate-800">{step}</span>
+                      <span className="font-bold text-sm text-slate-800 dark:text-gray-200">{step}</span>
                       {isCurrent && (
-                        <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">
+                        <span className="text-[11px] font-bold text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded-md">
                           المرحلة الحالية
                         </span>
                       )}
                       {isPassed && (
-                        <span className="text-[11px] font-bold text-emerald-700">مكتمل ✓</span>
+                        <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">مكتمل ✓</span>
                       )}
                     </div>
                   </div>
@@ -182,26 +230,75 @@ export const PublicTrackResultPage: React.FC = () => {
             })}
           </div>
 
-          {/* Decision Box (if ready) */}
+          {/* Rejection notice if rejected */}
+          {request.status === 'مرفوض' && (
+            <div className="mt-6 p-5 bg-rose-50 dark:bg-rose-900/20 border-2 border-rose-300 dark:border-rose-800 rounded-2xl space-y-2">
+              <h4 className="font-bold text-rose-950 dark:text-rose-300 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-rose-600" />
+                تم رفض المعاملة
+              </h4>
+              <p className="text-xs text-rose-900 dark:text-rose-200 font-medium">
+                {request.rejectionReason || 'تعذر استكمال المعاملة لعدم استيفاء الشروط والضوابط النظامية المطلوبة.'}
+              </p>
+            </div>
+          )}
+
+          {/* Decision Box (if final response ready) */}
           {request.finalResponse && (
-            <div className="mt-8 p-5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl space-y-3">
+            <div className="mt-8 p-5 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-300 dark:border-emerald-800 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FileCheck2 className="w-5 h-5 text-emerald-700" />
-                  <h4 className="font-bold text-emerald-950">القرار الرسمي الصادر</h4>
+                  <FileCheck2 className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
+                  <h4 className="font-bold text-emerald-950 dark:text-emerald-200">القرار الرسمي الصادر</h4>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-200 text-emerald-900">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100">
                   {request.finalResponse.decision}
                 </span>
               </div>
-              <p className="text-xs text-emerald-900 leading-relaxed font-medium">
+              <p className="text-xs text-emerald-900 dark:text-emerald-200 leading-relaxed font-medium">
                 {request.finalResponse.summary}
               </p>
               {request.finalResponse.documentNumber && (
-                <p className="text-xs text-emerald-800 font-mono">
+                <p className="text-xs text-emerald-800 dark:text-emerald-300 font-mono">
                   رقم الوثيقة الرسمية: <strong>{request.finalResponse.documentNumber}</strong>
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Public Stage Documents Available for Download */}
+          {request.stageDocuments && request.stageDocuments.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-gray-700">
+              <h4 className="text-xs font-bold text-slate-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-brand-600" />
+                المستندات والقرارات المتاحة للتحميل
+              </h4>
+              <div className="space-y-2">
+                {request.stageDocuments.map((doc: any) => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-gray-750 border border-slate-200 dark:border-gray-700 rounded-xl"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <div>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">{doc.name}</p>
+                        <p className="text-[10px] text-slate-400">{doc.type || 'وثيقة رسمية'}</p>
+                      </div>
+                    </div>
+
+                    <a
+                      href={publicService.downloadAttachmentUrl(doc.id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      تنزيل الوثيقة
+                    </a>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

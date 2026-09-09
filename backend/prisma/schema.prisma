@@ -1,0 +1,377 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum PriorityLevel {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CustomerStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum DocumentType {
+  INTERNAL
+  IDENTITY
+  REQUEST_DOCUMENT
+  SENDING_DOCUMENT
+  APPROVAL_DOCUMENT
+  REJECTION_DOCUMENT
+  FINAL_RESPONSE
+  DELIVERY_PROOF
+  GENERAL
+}
+
+model User {
+  id                   String                 @id @default(uuid())
+  name                 String
+  email                String                 @unique
+  phone                String?
+  passwordHash         String
+  roleId               String
+  role                 Role                   @relation(fields: [roleId], references: [id])
+  department           String?
+  status               UserStatus             @default(ACTIVE)
+  avatarUrl            String?
+  lastLogin            DateTime?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+
+  assignedRequests     Request[]              @relation("AssignedEmployee")
+  statusHistoryEntries RequestStatusHistory[] @relation("ChangedByUser")
+  auditLogs            AuditLog[]
+  refreshTokens        RefreshToken[]
+  notifications        Notification[]
+
+  @@map("users")
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  users           User[]
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  key             String           @unique
+  module          String
+  description     String?
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model City {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  customers Customer[]
+  requests  Request[]
+
+  @@map("cities")
+}
+
+model RequestType {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  status    UserStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  requests  Request[]
+
+  @@map("request_types")
+}
+
+model Customer {
+  id             String              @id @default(uuid())
+  customerNumber String?             @unique
+  name           String
+  phone          String
+  altPhone       String?
+  nationalId     String?             @unique
+  email          String?
+  cityId         String?
+  city           City?               @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  address        String
+  notes          String?
+  status         CustomerStatus      @default(ACTIVE)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  requests       Request[]
+  attachments    RequestAttachment[]
+
+  @@index([phone])
+  @@index([customerNumber])
+  @@index([nationalId])
+  @@map("customers")
+}
+
+model Ministry {
+  id            String      @id @default(uuid())
+  name          String      @unique
+  code          String      @unique
+  slaDays       Int         @default(7)
+  status        UserStatus  @default(ACTIVE)
+  notes         String?
+  contactPerson String?
+  contactPhone  String?
+  contactEmail  String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  requests      Request[]
+  slaSetting    SLASetting?
+
+  @@map("ministries")
+}
+
+model RequestStatus {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  color         String   @default("blue")
+  order         Int      @default(1)
+  isActive      Boolean  @default(true)
+  isInitial     Boolean  @default(false)
+  isTerminal    Boolean  @default(false)
+  requiresNotes Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("request_statuses")
+}
+
+model Request {
+  id                     String                 @id @default(uuid())
+  requestNumber          String                 @unique
+  publicTrackingToken    String                 @unique @default(uuid())
+  customerId             String
+  customer               Customer               @relation(fields: [customerId], references: [id])
+  ministryId             String
+  ministry               Ministry               @relation(fields: [ministryId], references: [id])
+  cityId                 String?
+  city                   City?                  @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  requestTypeId          String?
+  requestTypeRel         RequestType?           @relation(fields: [requestTypeId], references: [id], onDelete: SetNull)
+  assignedEmployeeId     String?
+  assignedEmployee       User?                  @relation("AssignedEmployee", fields: [assignedEmployeeId], references: [id])
+  
+  title                  String
+  details                String
+  requestType            String
+  status                 String                 @default("استلام الطلب")
+  priority               PriorityLevel          @default(NORMAL)
+  
+  receiveDate            DateTime               @default(now())
+  expectedCompletionDate DateTime
+  completedDate          DateTime?
+  deadlineStatus         String                 @default("ضمن المدة")
+  daysRemainingOrOverdue Int                    @default(7)
+  internalNotes          String?
+  
+  attachments            RequestAttachment[]
+  statusHistory          RequestStatusHistory[]
+  finalResponse          FinalResponse?
+  notifications          Notification[]
+
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@index([requestNumber])
+  @@index([customerId])
+  @@index([ministryId])
+  @@index([cityId])
+  @@index([status])
+  @@index([deadlineStatus])
+  @@map("requests")
+}
+
+model RequestStatusHistory {
+  id           String   @id @default(uuid())
+  requestId    String
+  request      Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  oldStatus    String?
+  newStatus    String
+  changedById  String?
+  changedBy    User?    @relation("ChangedByUser", fields: [changedById], references: [id])
+  employeeName String?
+  note         String?
+  reason       String?
+  documentId   String?
+  documentName String?
+  documentPath String?
+  isPublicDoc  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@map("request_status_history")
+}
+
+model RequestAttachment {
+  id           String       @id @default(uuid())
+  requestId    String
+  request      Request      @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  customerId   String?
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  name         String
+  filePath     String
+  fileSize     String
+  fileType     String
+  mimeType     String?
+  documentType DocumentType @default(GENERAL)
+  isPublic     Boolean      @default(false)
+  isIdentity   Boolean      @default(false)
+  uploadedBy   String
+  uploadedAt   DateTime     @default(now())
+
+  @@map("request_attachments")
+}
+
+model FinalResponse {
+  id                  String    @id @default(uuid())
+  requestId           String    @unique
+  request             Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  decision            String
+  summary             String
+  documentNumber      String?
+  issuedAt            DateTime  @default(now())
+  issuedBy            String
+  attachmentPath      String?
+  attachmentName      String?
+  deliveredToCustomer Boolean   @default(false)
+  deliveryDate        DateTime?
+
+  @@map("final_responses")
+}
+
+model Notification {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  message       String
+  requestId     String?
+  request       Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requestNumber String?
+  type          String
+  read          Boolean  @default(false)
+  link          String?
+  createdAt     DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model WhatsAppTemplate {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  title     String
+  content   String
+  variables Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("whatsapp_templates")
+}
+
+model WhatsAppMessageLog {
+  id             String   @id @default(uuid())
+  phoneNumber    String
+  templateKey    String?
+  messageContent String
+  status         String
+  errorMessage   String?
+  requestId      String?
+  createdAt      DateTime @default(now())
+
+  @@map("whatsapp_message_logs")
+}
+
+model SLASetting {
+  id                  String   @id @default(uuid())
+  ministryId          String   @unique
+  ministry            Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+  defaultDays         Int      @default(7)
+  urgentDays          Int      @default(3)
+  importantDays       Int      @default(5)
+  autoAlertBeforeDays Int      @default(2)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("sla_settings")
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userName      String
+  userRole      String
+  action        String
+  requestNumber String?
+  entity        String?
+  entityId      String?
+  details       String
+  beforeValue   Json?
+  afterValue    Json?
+  documentName  String?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  @@map("audit_logs")
+}

@@ -1,68 +1,105 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Employee } from '../types';
-import { getStoredData, setStoredData } from '../services/mockStorage';
-import { initialEmployees } from '../data/seedData';
+import { authService } from '../services/authService';
 
 interface AuthContextType {
   user: Employee | null;
   isAuthenticated: boolean;
   login: (email?: string, password?: string) => Promise<boolean>;
   logout: () => void;
-  updateProfile: (updates: Partial<Employee>) => void;
-  switchUser: (employeeId: string) => void;
+  updateProfile: (updates: Partial<Employee>) => Promise<void>;
+  switchUser: (employeeId: string) => Promise<void>;
 }
-
-const AUTH_USER_KEY = 'civicflow_auth_user';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Demo email map for quick switchUser
+const DEMO_EMAILS: Record<string, string> = {
+  'emp-1': 'ahmed.ali@civicflow.gov',
+  'emp-2': 'm.hassan@civicflow.gov',
+  'emp-3': 'sara.m@civicflow.gov',
+  'emp-4': 'khaled.i@civicflow.gov'
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<Employee | null>(() => {
-    return getStoredData<Employee | null>(AUTH_USER_KEY, initialEmployees[0]);
-  });
+  const [user, setUser] = useState<Employee | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Restore session on initial load
+  const initAuth = useCallback(async () => {
+    try {
+      // First try to refresh session via HTTP-only cookie
+      const res = await authService.refreshToken();
+      if (res?.user) {
+        setUser(res.user);
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (user) {
-      setStoredData(AUTH_USER_KEY, user);
-    } else {
-      localStorage.removeItem(AUTH_USER_KEY);
-    }
-  }, [user]);
+    initAuth();
 
-  const login = async (email?: string, _password?: string): Promise<boolean> => {
-    const employees = getStoredData<Employee[]>('civicflow_employees', initialEmployees);
-    let matchedUser = employees.find((e) => e.email === email);
-    if (!matchedUser) {
-      // default demo fallback
-      matchedUser = employees[0] || initialEmployees[0];
-    }
-
-    const updatedUser = {
-      ...matchedUser,
-      lastLogin: new Date().toISOString().replace('T', ' ').substring(0, 16)
+    const handleExpired = () => {
+      setUser(null);
     };
 
-    setUser(updatedUser);
+    window.addEventListener('civicflow_auth_expired', handleExpired);
+    return () => {
+      window.removeEventListener('civicflow_auth_expired', handleExpired);
+    };
+  }, [initAuth]);
+
+  const login = async (email?: string, password?: string): Promise<boolean> => {
+    const targetEmail = email || 'ahmed.ali@civicflow.gov';
+    const targetPassword = password || 'demo123456';
+    const res = await authService.login(targetEmail, targetPassword);
+    setUser(res.user);
     return true;
   };
 
-  const logout = () => {
-    setUser(null);
-  };
-
-  const updateProfile = (updates: Partial<Employee>) => {
-    if (!user) return;
-    const updated = { ...user, ...updates };
-    setUser(updated);
-  };
-
-  const switchUser = (employeeId: string) => {
-    const employees = getStoredData<Employee[]>('civicflow_employees', initialEmployees);
-    const target = employees.find((e) => e.id === employeeId);
-    if (target) {
-      setUser(target);
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setUser(null);
     }
   };
+
+  const updateProfile = async (updates: Partial<Employee>) => {
+    if (!user) return;
+    try {
+      const res = await authService.updateProfile(updates);
+      setUser(res.user);
+    } catch (err) {
+      console.error('Update profile error:', err);
+      // Optimistic update fallback
+      setUser({ ...user, ...updates });
+    }
+  };
+
+  const switchUser = async (employeeId: string) => {
+    const email = DEMO_EMAILS[employeeId] || 'ahmed.ali@civicflow.gov';
+    await login(email, 'demo123456');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-bold text-slate-500">جاري التحقق من هوية المستخدم...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider

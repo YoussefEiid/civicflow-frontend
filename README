@@ -1,0 +1,34 @@
+CivicFlow
+Administrative Requests Management System
+
+Production URL:
+https://civicflow.example.com
+
+Admin Account:
+admin@example.com
+
+Backend API:
+https://api.example.com
+
+Technology:
+React
+Node.js
+Express
+PostgreSQL
+Prisma
+
+Main Features:
+- Request Management
+- Customer Management
+- Ministries
+- Cities
+- Request Types
+- SLA
+- Notifications
+- Public Tracking
+- Public Request Submission
+- Attachments
+- Excel Export
+- PDF Export
+- Audit Logs
+- RBAC

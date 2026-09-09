@@ -53,23 +53,28 @@ import { AuditLogsPage } from '../pages/audit/AuditLogsPage';
 // Settings Pages
 import { SettingsOverviewPage } from '../pages/settings/SettingsOverviewPage';
 import { GeneralSettingsPage } from '../pages/settings/GeneralSettingsPage';
+import { CitiesSettingsPage } from '../pages/settings/CitiesSettingsPage';
+import { RequestTypesSettingsPage } from '../pages/settings/RequestTypesSettingsPage';
 import { StatusesSettingsPage } from '../pages/settings/StatusesSettingsPage';
 import { SlaSettingsPage } from '../pages/settings/SlaSettingsPage';
 import { NotificationSettingsPage } from '../pages/settings/NotificationSettingsPage';
 import { WhatsAppSettingsPage } from '../pages/settings/WhatsAppSettingsPage';
 import { WhatsAppTemplatesPage } from '../pages/settings/WhatsAppTemplatesPage';
 
-// Public Tracking Pages
+// Public Pages
 import { PublicTrackPage } from '../pages/public/PublicTrackPage';
 import { PublicTrackResultPage } from '../pages/public/PublicTrackResultPage';
+import { PublicSubmitRequestPage } from '../pages/public/PublicSubmitRequestPage';
 
 export const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      {/* Public Tracking Routes (No Auth Layout) */}
+      {/* Public Routes (No Auth Layout) */}
       <Route element={<PublicLayout />}>
         <Route path="/track" element={<PublicTrackPage />} />
         <Route path="/track/:requestNumber" element={<PublicTrackResultPage />} />
+        <Route path="/submit-request" element={<PublicSubmitRequestPage />} />
+        <Route path="/public/submit-request" element={<PublicSubmitRequestPage />} />
       </Route>
 
       {/* Auth Layout Routes */}
@@ -124,6 +129,8 @@ export const AppRoutes: React.FC = () => {
         {/* Settings */}
         <Route path="/settings" element={<SettingsOverviewPage />} />
         <Route path="/settings/general" element={<GeneralSettingsPage />} />
+        <Route path="/settings/cities" element={<CitiesSettingsPage />} />
+        <Route path="/settings/request-types" element={<RequestTypesSettingsPage />} />
         <Route path="/settings/statuses" element={<StatusesSettingsPage />} />
         <Route path="/settings/sla" element={<SlaSettingsPage />} />
         <Route path="/settings/notifications" element={<NotificationSettingsPage />} />

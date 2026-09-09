@@ -11,8 +11,9 @@ import { Pagination } from '../../components/ui/Pagination';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ChangeStatusModal } from '../../components/request/ChangeStatusModal';
+import { ExportColumnModal } from '../../components/common/ExportColumnModal';
 import { RequestItem, RequestStatus, RequestPriority } from '../../types';
-import { exportRequestsToCsv } from '../../services/api';
+import { reportService } from '../../services/reportService';
 import {
   Plus,
   Search,
@@ -26,6 +27,7 @@ import {
   ArrowUpDown,
   Flame,
   FileSpreadsheet,
+  FileText,
   X
 } from 'lucide-react';
 
@@ -51,6 +53,11 @@ export const RequestsListPage: React.FC = () => {
   const [toDate, setToDate] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'excel' | 'pdf'>('excel');
+  const [isExporting, setIsExporting] = useState(false);
+
   // Sorting State
   const [sortField, setSortField] = useState<'receiveDate' | 'expectedCompletionDate' | 'requestNumber'>('receiveDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -73,6 +80,9 @@ export const RequestsListPage: React.FC = () => {
       list = list.filter(
         (r) =>
           r.requestNumber.toLowerCase().includes(q) ||
+          (r.customerNumber && r.customerNumber.toLowerCase().includes(q)) ||
+          (r.nationalId && r.nationalId.includes(q)) ||
+          (r.cityName && r.cityName.toLowerCase().includes(q)) ||
           r.customerName.toLowerCase().includes(q) ||
           r.customerPhone.includes(q) ||
           r.title.toLowerCase().includes(q)
@@ -190,6 +200,38 @@ export const RequestsListPage: React.FC = () => {
     fromDate !== '' ||
     toDate !== '';
 
+  const handleOpenExport = (format: 'excel' | 'pdf') => {
+    setExportFormat(format);
+    setIsExportModalOpen(true);
+  };
+
+  const handleExport = async (format: 'excel' | 'pdf', selectedColumns: string[]) => {
+    try {
+      setIsExporting(true);
+      const filters = {
+        search: search.trim() || undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        ministryId: ministryFilter !== 'all' ? ministryFilter : undefined,
+        employeeId: employeeFilter !== 'all' ? employeeFilter : undefined,
+        priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+        requestType: typeFilter !== 'all' ? typeFilter : undefined,
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined
+      };
+
+      if (format === 'excel') {
+        await reportService.exportRequestsExcel(filters, selectedColumns);
+      } else {
+        await reportService.exportRequestsPdf(filters, selectedColumns);
+      }
+      setIsExportModalOpen(false);
+    } catch (err) {
+      console.error('Export error:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header & Main Action */}
@@ -205,10 +247,20 @@ export const RequestsListPage: React.FC = () => {
           <Button
             variant="outline"
             size="md"
-            onClick={() => exportRequestsToCsv(filteredRequests)}
-            icon={<Download className="w-4 h-4" />}
+            onClick={() => handleOpenExport('pdf')}
+            className="text-red-600 border-red-200 hover:bg-red-50"
+            icon={<FileText className="w-4 h-4" />}
           >
-            تصدير Excel
+            تصدير PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => handleOpenExport('excel')}
+            className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+            icon={<FileSpreadsheet className="w-4 h-4" />}
+          >
+            تصدير Excel مخصص
           </Button>
           <Button
             variant="primary"
@@ -542,8 +594,8 @@ export const RequestsListPage: React.FC = () => {
           isOpen={!!statusModalRequest}
           onClose={() => setStatusModalRequest(null)}
           request={statusModalRequest}
-          onSubmit={async (newStatus, note) => {
-            await handleChangeStatus(statusModalRequest.id, newStatus, note);
+          onSubmit={async (newStatus, note, file, rejectionReason) => {
+            await handleChangeStatus(statusModalRequest.id, newStatus, note, file, rejectionReason);
             success('تم تغيير الحالة بنجاح', `تم تحديث حالة المعاملة #${statusModalRequest.requestNumber}`);
           }}
         />
@@ -559,6 +611,15 @@ export const RequestsListPage: React.FC = () => {
         confirmText="نعم، احذف المعاملة"
         variant="danger"
         isLoading={isDeleting}
+      />
+
+      {/* Export Customization Modal */}
+      <ExportColumnModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleExport}
+        defaultFormat={exportFormat}
+        isExporting={isExporting}
       />
     </div>
   );
