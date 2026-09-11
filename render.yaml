@@ -40,7 +40,7 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://civicflow-backend.onrender.com/api
+        value: https://civicflow-backend-1u3o.onrender.com/api
 
 # ------------------------------------------------------
 # 3. PostgreSQL Database

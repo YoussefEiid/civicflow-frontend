@@ -38,12 +38,13 @@ export const publicService = {
     );
   },
 
-  // Download public attachment safely
   downloadAttachmentUrl: (attachmentId: string): string => {
+    const isBrowser = typeof window !== 'undefined';
+    const isLocalhost = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const baseUrl =
       (import.meta as any).env?.VITE_API_BASE_URL ||
       (import.meta as any).env?.VITE_API_URL ||
-      'http://localhost:5000/api';
+      (isLocalhost ? 'http://localhost:5000/api' : 'https://civicflow-backend-1u3o.onrender.com/api');
     return `${baseUrl}/public/attachments/${attachmentId}/download`;
   }
 };
