@@ -40,7 +40,10 @@ export const publicService = {
 
   // Download public attachment safely
   downloadAttachmentUrl: (attachmentId: string): string => {
-    const baseUrl = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const baseUrl =
+      (import.meta as any).env?.VITE_API_BASE_URL ||
+      (import.meta as any).env?.VITE_API_URL ||
+      'http://localhost:5000/api';
     return `${baseUrl}/public/attachments/${attachmentId}/download`;
   }
 };
