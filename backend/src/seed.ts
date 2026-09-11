@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seedDatabase() {
   console.log('🌱 Starting CivicFlow database seeding with product upgrade...');
 
   // 1. Clean existing records in reverse dependency order
@@ -789,11 +789,14 @@ async function main() {
   console.log('🎉 Database seeding successfully completed with all upgrades!');
 }
 
-main()
-  .catch((e) => {
-    console.error('❌ Seeding failed:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Execute if executed directly as a script
+if (process.argv[1] && (process.argv[1].endsWith('seed.js') || process.argv[1].endsWith('seed.ts'))) {
+  seedDatabase()
+    .catch((e) => {
+      console.error('❌ Seeding failed:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

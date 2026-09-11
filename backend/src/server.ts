@@ -2,12 +2,25 @@ import { app } from './app.js';
 import { env } from './config/env.js';
 import { prisma } from './config/database.js';
 import { startSlaBackgroundJob } from './jobs/slaChecker.job.js';
+import { seedDatabase } from './seed.js';
 
 async function startServer() {
   try {
     // Verify database connection
     await prisma.$connect();
     console.log('✅ PostgreSQL database connected successfully via Prisma');
+
+    // Automatically seed if database is empty
+    try {
+      const userCount = await prisma.user.count();
+      if (userCount === 0) {
+        console.log('🌱 Database is empty. Running automatic initial seed...');
+        await seedDatabase();
+        console.log('✅ Automatic seeding completed successfully!');
+      }
+    } catch (seedErr) {
+      console.warn('⚠️ Seeding check notice:', seedErr);
+    }
 
     // Start background SLA job
     startSlaBackgroundJob();
