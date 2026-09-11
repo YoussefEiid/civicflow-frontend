@@ -29,7 +29,11 @@ import {
   Flame,
   FileSpreadsheet,
   FileText,
-  X
+  X,
+  Layers,
+  Inbox,
+  Building2,
+  Globe
 } from 'lucide-react';
 
 export const RequestsListPage: React.FC = () => {
@@ -48,6 +52,11 @@ export const RequestsListPage: React.FC = () => {
   // URL query params
   const urlStatus = searchParams.get('status') || 'all';
   const urlOverdue = searchParams.get('overdue') === 'true';
+
+  // Source Filter Tab: 'all' | 'received' | 'internal' | 'overdue'
+  const [sourceTab, setSourceTab] = useState<'all' | 'received' | 'internal' | 'overdue'>(
+    urlOverdue ? 'overdue' : 'all'
+  );
 
   // Filters State
   const [search, setSearch] = useState('');
@@ -79,9 +88,32 @@ export const RequestsListPage: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Helper to distinguish portal received requests
+  const isPublicReceived = (r: RequestItem) => {
+    return (
+      r.status === 'استلام الطلب' ||
+      r.timeline?.some((h: any) => h.employeeName?.includes('بوابة') || h.note?.includes('البوابة')) ||
+      (r as any).statusHistory?.some((h: any) => h.employeeName?.includes('بوابة') || h.note?.includes('البوابة'))
+    );
+  };
+
+  // Metrics for tab counters
+  const receivedCount = useMemo(() => requests.filter(isPublicReceived).length, [requests]);
+  const internalCount = useMemo(() => requests.filter((r) => !isPublicReceived(r)).length, [requests]);
+  const overdueCount = useMemo(() => requests.filter((r) => r.deadlineStatus === 'متأخر').length, [requests]);
+
   // Filtering Logic
   const filteredRequests = useMemo(() => {
     let list = [...requests];
+
+    // 1. Source Tab Isolation
+    if (sourceTab === 'received') {
+      list = list.filter(isPublicReceived);
+    } else if (sourceTab === 'internal') {
+      list = list.filter((r) => !isPublicReceived(r));
+    } else if (sourceTab === 'overdue') {
+      list = list.filter((r) => r.deadlineStatus === 'متأخر');
+    }
 
     if (search.trim()) {
       const q = search.toLowerCase().trim();
@@ -286,6 +318,105 @@ export const RequestsListPage: React.FC = () => {
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Source Isolation Tabs Bar */}
+      <div className="flex flex-wrap items-center gap-2 pb-1">
+        <button
+          type="button"
+          onClick={() => {
+            setSourceTab('all');
+            setOverdueOnly(false);
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition select-none shadow-xs border ${
+            sourceTab === 'all'
+              ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>كافة المعاملات</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-mono ${
+              sourceTab === 'all' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {requests.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSourceTab('received');
+            setOverdueOnly(false);
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition select-none shadow-xs border ${
+            sourceTab === 'received'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20 ring-2 ring-blue-300'
+              : 'bg-white text-blue-900 hover:bg-blue-50/70 border-blue-200'
+          }`}
+        >
+          <Inbox className="w-4 h-4 text-blue-500" />
+          <span>الطلبات المستلمة (بوابة المراجعين)</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-mono ${
+              sourceTab === 'received' ? 'bg-blue-700 text-white' : 'bg-blue-100 text-blue-800 font-bold'
+            }`}
+          >
+            {receivedCount}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSourceTab('internal');
+            setOverdueOnly(false);
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition select-none shadow-xs border ${
+            sourceTab === 'internal'
+              ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+              : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200'
+          }`}
+        >
+          <Building2 className="w-4 h-4 text-slate-500" />
+          <span>معاملات النظام الداخلية</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-mono ${
+              sourceTab === 'internal' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {internalCount}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSourceTab('overdue');
+            setOverdueOnly(true);
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition select-none shadow-xs border ${
+            sourceTab === 'overdue'
+              ? 'bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-500/20'
+              : 'bg-white text-rose-800 hover:bg-rose-50 border-rose-200'
+          }`}
+        >
+          <Flame className="w-4 h-4 text-rose-600" />
+          <span>الطلبات المتأخرة</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[11px] font-mono ${
+              sourceTab === 'overdue' ? 'bg-rose-700 text-white' : 'bg-rose-100 text-rose-800'
+            }`}
+          >
+            {overdueCount}
+          </span>
+        </button>
       </div>
 
       {/* Filter Bar & Search */}
@@ -530,7 +661,18 @@ export const RequestsListPage: React.FC = () => {
                     }}
                   >
                     <td className="py-3.5 px-4 font-bold text-blue-600 font-mono group-hover:underline">
-                      {req.requestNumber}
+                      <div className="flex flex-col gap-1">
+                        <span>{req.requestNumber}</span>
+                        {isPublicReceived(req) ? (
+                          <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            بوابة المراجعين
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            داخل النظام
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900">{req.customerName}</td>
                     <td className="py-3.5 px-4 text-slate-500 font-mono">{req.customerPhone}</td>

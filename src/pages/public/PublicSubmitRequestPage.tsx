@@ -570,8 +570,91 @@ export const PublicSubmitRequestPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Summary of attached documents before submit */}
+            {(identityFiles.length > 0 || requestFiles.length > 0) && (
+              <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-3 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-brand-600 dark:text-brand-400" />
+                    <h4 className="text-xs font-bold text-blue-950 dark:text-blue-200">
+                      المستندات الجاهزة للإرسال والرفع مع الطلب
+                    </h4>
+                  </div>
+                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-blue-200/80 dark:bg-blue-800 text-blue-900 dark:text-blue-100">
+                    {identityFiles.length + requestFiles.length} ملفات مرفقة
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {identityFiles.map((file, idx) => (
+                    <div
+                      key={`id-${idx}`}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-700 shadow-xs text-xs"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-[10px] font-bold shrink-0">
+                          هوية (سري)
+                        </span>
+                        <span className="truncate font-medium text-slate-800 dark:text-gray-200" title={file.name}>
+                          {file.name}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                          ({formatFileSize(file.size)})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveIdentityFile(idx)}
+                        className="text-slate-400 hover:text-rose-600 p-1 transition"
+                        title="حذف"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {requestFiles.map((file, idx) => (
+                    <div
+                      key={`req-${idx}`}
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-700 shadow-xs text-xs"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-[10px] font-bold shrink-0">
+                          مستند طلب
+                        </span>
+                        <span className="truncate font-medium text-slate-800 dark:text-gray-200" title={file.name}>
+                          {file.name}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                          ({formatFileSize(file.size)})
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveRequestFile(idx)}
+                        className="text-slate-400 hover:text-rose-600 p-1 transition"
+                        title="حذف"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Submit Button */}
-            <div className="pt-6 border-t border-slate-100 dark:border-gray-700 flex items-center justify-end gap-3">
+            <div className="pt-6 border-t border-slate-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-xs text-slate-500 dark:text-gray-400">
+                {identityFiles.length + requestFiles.length > 0 ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> سيتم إرفاق {identityFiles.length + requestFiles.length} مستندات مع الطلب
+                  </span>
+                ) : (
+                  <span>لم يتم إرفاق ملفات (اختياري)</span>
+                )}
+              </div>
+
               <button
                 type="submit"
                 disabled={isSubmitting}

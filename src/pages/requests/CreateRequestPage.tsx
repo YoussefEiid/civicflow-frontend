@@ -409,6 +409,23 @@ export const CreateRequestPage: React.FC = () => {
                   placeholder="19xxxxxxxxxx"
                 />
 
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    المحافظة
+                  </label>
+                  <Select
+                    value={custCityId}
+                    onChange={(e) => setCustCityId(e.target.value)}
+                  >
+                    <option value="">اختر المحافظة...</option>
+                    {cities.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
                 <Input
                   label="عنوان السكن / أقرب نقطة دالة"
                   value={custAddress}
@@ -416,12 +433,14 @@ export const CreateRequestPage: React.FC = () => {
                   placeholder="المحافظة، الحي، أقرب نقطة دالة..."
                 />
 
-                <Input
-                  label="ملاحظات المراجع"
-                  value={custNotes}
-                  onChange={(e) => setCustNotes(e.target.value)}
-                  placeholder="أي تفاصيل خاصة بالمراجع..."
-                />
+                <div className="sm:col-span-2">
+                  <Input
+                    label="ملاحظات المراجع"
+                    value={custNotes}
+                    onChange={(e) => setCustNotes(e.target.value)}
+                    placeholder="أي تفاصيل خاصة بالمراجع..."
+                  />
+                </div>
               </div>
             )}
           </CardContent>
