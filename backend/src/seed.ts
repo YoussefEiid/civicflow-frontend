@@ -239,10 +239,27 @@ export async function seedDatabase() {
   });
   console.log('✅ Seeded 4 standard users with hashed passwords.');
 
-  // 5. Seed Cities (المدن)
+  // 5. Seed Cities (محافظات العراق الـ 19 من الشمال إلى الجنوب)
   const citiesData = [
-    'الرياض', 'جدة', 'مكة المكرمة', 'المدينة المنورة', 'الدمام', 'الخبر',
-    'الأحساء', 'الطائف', 'القصيم', 'أبها', 'تبوك', 'حائل', 'جازان', 'نجران', 'الجوف', 'الباحة', 'عرعر'
+    'دهوك',
+    'نينوى',
+    'أربيل',
+    'كركوك',
+    'السليمانية',
+    'صلاح الدين',
+    'الأنبار',
+    'ديالى',
+    'بغداد',
+    'واسط',
+    'بابل',
+    'كربلاء',
+    'النجف',
+    'القادسية',
+    'ميسان',
+    'ذي قار',
+    'المثنى',
+    'البصرة',
+    'حلبجة'
   ];
   const createdCities: Record<string, string> = {};
   for (const cityName of citiesData) {
@@ -251,7 +268,7 @@ export async function seedDatabase() {
     });
     createdCities[cityName] = c.id;
   }
-  console.log(`✅ Seeded ${citiesData.length} cities.`);
+  console.log(`✅ Seeded ${citiesData.length} Iraqi governorates.`);
 
   // 6. Seed Request Types (أنواع الطلبات)
   const requestTypesData = [
@@ -380,66 +397,66 @@ export async function seedDatabase() {
       altPhone: '0559876543',
       nationalId: '1092837465',
       email: 'mohammed.ali@example.com',
-      cityId: createdCities['الرياض'],
-      address: 'الرياض - حي الملز - شارع الستين',
+      cityId: createdCities['بغداد'],
+      address: 'بغداد - الكرادة - شارع 14 رمضان',
       notes: 'مراجع دائم لمعاملات وزارة الصحة والترخيص المهني الطبي.',
       status: CustomerStatus.ACTIVE
     },
     {
       customerNumber: 'CUST-1002',
       name: 'أحمد محمود حسن',
-      phone: '0562345678',
-      altPhone: '0114567890',
+      phone: '07712345678',
+      altPhone: '07812345678',
       nationalId: '1083746592',
       email: 'ahmed.m@example.com',
-      cityId: createdCities['جدة'],
-      address: 'جدة - حي الروضة - طريق الملك عبدالعزيز',
+      cityId: createdCities['أربيل'],
+      address: 'أربيل - طريق المطار - حي الإسكان',
       notes: 'يرغب في استلام الإشعارات وتحديثات المعاملات عبر WhatsApp فقط.',
       status: CustomerStatus.ACTIVE
     },
     {
       customerNumber: 'CUST-1003',
       name: 'سارة محمد عبدالله',
-      phone: '0543456789',
+      phone: '07501234567',
       nationalId: '1074658392',
       email: 'sara.abdullah@example.com',
-      cityId: createdCities['الدمام'],
-      address: 'الدمام - حي الشاطئ - شارع الخليج',
+      cityId: createdCities['البصرة'],
+      address: 'البصرة - العشار - شارع الاستقلال',
       notes: 'معاملة تجديد رخصة وتصديق شهادات أكاديمية.',
       status: CustomerStatus.ACTIVE
     },
     {
       customerNumber: 'CUST-1004',
       name: 'خالد عبدالله',
-      phone: '0534567890',
-      altPhone: '0581122334',
+      phone: '07709876543',
+      altPhone: '07809876543',
       nationalId: '1065748392',
       email: 'khaled.ab@example.com',
-      cityId: createdCities['مكة المكرمة'],
-      address: 'مكة المكرمة - حي العزيزية',
+      cityId: createdCities['النجف'],
+      address: 'النجف - حي السعد',
       notes: 'معاملة إفراغ عقاري وتوثيق وكالة في وزارة العدل.',
       status: CustomerStatus.ACTIVE
     },
     {
       customerNumber: 'CUST-1005',
       name: 'محمود السيد',
-      phone: '0525678901',
+      phone: '07519876543',
       nationalId: '1056847392',
       email: 'mahmoud.sayed@example.com',
-      cityId: createdCities['المدينة المنورة'],
-      address: 'المدينة المنورة - حي سلطانة',
+      cityId: createdCities['نينوى'],
+      address: 'نينوى - الموصل - حي الزهور',
       notes: 'طلب إعفاء وتظلم إداري بوزارة التضامن الاجتماعي.',
       status: CustomerStatus.ACTIVE
     },
     {
       customerNumber: 'CUST-1006',
       name: 'نور أحمد',
-      phone: '0596789012',
-      altPhone: '0509988776',
+      phone: '07723456789',
+      altPhone: '07823456789',
       nationalId: '1047958392',
       email: 'nour.ahmed@example.com',
-      cityId: createdCities['الخبر'],
-      address: 'الخبر - حي العقربية - شارع 10',
+      cityId: createdCities['السليمانية'],
+      address: 'السليمانية - شارع سالم',
       notes: 'معاملات تصديق قنصلي بوزارة الخارجية.',
       status: CustomerStatus.ACTIVE
     }
@@ -458,7 +475,7 @@ export async function seedDatabase() {
       requestNumber: 'REQ-1025',
       customerId: createdCustomers[0].id,
       ministryId: createdMinistries['MOH'],
-      cityId: createdCities['الرياض'],
+      cityId: createdCities['بغداد'],
       requestTypeId: createdRequestTypes['إصدار تصريح'],
       assignedEmployeeId: followUpUser.id,
       title: 'طلب ترخيص منشأة صحية خاصة وتجديد السجل الطبي',

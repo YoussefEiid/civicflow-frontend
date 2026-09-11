@@ -4,6 +4,46 @@ import { prisma } from './config/database.js';
 import { startSlaBackgroundJob } from './jobs/slaChecker.job.js';
 import { seedDatabase } from './seed.js';
 
+export const IRAQI_GOVERNORATES = [
+  'دهوك',
+  'نينوى',
+  'أربيل',
+  'كركوك',
+  'السليمانية',
+  'صلاح الدين',
+  'الأنبار',
+  'ديالى',
+  'بغداد',
+  'واسط',
+  'بابل',
+  'كربلاء',
+  'النجف',
+  'القادسية',
+  'ميسان',
+  'ذي قار',
+  'المثنى',
+  'البصرة',
+  'حلبجة'
+];
+
+async function ensureIraqiGovernorates() {
+  try {
+    for (const name of IRAQI_GOVERNORATES) {
+      const existing = await prisma.city.findFirst({
+        where: { name: { equals: name, mode: 'insensitive' } }
+      });
+      if (!existing) {
+        await prisma.city.create({
+          data: { name, status: 'ACTIVE' }
+        });
+      }
+    }
+    console.log('✅ Ensured all 19 Iraqi Governorates are registered in the database.');
+  } catch (err) {
+    console.warn('⚠️ Governorates sync notice:', err);
+  }
+}
+
 async function startServer() {
   try {
     // Verify database connection
@@ -21,6 +61,9 @@ async function startServer() {
     } catch (seedErr) {
       console.warn('⚠️ Seeding check notice:', seedErr);
     }
+
+    // Ensure all 19 Iraqi Governorates exist
+    await ensureIraqiGovernorates();
 
     // Start background SLA job
     startSlaBackgroundJob();

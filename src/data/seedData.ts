@@ -6,7 +6,8 @@ import {
   RequestItem,
   NotificationItem,
   AuditLog,
-  SystemSettings
+  SystemSettings,
+  City
 } from '../types';
 
 export const initialMinistries: Ministry[] = [
@@ -1237,3 +1238,25 @@ export const initialSystemSettings: SystemSettings = {
     autoNotifyCustomerOnStatusChange: true
   }
 };
+
+export const initialCities: City[] = [
+  { id: 'city-1', name: 'دهوك', code: 'DHK', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-2', name: 'نينوى', code: 'NNW', isActive: true, requestsCount: 1, customersCount: 1 },
+  { id: 'city-3', name: 'أربيل', code: 'EBL', isActive: true, requestsCount: 1, customersCount: 1 },
+  { id: 'city-4', name: 'كركوك', code: 'KRK', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-5', name: 'السليمانية', code: 'SLM', isActive: true, requestsCount: 1, customersCount: 1 },
+  { id: 'city-6', name: 'صلاح الدين', code: 'SLD', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-7', name: 'الأنبار', code: 'ANB', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-8', name: 'ديالى', code: 'DYL', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-9', name: 'بغداد', code: 'BGD', isActive: true, requestsCount: 2, customersCount: 2 },
+  { id: 'city-10', name: 'واسط', code: 'WST', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-11', name: 'بابل', code: 'BBL', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-12', name: 'كربلاء', code: 'KRB', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-13', name: 'النجف', code: 'NJF', isActive: true, requestsCount: 1, customersCount: 1 },
+  { id: 'city-14', name: 'القادسية', code: 'QAD', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-15', name: 'ميسان', code: 'MSN', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-16', name: 'ذي قار', code: 'DQR', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-17', name: 'المثنى', code: 'MTN', isActive: true, requestsCount: 0, customersCount: 0 },
+  { id: 'city-18', name: 'البصرة', code: 'BSR', isActive: true, requestsCount: 1, customersCount: 1 },
+  { id: 'city-19', name: 'حلبجة', code: 'HLB', isActive: true, requestsCount: 0, customersCount: 0 }
+];
