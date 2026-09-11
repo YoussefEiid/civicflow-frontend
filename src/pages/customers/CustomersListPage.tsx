@@ -80,7 +80,7 @@ export const CustomersListPage: React.FC = () => {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="ابحث بالاسم، رقم الجوال، رقم الهوية الوطنية، أو العنوان..."
+            placeholder="ابحث بالاسم، رقم هاتف واتساب، رقم الهوية الوطنية، أو العنوان..."
             className="w-full pl-4 pr-10 py-2.5 bg-slate-50 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-600 transition"
           />
         </div>
@@ -101,9 +101,9 @@ export const CustomersListPage: React.FC = () => {
               <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
                 <tr>
                   <th className="py-3.5 px-4 font-bold">اسم المراجع</th>
-                  <th className="py-3.5 px-4 font-bold">رقم الجوال</th>
+                  <th className="py-3.5 px-4 font-bold">رقم هاتف واتساب</th>
                   <th className="py-3.5 px-4 font-bold">رقم الهوية</th>
-                  <th className="py-3.5 px-4 font-bold">العنوان</th>
+                  <th className="py-3.5 px-4 font-bold">عنوان السكن</th>
                   <th className="py-3.5 px-4 font-bold text-center">عدد الطلبات</th>
                   <th className="py-3.5 px-4 font-bold">آخر طلب</th>
                   <th className="py-3.5 px-4 font-bold">تاريخ التسجيل</th>

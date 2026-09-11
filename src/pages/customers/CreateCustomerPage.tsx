@@ -24,7 +24,7 @@ export const CreateCustomerPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) {
-      warning('حقول مطلوبة', 'يرجى إدخال اسم المراجع ورقم الجوال');
+      warning('حقول مطلوبة', 'يرجى إدخال اسم المراجع ورقم هاتف واتساب');
       return;
     }
 
@@ -80,30 +80,30 @@ export const CreateCustomerPage: React.FC = () => {
                 label="الاسم الكامل"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="مثال: فهد عبدالعزيز الشمري"
+                placeholder="مثال: علي حسن كاظم"
                 required
               />
 
               <Input
-                label="رقم الجوال الأساسي"
+                label="رقم هاتف واتساب"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="05XXXXXXXX"
+                placeholder="077********"
                 required
               />
 
               <Input
-                label="رقم الهاتف البديل"
+                label="رقم الهاتف اتصال"
                 value={altPhone}
                 onChange={(e) => setAltPhone(e.target.value)}
-                placeholder="011XXXXXXX"
+                placeholder="078********"
               />
 
               <Input
-                label="رقم الهوية الوطنية / الإقامة"
+                label="رقم الهوية الوطنية / البطاقة الموحدة"
                 value={nationalId}
                 onChange={(e) => setNationalId(e.target.value)}
-                placeholder="10XXXXXXXX"
+                placeholder="19xxxxxxxxxx"
               />
 
               <div className="sm:col-span-2">
@@ -112,16 +112,16 @@ export const CreateCustomerPage: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="fahad@example.com"
+                  placeholder="ali.hassan@example.com"
                 />
               </div>
 
               <div className="sm:col-span-2">
                 <Input
-                  label="العنوان الوطني / المدينة والحي"
+                  label="عنوان السكن / أقرب نقطة دالة"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="الرياض - حي النخيل"
+                  placeholder="المحافظة - الحي - أقرب نقطة دالة"
                 />
               </div>
             </div>

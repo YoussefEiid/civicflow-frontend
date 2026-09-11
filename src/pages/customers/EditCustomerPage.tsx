@@ -111,22 +111,25 @@ export const EditCustomerPage: React.FC = () => {
               />
 
               <Input
-                label="رقم الجوال"
+                label="رقم هاتف واتساب"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                placeholder="077********"
                 required
               />
 
               <Input
-                label="الهاتف البديل"
+                label="رقم الهاتف اتصال"
                 value={altPhone}
                 onChange={(e) => setAltPhone(e.target.value)}
+                placeholder="078********"
               />
 
               <Input
-                label="رقم الهوية الوطنية"
+                label="رقم الهوية الوطنية / البطاقة الموحدة"
                 value={nationalId}
                 onChange={(e) => setNationalId(e.target.value)}
+                placeholder="19xxxxxxxxxx"
               />
 
               <Input
@@ -147,9 +150,10 @@ export const EditCustomerPage: React.FC = () => {
 
               <div className="sm:col-span-2">
                 <Input
-                  label="العنوان"
+                  label="عنوان السكن / أقرب نقطة دالة"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
+                  placeholder="المحافظة - الحي - أقرب نقطة دالة"
                 />
               </div>
             </div>

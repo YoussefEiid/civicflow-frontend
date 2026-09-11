@@ -36,7 +36,7 @@ export const PublicTrackPage: React.FC = () => {
           الاستعلام عن حالة الطلب والمعاملة
         </h1>
         <p className="text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-          أدخل رقم المعاملة، أو رقم الجوال، أو رقم الهوية الوطنية، أو اسم المراجع لمعرفة المرحلة الحالية والاطلاع على القرارات والمستندات الصادرة
+          أدخل رقم المعاملة، أو رقم هاتف واتساب، أو رقم الهوية / البطاقة الموحدة، أو اسم المراجع لمعرفة المرحلة الحالية والاطلاع على القرارات والمستندات الصادرة
         </p>
       </div>
 
@@ -45,7 +45,7 @@ export const PublicTrackPage: React.FC = () => {
         <form onSubmit={handleSearch} className="space-y-4">
           <div>
             <label className="block text-sm font-bold text-slate-800 mb-2">
-              رقم المعاملة / رقم الجوال / رقم الهوية / الاسم
+              رقم المعاملة / رقم هاتف واتساب / رقم الهوية / الاسم
             </label>
             <div className="relative">
               <input
@@ -55,7 +55,7 @@ export const PublicTrackPage: React.FC = () => {
                   setRequestNumber(e.target.value);
                   setErrorMsg('');
                 }}
-                placeholder="أدخل رقم الطلب (REQ-1025) أو رقم الجوال (050xxxxxxx) أو الهوية أو الاسم..."
+                placeholder="أدخل رقم الطلب (REQ-1025) أو رقم الهاتف (077********) أو الهوية أو الاسم..."
                 className="w-full text-base sm:text-lg px-4 py-3.5 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition"
               />
             </div>

@@ -393,12 +393,12 @@ export async function seedDatabase() {
     {
       customerNumber: 'CUST-1001',
       name: 'محمد أحمد علي',
-      phone: '0501234567',
-      altPhone: '0559876543',
+      phone: '07701234567',
+      altPhone: '07809876543',
       nationalId: '1092837465',
       email: 'mohammed.ali@example.com',
       cityId: createdCities['بغداد'],
-      address: 'بغداد - الكرادة - شارع 14 رمضان',
+      address: 'بغداد - الكرادة - قرب ساحة الفردوس',
       notes: 'مراجع دائم لمعاملات وزارة الصحة والترخيص المهني الطبي.',
       status: CustomerStatus.ACTIVE
     },

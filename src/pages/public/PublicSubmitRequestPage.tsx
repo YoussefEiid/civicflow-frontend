@@ -237,48 +237,48 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="الاسم الرباعي أو الثلاثي"
+                    placeholder="مثال: علي حسن كاظم"
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    رقم الهاتف الجوال <span className="text-rose-500">*</span>
+                    رقم هاتف واتساب <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="tel"
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="05xxxxxxxx"
+                    placeholder="077********"
                     className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-right"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    رقم الهوية الوطنية / الإقامة
+                    رقم الهوية الوطنية / البطاقة الموحدة
                   </label>
                   <input
                     type="text"
                     value={nationalId}
                     onChange={(e) => setNationalId(e.target.value)}
-                    placeholder="10xxxxxxxx / 20xxxxxxxx"
+                    placeholder="19xxxxxxxxxx"
                     className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-right"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    المدينة / المحافظة
+                    المحافظة
                   </label>
                   <select
                     value={cityId}
                     onChange={(e) => setCityId(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
                   >
-                    <option value="">اختر المدينة...</option>
+                    <option value="">اختر المحافظة...</option>
                     {cities.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -289,13 +289,13 @@ export const PublicSubmitRequestPage: React.FC = () => {
 
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    العنوان أو الحي
+                    عنوان السكن / أقرب نقطة دالة
                   </label>
                   <input
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="الحي، الشارع، أو العنوان التفصيلي"
+                    placeholder="المحافظة، الحي، أقرب نقطة دالة..."
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
                   />
                 </div>

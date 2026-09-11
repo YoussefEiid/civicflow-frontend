@@ -138,17 +138,17 @@ export const CustomerDetailsPage: React.FC = () => {
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-            <span className="text-slate-400 block mb-1">رقم الجوال الأساسي</span>
+            <span className="text-slate-400 block mb-1">رقم هاتف واتساب</span>
             <p className="font-bold text-slate-800 font-mono text-sm">{customer.phone}</p>
           </div>
 
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-            <span className="text-slate-400 block mb-1">الهاتف البديل</span>
+            <span className="text-slate-400 block mb-1">رقم الهاتف اتصال</span>
             <p className="font-bold text-slate-800 font-mono text-sm">{customer.altPhone || '---'}</p>
           </div>
 
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-            <span className="text-slate-400 block mb-1">رقم الهوية الوطنية</span>
+            <span className="text-slate-400 block mb-1">رقم الهوية الوطنية / البطاقة الموحدة</span>
             <p className="font-bold text-slate-800 font-mono text-sm">{customer.nationalId || '---'}</p>
           </div>
 
@@ -158,7 +158,7 @@ export const CustomerDetailsPage: React.FC = () => {
           </div>
 
           <div className="sm:col-span-2 p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-            <span className="text-slate-400 block mb-1">العنوان الوطني / السكن</span>
+            <span className="text-slate-400 block mb-1">عنوان السكن / أقرب نقطة دالة</span>
             <p className="font-bold text-slate-800">{customer.address || '---'}</p>
           </div>
 

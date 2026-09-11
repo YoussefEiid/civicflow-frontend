@@ -407,16 +407,16 @@ export const RequestDetailsPage: React.FC = () => {
               </div>
 
               <div>
-                <span className="text-slate-400">رقم الجوال:</span>
+                <span className="text-slate-400">رقم هاتف واتساب:</span>
                 <p className="font-bold text-slate-800 font-mono mt-0.5 flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5 text-blue-600" />
+                  <Phone className="w-3.5 h-3.5 text-emerald-600" />
                   {request.customerPhone}
                 </p>
               </div>
 
               {request.customerAddress && (
                 <div>
-                  <span className="text-slate-400">العنوان:</span>
+                  <span className="text-slate-400">عنوان السكن / أقرب نقطة دالة:</span>
                   <p className="font-bold text-slate-800 mt-0.5 flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-slate-400" />
                     {request.customerAddress}

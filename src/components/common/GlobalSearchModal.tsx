@@ -62,7 +62,7 @@ export const GlobalSearchModal: React.FC<{ isOpen: boolean; onClose: () => void 
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث برقم المعاملة، اسم المراجع، رقم الجوال، أو الوزارة..."
+            placeholder="ابحث برقم المعاملة، اسم المراجع، رقم الهاتف، أو الوزارة..."
             className="w-full text-base bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none"
           />
           {query && (

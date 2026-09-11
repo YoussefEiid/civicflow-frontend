@@ -173,7 +173,7 @@ export const CreateRequestPage: React.FC = () => {
       // If creating a new customer
       if (customerMode === 'new') {
         if (!custName.trim() || !custPhone.trim()) {
-          warning('بيانات المراجع ناقصة', 'يرجى إدخال اسم المراجع ورقم الجوال');
+          warning('بيانات المراجع ناقصة', 'يرجى إدخال اسم المراجع ورقم هاتف واتساب');
           setIsLoading(false);
           return;
         }
@@ -350,38 +350,38 @@ export const CreateRequestPage: React.FC = () => {
                   required
                   value={custName}
                   onChange={(e) => setCustName(e.target.value)}
-                  placeholder="الاسم الثلاثي أو الرباعي..."
+                  placeholder="مثال: علي حسن كاظم"
                 />
 
                 <Input
-                  label="رقم الهاتف الأساسي"
+                  label="رقم هاتف واتساب"
                   type="tel"
                   required
                   value={custPhone}
                   onChange={(e) => setCustPhone(e.target.value)}
-                  placeholder="05xxxxxxxx"
+                  placeholder="077********"
                 />
 
                 <Input
-                  label="رقم هاتف إضافي (اختياري)"
+                  label="رقم الهاتف اتصال (اختياري)"
                   type="tel"
                   value={custAltPhone}
                   onChange={(e) => setCustAltPhone(e.target.value)}
-                  placeholder="05xxxxxxxx"
+                  placeholder="078********"
                 />
 
                 <Input
-                  label="رقم الهوية الوطنية / الإقامة"
+                  label="رقم الهوية الوطنية / البطاقة الموحدة"
                   value={custNationalId}
                   onChange={(e) => setCustNationalId(e.target.value)}
-                  placeholder="10xxxxxxxx"
+                  placeholder="19xxxxxxxxxx"
                 />
 
                 <Input
-                  label="العنوان / الحي"
+                  label="عنوان السكن / أقرب نقطة دالة"
                   value={custAddress}
                   onChange={(e) => setCustAddress(e.target.value)}
-                  placeholder="الرياض، حي النرجس..."
+                  placeholder="المحافظة، الحي، أقرب نقطة دالة..."
                 />
 
                 <Input
