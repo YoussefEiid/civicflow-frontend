@@ -589,6 +589,7 @@ export const changeRequestStatus = async (req: Request, res: Response, next: Nex
         );
       }
       attachedDocType = DocumentType.APPROVAL_DOCUMENT;
+      isPublicDoc = true;
     }
 
     // Rule 3: مرفوض -> Mandatory Rejection Reason
@@ -602,6 +603,9 @@ export const changeRequestStatus = async (req: Request, res: Response, next: Nex
         );
       }
       attachedDocType = DocumentType.REJECTION_DOCUMENT;
+      if (file || bodyData.documentName) {
+        isPublicDoc = true;
+      }
     }
 
     // Rule 4: الإجابة جاهزة -> Mandatory Answer Document
@@ -629,6 +633,7 @@ export const changeRequestStatus = async (req: Request, res: Response, next: Nex
         );
       }
       attachedDocType = DocumentType.DELIVERY_PROOF;
+      isPublicDoc = true;
     }
 
     const isTerminal = ['تم التسليم', 'مغلق', 'الإجابة جاهزة'].includes(newStatus);

@@ -36,7 +36,7 @@ export const PublicTrackPage: React.FC = () => {
           الاستعلام عن حالة الطلب والمعاملة
         </h1>
         <p className="text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-          أدخل رقم المعاملة الخاص بك لمعرفة المرحلة الحالية وتاريخ الإنجاز المتوقع والاطلاع على القرار الصادر
+          أدخل رقم المعاملة، أو رقم الجوال، أو رقم الهوية الوطنية، أو اسم المراجع لمعرفة المرحلة الحالية والاطلاع على القرارات والمستندات الصادرة
         </p>
       </div>
 
@@ -44,7 +44,9 @@ export const PublicTrackPage: React.FC = () => {
       <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-200 max-w-2xl mx-auto">
         <form onSubmit={handleSearch} className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-slate-800 mb-2">رقم المعاملة / الطلب</label>
+            <label className="block text-sm font-bold text-slate-800 mb-2">
+              رقم المعاملة / رقم الجوال / رقم الهوية / الاسم
+            </label>
             <div className="relative">
               <input
                 type="text"
@@ -53,8 +55,8 @@ export const PublicTrackPage: React.FC = () => {
                   setRequestNumber(e.target.value);
                   setErrorMsg('');
                 }}
-                placeholder="مثال: REQ-1025 أو 1008"
-                className="w-full text-base sm:text-lg font-mono px-4 py-3.5 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition"
+                placeholder="أدخل رقم الطلب (REQ-1025) أو رقم الجوال (050xxxxxxx) أو الهوية أو الاسم..."
+                className="w-full text-base sm:text-lg px-4 py-3.5 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-600 transition"
               />
             </div>
             {errorMsg && <p className="mt-1 text-xs text-rose-600 font-bold">{errorMsg}</p>}
@@ -66,8 +68,28 @@ export const PublicTrackPage: React.FC = () => {
           </Button>
         </form>
 
+        {/* Submit Request CTA Banner */}
+        <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 flex items-center justify-between gap-4">
+          <div className="space-y-0.5 text-right">
+            <h4 className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-blue-600" />
+              هل تريد تقديم معاملة جديدة؟
+            </h4>
+            <p className="text-[11px] text-blue-700/90">
+              يمكنك رفع طلبك مباشرة وإرفاق صورة الهوية والمستندات إلكترونياً
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/submit-request')}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-sm shrink-0 transition"
+          >
+            تقديم طلب الآن
+          </button>
+        </div>
+
         {/* Quick Demo Numbers */}
-        <div className="mt-8 pt-6 border-t border-slate-100">
+        <div className="mt-6 pt-5 border-t border-slate-100">
           <p className="text-xs font-bold text-slate-400 mb-3">أرقام معاملات تجريبية سريعة للاختبار:</p>
           <div className="flex flex-wrap gap-2">
             <button

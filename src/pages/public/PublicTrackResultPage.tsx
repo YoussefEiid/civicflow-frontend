@@ -83,7 +83,7 @@ export const PublicTrackResultPage: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">لم يتم العثور على المعاملة</h2>
           <p className="text-sm text-slate-500 dark:text-gray-400 mt-1">
-            لا توجد معاملة مسجلة بالرقم <span className="font-mono font-bold text-slate-800 dark:text-gray-200">{queryNumber}</span>.
+            لا توجد معاملة مسجلة ببيانات البحث <span className="font-mono font-bold text-slate-800 dark:text-gray-200">{queryNumber}</span>.
           </p>
         </div>
         <Button
@@ -97,7 +97,76 @@ export const PublicTrackResultPage: React.FC = () => {
     );
   }
 
+  // Handle Multiple Requests (e.g. searched by phone or name)
+  if (request.isMultiple && request.requests) {
+    return (
+      <div className="space-y-6 py-6 max-w-3xl mx-auto" dir="rtl">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate('/track')}
+            icon={<ArrowRight className="w-4 h-4" />}
+          >
+            بحث جديد
+          </Button>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-slate-200 dark:border-gray-700 shadow-sm space-y-4">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200 mb-2">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              نتائج الاستعلام
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              تم العثور على {request.total} معاملة
+              {request.customerName ? ` للمراجع (${request.customerName})` : ''}
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              اختر المعاملة التي ترغب في متابعة مسارها الإجرائي والاطلاع على مستنداتها:
+            </p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            {request.requests.map((r: any) => (
+              <div
+                key={r.requestNumber}
+                onClick={() => navigate(`/track/${r.requestNumber}`)}
+                className="p-4 rounded-2xl border border-slate-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-black text-sm text-blue-600 dark:text-blue-400">
+                      #{r.requestNumber}
+                    </span>
+                    <StatusBadge status={r.status} size="sm" />
+                  </div>
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-gray-100">{r.title}</h3>
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <span>{r.ministryName}</span>
+                    <span>•</span>
+                    <span>تاريخ التقديم: {r.receiveDate}</span>
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => navigate(`/track/${r.requestNumber}`)}
+                  className="shrink-0 text-xs"
+                >
+                  تتبع المعاملة
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const currentIdx = PUBLIC_STEPS.indexOf(request.status);
+  const publicDocs = request.stageDocuments || request.publicDocuments || [];
 
   return (
     <div className="space-y-6 py-6 max-w-3xl mx-auto" dir="rtl">
@@ -267,14 +336,14 @@ export const PublicTrackResultPage: React.FC = () => {
           )}
 
           {/* Public Stage Documents Available for Download */}
-          {request.stageDocuments && request.stageDocuments.length > 0 && (
+          {publicDocs.length > 0 && (
             <div className="mt-6 pt-6 border-t border-slate-200 dark:border-gray-700">
               <h4 className="text-xs font-bold text-slate-800 dark:text-gray-200 mb-3 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-brand-600" />
                 المستندات والقرارات المتاحة للتحميل
               </h4>
               <div className="space-y-2">
-                {request.stageDocuments.map((doc: any) => (
+                {publicDocs.map((doc: any) => (
                   <div
                     key={doc.id}
                     className="flex items-center justify-between p-3 bg-slate-50 dark:bg-gray-750 border border-slate-200 dark:border-gray-700 rounded-xl"

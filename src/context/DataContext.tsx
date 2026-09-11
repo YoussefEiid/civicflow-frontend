@@ -163,8 +163,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res;
   };
 
-  const handleChangeStatus: typeof changeRequestStatus = async (id, status, note, emp) => {
-    const res = await changeRequestStatus(id, status, note, emp);
+  const handleChangeStatus: typeof changeRequestStatus = async (id, status, note, file, rejectionReason) => {
+    const res = await changeRequestStatus(id, status, note, file, rejectionReason);
     await refreshData();
     return res;
   };

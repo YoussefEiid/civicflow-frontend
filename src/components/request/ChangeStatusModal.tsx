@@ -46,6 +46,7 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
   const requiresApprovalDoc = status === 'موافقة';
   const requiresRejectionReason = status === 'مرفوض';
   const requiresFinalDoc = status === 'الإجابة جاهزة';
+  const requiresDeliveryDoc = status === 'تم التسليم';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +61,11 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
 
     if (requiresApprovalDoc && !file) {
       setValidationError('يلزم إرفاق مستند الموافقة الرسمية للانتقال إلى حالة "موافقة"');
+      return;
+    }
+
+    if (requiresDeliveryDoc && !file) {
+      setValidationError('يلزم إرفاق مستند إثبات التسليم والتوقيع للانتقال إلى حالة "تم التسليم"');
       return;
     }
 
@@ -130,23 +136,24 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
         )}
 
         {/* Document Upload for mandatory transitions */}
-        {(requiresSendingDoc || requiresApprovalDoc || requiresFinalDoc || requiresRejectionReason) && (
+        {(requiresSendingDoc || requiresApprovalDoc || requiresDeliveryDoc || requiresFinalDoc || requiresRejectionReason) && (
           <div className="p-3.5 bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl space-y-2">
             <label className="block text-xs font-bold text-blue-900 dark:text-blue-300 flex items-center justify-between">
               <span>
                 {requiresSendingDoc && 'مستند الإرسال / الخطاب الصادر للجهة *'}
                 {requiresApprovalDoc && 'مستند الموافقة الرسمية *'}
+                {requiresDeliveryDoc && 'مستند إثبات التسليم والتوقيع *'}
                 {requiresFinalDoc && 'مستند الإجابة والقرار النهائي (اختياري)'}
                 {requiresRejectionReason && 'مستند قرار الرفض (اختياري)'}
               </span>
-              {(requiresSendingDoc || requiresApprovalDoc) && (
+              {(requiresSendingDoc || requiresApprovalDoc || requiresDeliveryDoc) && (
                 <span className="text-[10px] text-rose-600 font-normal">إلزامي لاعتماد الحالة</span>
               )}
             </label>
             <input
               type="file"
               accept=".pdf,.doc,.docx,image/*"
-              required={requiresSendingDoc || requiresApprovalDoc}
+              required={requiresSendingDoc || requiresApprovalDoc || requiresDeliveryDoc}
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               className="text-xs text-slate-600 dark:text-gray-400 file:ml-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200"
             />

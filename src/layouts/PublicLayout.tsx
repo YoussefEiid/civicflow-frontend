@@ -18,13 +18,28 @@ export const PublicLayout: React.FC = () => {
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/track"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-100 transition"
+            >
+              <Search className="w-3.5 h-3.5 text-blue-600" />
+              <span>استعلام عن معاملة</span>
+            </Link>
+
+            <Link
+              to="/submit-request"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition"
+            >
+              <span>تقديم طلب جديد</span>
+            </Link>
+
             <Link
               to="/login"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition border border-slate-200"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition border border-slate-200"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>دخول الموظفين</span>
+              <span className="hidden sm:inline">دخول الموظفين</span>
             </Link>
           </div>
         </div>

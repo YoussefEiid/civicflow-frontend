@@ -252,15 +252,31 @@ export const trackPublicRequest = async (req: Request, res: Response, next: Next
     const { tokenOrNumber } = req.params;
     const cleanQuery = (tokenOrNumber || '').trim();
 
-    const request = await prisma.request.findFirst({
+    if (!cleanQuery) {
+      throw new AppError('يرجى إدخال رقم المعاملة أو رقم الجوال أو الهوية أو الاسم للاستعلام', 400, 'QUERY_REQUIRED');
+    }
+
+    const strippedReqNum = cleanQuery.replace(/^#/, '');
+    const numOnly = cleanQuery.replace(/[^0-9]/g, '');
+
+    const matchingRequests = await prisma.request.findMany({
       where: {
         OR: [
-          { requestNumber: { equals: cleanQuery, mode: 'insensitive' } },
-          { requestNumber: { equals: `REQ-${cleanQuery}`, mode: 'insensitive' } },
-          { publicTrackingToken: cleanQuery }
+          { requestNumber: { equals: strippedReqNum, mode: 'insensitive' } },
+          { requestNumber: { equals: `REQ-${strippedReqNum}`, mode: 'insensitive' } },
+          { requestNumber: { contains: strippedReqNum, mode: 'insensitive' } },
+          { publicTrackingToken: cleanQuery },
+          ...(numOnly.length >= 4 ? [
+            { customer: { phone: { contains: numOnly } } },
+            { customer: { altPhone: { contains: numOnly } } },
+            { customer: { nationalId: { contains: numOnly } } }
+          ] : []),
+          { customer: { name: { contains: cleanQuery, mode: 'insensitive' } } }
         ]
       },
+      orderBy: { createdAt: 'desc' },
       include: {
+        customer: { select: { name: true, phone: true, nationalId: true } },
         ministry: { select: { name: true } },
         city: { select: { name: true } },
         attachments: {
@@ -273,6 +289,7 @@ export const trackPublicRequest = async (req: Request, res: Response, next: Next
             newStatus: true,
             createdAt: true,
             note: true,
+            reason: true,
             documentName: true,
             documentPath: true,
             isPublicDoc: true
@@ -293,10 +310,35 @@ export const trackPublicRequest = async (req: Request, res: Response, next: Next
       }
     });
 
-    if (!request) {
-      throw new AppError('المعاملة غير موجودة في النظام أو رقم الطلب غير صحيح', 404, 'REQUEST_NOT_FOUND');
+    if (!matchingRequests || matchingRequests.length === 0) {
+      throw new AppError('لم يتم العثور على أي معاملة مطابقة لبيانات البحث المدخلة', 404, 'REQUEST_NOT_FOUND');
     }
 
+    // If multiple requests match
+    if (matchingRequests.length > 1) {
+      const summaryList = matchingRequests.map((r) => ({
+        requestNumber: r.requestNumber,
+        title: r.title,
+        status: r.status,
+        customerName: r.customer?.name,
+        ministryName: r.ministry.name,
+        cityName: r.city?.name || 'المدينة المعتمدة',
+        receiveDate: r.receiveDate.toISOString().split('T')[0],
+        expectedCompletionDate: r.expectedCompletionDate.toISOString().split('T')[0],
+        deadlineStatus: r.deadlineStatus
+      }));
+
+      return sendSuccess(res, {
+        isMultiple: true,
+        query: cleanQuery,
+        total: summaryList.length,
+        customerName: matchingRequests[0].customer?.name,
+        requests: summaryList
+      });
+    }
+
+    // Single request match
+    const request = matchingRequests[0];
     const timeline = request.statusHistory.map((h) => {
       const d = new Date(h.createdAt);
       return {
@@ -305,15 +347,16 @@ export const trackPublicRequest = async (req: Request, res: Response, next: Next
         date: d.toISOString().split('T')[0],
         time: d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
         employeeName: 'فريق خدمة المعاملات',
-        note: `تم تحديث حالة المعاملة إلى: ${h.newStatus}`,
+        note: h.note || `تم تحديث حالة المعاملة إلى: ${h.newStatus}`,
+        reason: h.reason || undefined,
         documentName: h.isPublicDoc ? h.documentName : undefined,
         isPublicDoc: h.isPublicDoc,
         completed: true
       };
     });
 
-    // Public visible documents only (e.g. Sent letter to entity, final approved response)
-    const publicDocuments = request.attachments.map((a) => ({
+    // Public visible documents (Sending letter, approval letter, answer document, etc.)
+    const stageDocuments = request.attachments.map((a) => ({
       id: a.id,
       name: a.name,
       type: a.fileType,
@@ -324,10 +367,12 @@ export const trackPublicRequest = async (req: Request, res: Response, next: Next
     }));
 
     const publicData = {
+      isMultiple: false,
       requestNumber: request.requestNumber,
       title: request.title,
       details: request.details,
       requestType: request.requestType,
+      customerName: request.customer?.name,
       ministryName: request.ministry.name,
       cityName: request.city?.name || 'المدينة المعتمدة',
       status: request.status,
@@ -337,7 +382,8 @@ export const trackPublicRequest = async (req: Request, res: Response, next: Next
       deadlineStatus: request.deadlineStatus,
       daysRemainingOrOverdue: request.daysRemainingOrOverdue,
       timeline,
-      publicDocuments,
+      stageDocuments,
+      publicDocuments: stageDocuments,
       finalResponse: request.finalResponse
         ? {
             id: request.finalResponse.id,

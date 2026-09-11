@@ -519,8 +519,8 @@ export const RequestDetailsPage: React.FC = () => {
           isOpen={isStatusModalOpen}
           onClose={() => setIsStatusModalOpen(false)}
           request={request}
-          onSubmit={async (newStatus, note) => {
-            await handleChangeStatus(request.id, newStatus, note);
+          onSubmit={async (newStatus, note, file, rejectionReason) => {
+            await handleChangeStatus(request.id, newStatus, note, file, rejectionReason);
             success('تم تحديث الحالة', `أصبحت حالة الطلب الآن (${newStatus})`);
           }}
         />
