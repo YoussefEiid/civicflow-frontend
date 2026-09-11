@@ -1,10 +1,10 @@
 services:
-  # ==============================================================================
-  # 1. CivicFlow Backend Web Service (Express API + TypeScript + Prisma)
-  # ==============================================================================
+  # ----------------------------------------------------
+  # 1. Backend Web Service (Node.js + Express + Prisma)
+  # ----------------------------------------------------
   - type: web
     name: civicflow-backend
-    runtime: node
+    env: node
     rootDir: backend
     plan: free
     region: frankfurt
@@ -25,15 +25,13 @@ services:
       - key: FRONTEND_URL
         value: https://civicflow-frontend.onrender.com
 
-  # ==============================================================================
-  # 2. CivicFlow Frontend Static Site (React 18 + Vite + Tailwind CSS)
-  # ==============================================================================
+  # ----------------------------------------------------
+  # 2. Frontend Static Site (React 18 + Vite + Tailwind)
+  # ----------------------------------------------------
   - type: web
     name: civicflow-frontend
-    runtime: static
-    rootDir: .
+    env: static
     plan: free
-    region: frankfurt
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     routes:
@@ -44,12 +42,13 @@ services:
       - key: VITE_API_URL
         value: https://civicflow-backend.onrender.com/api
 
-# ==============================================================================
-# 3. Managed PostgreSQL Database on Render
-# ==============================================================================
+# ------------------------------------------------------
+# 3. PostgreSQL Database
+# ------------------------------------------------------
 databases:
   - name: civicflow-db
-    plan: free
-    region: frankfurt
     databaseName: civicflow
     user: civicflow_user
+    plan: free
+    region: frankfurt
+    ipAllowList: []
