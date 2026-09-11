@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { RequestItem, RequestStatus } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { StatusBadge } from '../ui/StatusBadge';
-import { MessageSquare, AlertCircle, Upload, CheckCircle2, FileText, AlertTriangle } from 'lucide-react';
+import { MessageSquare, AlertCircle, Upload, CheckCircle2, FileText, AlertTriangle, X, Plus } from 'lucide-react';
 
 interface ChangeStatusModalProps {
   isOpen: boolean;
   onClose: () => void;
   request: RequestItem;
-  onSubmit: (newStatus: RequestStatus, note?: string, file?: File, rejectionReason?: string) => Promise<void>;
+  onSubmit: (newStatus: RequestStatus, note?: string, file?: File, rejectionReason?: string, additionalFiles?: File[]) => Promise<void>;
 }
 
 const STATUS_OPTIONS: RequestStatus[] = [
@@ -36,7 +36,7 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
   const [status, setStatus] = useState<RequestStatus>(request.status);
   const [note, setNote] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [notifyCustomer, setNotifyCustomer] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [validationError, setValidationError] = useState('');
@@ -48,23 +48,34 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
   const requiresFinalDoc = status === 'الإجابة جاهزة';
   const requiresDeliveryDoc = status === 'تم التسليم';
 
+  const handleAddFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFiles((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError('');
 
     if (!status) return;
 
-    if (requiresSendingDoc && !file) {
+    if (requiresSendingDoc && files.length === 0) {
       setValidationError('يلزم إرفاق مستند الإرسال / الخطاب الصادر للانتقال إلى حالة "تم إرسال الطلب للجهة"');
       return;
     }
 
-    if (requiresApprovalDoc && !file) {
+    if (requiresApprovalDoc && files.length === 0) {
       setValidationError('يلزم إرفاق مستند الموافقة الرسمية للانتقال إلى حالة "موافقة"');
       return;
     }
 
-    if (requiresDeliveryDoc && !file) {
+    if (requiresDeliveryDoc && files.length === 0) {
       setValidationError('يلزم إرفاق مستند إثبات التسليم والتوقيع للانتقال إلى حالة "تم التسليم"');
       return;
     }
@@ -76,7 +87,9 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
 
     setIsLoading(true);
     try {
-      await onSubmit(status, note.trim() || undefined, file || undefined, rejectionReason.trim() || undefined);
+      const primaryFile = files[0] || undefined;
+      const additionalFiles = files.slice(1);
+      await onSubmit(status, note.trim() || undefined, primaryFile, rejectionReason.trim() || undefined, additionalFiles);
       onClose();
     } catch (err: any) {
       setValidationError(err.message || 'حدث خطأ أثناء تحديث حالة المعاملة');
@@ -152,15 +165,31 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
             </label>
             <input
               type="file"
+              multiple
               accept=".pdf,.doc,.docx,image/*"
-              required={requiresSendingDoc || requiresApprovalDoc || requiresDeliveryDoc}
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              required={(requiresSendingDoc || requiresApprovalDoc || requiresDeliveryDoc) && files.length === 0}
+              onChange={handleAddFiles}
               className="text-xs text-slate-600 dark:text-gray-400 file:ml-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200"
             />
-            {file && (
-              <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> تم إرفاق: {file.name}
-              </p>
+
+            {files.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                {files.map((f, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded-lg border border-slate-200 dark:border-gray-700 text-xs">
+                    <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-medium truncate">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      {f.name} ({(f.size / 1024).toFixed(0)} KB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(idx)}
+                      className="text-slate-400 hover:text-rose-600 p-1"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -178,32 +207,12 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
           />
         </div>
 
-        {status === 'مطلوب مستندات' && (
-          <div className="p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <p>تنبيه: سيتم إرسال تنبيه للمراجع لتزويد المكتب بالمستندات المطلوبة فور حفظ الحالة.</p>
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 pt-2">
-          <input
-            type="checkbox"
-            id="notify"
-            checked={notifyCustomer}
-            onChange={(e) => setNotifyCustomer(e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-          />
-          <label htmlFor="notify" className="text-xs font-semibold text-slate-700 dark:text-gray-300 select-none cursor-pointer">
-            إرسال إشعار فوري عبر WhatsApp للمراجع ({request.customerPhone})
-          </label>
-        </div>
-
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-gray-700">
+        <div className="pt-2 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-gray-700">
           <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
             إلغاء
           </Button>
           <Button type="submit" variant="primary" isLoading={isLoading}>
-            حفظ وتحديث الحالة
+            تأكيد تحديث الحالة
           </Button>
         </div>
       </form>

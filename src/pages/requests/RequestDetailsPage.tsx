@@ -551,10 +551,17 @@ export const RequestDetailsPage: React.FC = () => {
         <AddAttachmentModal
           isOpen={isAttachmentModalOpen}
           onClose={() => setIsAttachmentModalOpen(false)}
-          onSubmit={async (att) => {
-            await addRequestAttachment(request.id, att);
+          onSubmit={async (attachments) => {
+            await Promise.all(
+              attachments.map((att) => addRequestAttachment(request.id, att))
+            );
             await refreshData();
-            success('تم رفع المرفق', `تمت إضافة الملف (${att.name}) بنجاح`);
+            success(
+              'تم رفع المستندات',
+              attachments.length > 1
+                ? `تمت إضافة (${attachments.length}) مستندات بنجاح`
+                : `تمت إضافة المستند بنجاح`
+            );
           }}
         />
       )}

@@ -14,14 +14,15 @@ import { env } from '../config/env.js';
 const publicRequestSchema = z.object({
   name: z.string().min(2, 'الاسم الكامل مطلوب (حرفين على الأقل)'),
   phone: z.string().min(8, 'رقم الهاتف غير صالح'),
-  nationalId: z.string().min(6, 'رقم الهوية الوطنية أو الإقامة مطلوب'),
-  cityId: z.string().min(1, 'يرجى اختيار المدينة'),
-  address: z.string().min(2, 'العنوان الوطني أو السكن مطلوب'),
+  altPhone: z.string().optional().nullable(),
+  nationalId: z.string().optional().nullable(),
+  cityId: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
   ministryId: z.string().min(1, 'يرجى اختيار الجهة أو الوزارة المعنية'),
   requestTypeId: z.string().optional().nullable(),
   requestType: z.string().optional(),
-  title: z.string().min(3, 'عنوان المعاملة مطلوب'),
-  details: z.string().min(5, 'تفاصيل وشرح الطلب مطلوبة'),
+  title: z.string().min(2, 'عنوان المعاملة مطلوب'),
+  details: z.string().optional().nullable(),
   identityDocName: z.string().optional().nullable(),
   requestDocName: z.string().optional().nullable()
 });
@@ -67,11 +68,17 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
       throw new AppError('الجهة الحكومية المحددة غير موجودة أو غير نشطة', 404, 'MINISTRY_NOT_FOUND');
     }
 
-    const city = await prisma.city.findUnique({
-      where: { id: data.cityId, status: 'ACTIVE' }
-    });
+    let city = null;
+    if (data.cityId) {
+      city = await prisma.city.findUnique({
+        where: { id: data.cityId, status: 'ACTIVE' }
+      });
+    }
     if (!city) {
-      throw new AppError('المدينة المحددة غير صالحة', 404, 'CITY_NOT_FOUND');
+      city = await prisma.city.findFirst({
+        where: { status: 'ACTIVE' },
+        orderBy: { createdAt: 'asc' }
+      });
     }
 
     let requestTypeName = data.requestType || 'طلب عام';
@@ -84,22 +91,39 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
 
     // Handle uploaded files if multipart
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-    const identityFile = files?.['identityDocument']?.[0] || files?.['identity']?.[0];
-    const requestFile = files?.['requestDocument']?.[0] || files?.['document']?.[0] || req.file;
+    const identityFiles: Express.Multer.File[] = [
+      ...(files?.['identityFiles'] || []),
+      ...(files?.['identityDocument'] || []),
+      ...(files?.['identityFile'] || [])
+    ];
+    const requestFiles: Express.Multer.File[] = [
+      ...(files?.['requestFiles'] || []),
+      ...(files?.['requestDocument'] || []),
+      ...(files?.['requestFile'] || []),
+      ...(files?.['files'] || []),
+      ...(req.file ? [req.file] : [])
+    ];
 
     const receiveDate = new Date();
     const slaResult = await calculateRequestSLA(ministry.id, PriorityLevel.NORMAL, receiveDate);
 
     const result = await prisma.$transaction(async (tx) => {
       // 1. Find or create Customer
-      let customer = await tx.customer.findFirst({
-        where: {
-          OR: [
-            { nationalId: data.nationalId },
-            { phone: data.phone }
-          ]
-        }
-      });
+      let customer = null;
+      if (data.nationalId) {
+        customer = await tx.customer.findFirst({
+          where: {
+            OR: [
+              { nationalId: data.nationalId },
+              { phone: data.phone }
+            ]
+          }
+        });
+      } else {
+        customer = await tx.customer.findFirst({
+          where: { phone: data.phone }
+        });
+      }
 
       if (!customer) {
         const customerNumber = await generateNextCustomerNumber(tx);
@@ -108,9 +132,10 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
             customerNumber,
             name: data.name,
             phone: data.phone,
-            nationalId: data.nationalId,
-            cityId: city.id,
-            address: data.address,
+            altPhone: data.altPhone || null,
+            nationalId: data.nationalId || null,
+            cityId: city?.id || null,
+            address: data.address || '',
             status: CustomerStatus.ACTIVE
           }
         });
@@ -120,8 +145,9 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
           where: { id: customer.id },
           data: {
             name: data.name,
-            cityId: customer.cityId || city.id,
-            address: customer.address || data.address
+            altPhone: data.altPhone || customer.altPhone,
+            cityId: customer.cityId || city?.id,
+            address: customer.address || data.address || ''
           }
         });
       }
@@ -135,10 +161,10 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
           requestNumber,
           customerId: customer.id,
           ministryId: ministry.id,
-          cityId: city.id,
+          cityId: city?.id || null,
           requestTypeId: data.requestTypeId || null,
           title: data.title,
-          details: data.details,
+          details: data.details || '',
           requestType: requestTypeName,
           status: 'استلام الطلب',
           priority: PriorityLevel.NORMAL,
@@ -156,22 +182,36 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
         }
       });
 
-      // 4. Save Identity Document (Classified IDENTITY, isPublic: false, isIdentity: true)
-      if (identityFile || data.identityDocName) {
-        const idName = identityFile ? identityFile.originalname : (data.identityDocName || 'صورة_الهوية_الوطنية.jpg');
-        const idPath = identityFile ? identityFile.filename : 'demo_national_id.jpg';
-        const idSize = identityFile ? `${(identityFile.size / (1024 * 1024)).toFixed(1)} MB` : '1.2 MB';
-        const idMime = identityFile ? identityFile.mimetype : 'image/jpeg';
-
+      // 4. Save Identity Documents (Classified IDENTITY, isPublic: false, isIdentity: true)
+      if (identityFiles.length > 0) {
+        for (const idFile of identityFiles) {
+          const idSize = `${(idFile.size / (1024 * 1024)).toFixed(1)} MB`;
+          await tx.requestAttachment.create({
+            data: {
+              requestId: newRequest.id,
+              customerId: customer.id,
+              name: idFile.originalname,
+              filePath: idFile.filename,
+              fileSize: idSize,
+              fileType: idFile.mimetype.includes('pdf') ? 'PDF' : 'Image',
+              mimeType: idFile.mimetype,
+              documentType: DocumentType.IDENTITY,
+              isPublic: false,
+              isIdentity: true,
+              uploadedBy: data.name
+            }
+          });
+        }
+      } else if (data.identityDocName) {
         await tx.requestAttachment.create({
           data: {
             requestId: newRequest.id,
             customerId: customer.id,
-            name: idName,
-            filePath: idPath,
-            fileSize: idSize,
-            fileType: idMime.includes('pdf') ? 'PDF' : 'Image',
-            mimeType: idMime,
+            name: data.identityDocName,
+            filePath: 'demo_national_id.jpg',
+            fileSize: '1.2 MB',
+            fileType: 'Image',
+            mimeType: 'image/jpeg',
             documentType: DocumentType.IDENTITY,
             isPublic: false,
             isIdentity: true,
@@ -180,22 +220,36 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
         });
       }
 
-      // 5. Save Request Document (Classified REQUEST_DOCUMENT, isPublic: false)
-      if (requestFile || data.requestDocName) {
-        const reqDocName = requestFile ? requestFile.originalname : (data.requestDocName || 'مستند_الطلب_المرفق.pdf');
-        const reqDocPath = requestFile ? requestFile.filename : 'demo_request_doc.pdf';
-        const reqDocSize = requestFile ? `${(requestFile.size / (1024 * 1024)).toFixed(1)} MB` : '2.1 MB';
-        const reqDocMime = requestFile ? requestFile.mimetype : 'application/pdf';
-
+      // 5. Save Request Documents (Classified REQUEST_DOCUMENT, isPublic: false)
+      if (requestFiles.length > 0) {
+        for (const rFile of requestFiles) {
+          const reqDocSize = `${(rFile.size / (1024 * 1024)).toFixed(1)} MB`;
+          await tx.requestAttachment.create({
+            data: {
+              requestId: newRequest.id,
+              customerId: customer.id,
+              name: rFile.originalname,
+              filePath: rFile.filename,
+              fileSize: reqDocSize,
+              fileType: rFile.mimetype.includes('pdf') ? 'PDF' : 'Image',
+              mimeType: rFile.mimetype,
+              documentType: DocumentType.REQUEST_DOCUMENT,
+              isPublic: false,
+              isIdentity: false,
+              uploadedBy: data.name
+            }
+          });
+        }
+      } else if (data.requestDocName) {
         await tx.requestAttachment.create({
           data: {
             requestId: newRequest.id,
             customerId: customer.id,
-            name: reqDocName,
-            filePath: reqDocPath,
-            fileSize: reqDocSize,
-            fileType: reqDocMime.includes('pdf') ? 'PDF' : 'Image',
-            mimeType: reqDocMime,
+            name: data.requestDocName,
+            filePath: 'demo_request_doc.pdf',
+            fileSize: '2.1 MB',
+            fileType: 'PDF',
+            mimeType: 'application/pdf',
             documentType: DocumentType.REQUEST_DOCUMENT,
             isPublic: false,
             isIdentity: false,
@@ -219,7 +273,7 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
             customerName: data.name,
             nationalId: data.nationalId,
             ministry: ministry.name,
-            city: city.name
+            city: city?.name || 'غير محدد'
           },
           ipAddress: req.ip,
           userAgent: req.headers['user-agent']

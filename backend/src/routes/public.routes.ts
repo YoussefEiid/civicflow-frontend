@@ -18,10 +18,13 @@ publicRouter.post(
   '/submit-request',
   publicLimiter,
   upload.fields([
-    { name: 'identityDocument', maxCount: 1 },
-    { name: 'identityFile', maxCount: 1 },
-    { name: 'requestDocument', maxCount: 1 },
-    { name: 'requestFile', maxCount: 1 }
+    { name: 'identityFiles', maxCount: 10 },
+    { name: 'identityDocument', maxCount: 10 },
+    { name: 'identityFile', maxCount: 10 },
+    { name: 'requestFiles', maxCount: 10 },
+    { name: 'requestDocument', maxCount: 10 },
+    { name: 'requestFile', maxCount: 10 },
+    { name: 'files', maxCount: 20 }
   ]),
   submitPublicRequest
 );
@@ -29,10 +32,13 @@ publicRouter.post(
   '/requests',
   publicLimiter,
   upload.fields([
-    { name: 'identityDocument', maxCount: 1 },
-    { name: 'identityFile', maxCount: 1 },
-    { name: 'requestDocument', maxCount: 1 },
-    { name: 'requestFile', maxCount: 1 }
+    { name: 'identityFiles', maxCount: 10 },
+    { name: 'identityDocument', maxCount: 10 },
+    { name: 'identityFile', maxCount: 10 },
+    { name: 'requestFiles', maxCount: 10 },
+    { name: 'requestDocument', maxCount: 10 },
+    { name: 'requestFile', maxCount: 10 },
+    { name: 'files', maxCount: 20 }
   ]),
   submitPublicRequest
 );
