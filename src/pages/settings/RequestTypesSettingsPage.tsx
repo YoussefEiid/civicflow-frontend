@@ -103,10 +103,12 @@ export const RequestTypesSettingsPage: React.FC = () => {
     }
   };
 
-  const filteredTypes = types.filter((t) =>
-    t.name.toLowerCase().includes(search.toLowerCase().trim()) ||
-    (t.code && t.code.toLowerCase().includes(search.toLowerCase().trim())) ||
-    (t.description && t.description.toLowerCase().includes(search.toLowerCase().trim()))
+  const filteredTypes = (Array.isArray(types) ? types : []).filter((t) =>
+    t && t.name && (
+      t.name.toLowerCase().includes(search.toLowerCase().trim()) ||
+      (t.code && t.code.toLowerCase().includes(search.toLowerCase().trim())) ||
+      (t.description && t.description.toLowerCase().includes(search.toLowerCase().trim()))
+    )
   );
 
   return (

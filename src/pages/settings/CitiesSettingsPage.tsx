@@ -90,9 +90,11 @@ export const CitiesSettingsPage: React.FC = () => {
     }
   };
 
-  const filteredCities = cities.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase().trim()) ||
-    (c.code && c.code.toLowerCase().includes(search.toLowerCase().trim()))
+  const filteredCities = (Array.isArray(cities) ? cities : []).filter((c) =>
+    c && c.name && (
+      c.name.toLowerCase().includes(search.toLowerCase().trim()) ||
+      (c.code && c.code.toLowerCase().includes(search.toLowerCase().trim()))
+    )
   );
 
   return (
