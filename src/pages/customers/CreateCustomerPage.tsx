@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useToast } from '../../context/ToastContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { cityService } from '../../services/cityService';
+import { City } from '../../types';
 import { User, Phone, MapPin, ArrowRight, Save } from 'lucide-react';
 
 export const CreateCustomerPage: React.FC = () => {
@@ -17,9 +20,15 @@ export const CreateCustomerPage: React.FC = () => {
   const [altPhone, setAltPhone] = useState('');
   const [nationalId, setNationalId] = useState('');
   const [email, setEmail] = useState('');
+  const [cityId, setCityId] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
+  const [cities, setCities] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    cityService.getActive().then(setCities).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +45,7 @@ export const CreateCustomerPage: React.FC = () => {
         altPhone,
         nationalId,
         email,
+        cityId: cityId || undefined,
         address,
         notes
       });
@@ -106,7 +116,7 @@ export const CreateCustomerPage: React.FC = () => {
                 placeholder="19xxxxxxxxxx"
               />
 
-              <div className="sm:col-span-2">
+              <div>
                 <Input
                   label="البريد الإلكتروني"
                   type="email"
@@ -114,6 +124,23 @@ export const CreateCustomerPage: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="ali.hassan@example.com"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  المحافظة
+                </label>
+                <Select
+                  value={cityId}
+                  onChange={(e) => setCityId(e.target.value)}
+                >
+                  <option value="">اختر المحافظة...</option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
               </div>
 
               <div className="sm:col-span-2">

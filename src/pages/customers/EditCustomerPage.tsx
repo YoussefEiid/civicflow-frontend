@@ -6,6 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { cityService } from '../../services/cityService';
+import { City } from '../../types';
 import { ArrowRight, Save, User } from 'lucide-react';
 
 export const EditCustomerPage: React.FC = () => {
@@ -21,10 +23,16 @@ export const EditCustomerPage: React.FC = () => {
   const [altPhone, setAltPhone] = useState('');
   const [nationalId, setNationalId] = useState('');
   const [email, setEmail] = useState('');
+  const [cityId, setCityId] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<'نشط' | 'محظور'>('نشط');
+  const [cities, setCities] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    cityService.getActive().then(setCities).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (customer) {
@@ -33,6 +41,7 @@ export const EditCustomerPage: React.FC = () => {
       setAltPhone(customer.altPhone || '');
       setNationalId(customer.nationalId || '');
       setEmail(customer.email || '');
+      setCityId(customer.cityId || '');
       setAddress(customer.address || '');
       setNotes(customer.notes || '');
       setStatus(customer.status);
@@ -61,6 +70,7 @@ export const EditCustomerPage: React.FC = () => {
         altPhone,
         nationalId,
         email,
+        cityId: cityId || undefined,
         address,
         notes,
         status
@@ -148,14 +158,29 @@ export const EditCustomerPage: React.FC = () => {
                 <option value="محظور">محظور</option>
               </Select>
 
-              <div className="sm:col-span-2">
-                <Input
-                  label="عنوان السكن / أقرب نقطة دالة"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="المحافظة - الحي - أقرب نقطة دالة"
-                />
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  المحافظة
+                </label>
+                <Select
+                  value={cityId}
+                  onChange={(e) => setCityId(e.target.value)}
+                >
+                  <option value="">اختر المحافظة...</option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
               </div>
+
+              <Input
+                label="عنوان السكن / أقرب نقطة دالة"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="المحافظة - الحي - أقرب نقطة دالة"
+              />
             </div>
 
             <div>
