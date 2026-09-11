@@ -30,10 +30,11 @@ export const errorHandler = (
   }
 
   if (err instanceof ZodError) {
+    const firstMsg = err.errors[0]?.message || 'فشل التحقق من صحة البيانات المرسلة';
     return sendError(
       res,
       422,
-      'فشل التحقق من صحة البيانات المرسلة',
+      firstMsg,
       'VALIDATION_ERROR',
       err.errors
     );

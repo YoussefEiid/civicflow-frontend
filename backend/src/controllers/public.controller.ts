@@ -12,19 +12,19 @@ import { generateNextCustomerNumber } from '../services/customerNumber.service.j
 import { env } from '../config/env.js';
 
 const publicRequestSchema = z.object({
-  name: z.string().min(2, 'الاسم الكامل مطلوب (حرفين على الأقل)'),
-  phone: z.string().min(8, 'رقم الهاتف غير صالح'),
-  altPhone: z.string().optional().nullable(),
-  nationalId: z.string().optional().nullable(),
-  cityId: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  ministryId: z.string().min(1, 'يرجى اختيار الجهة أو الوزارة المعنية'),
-  requestTypeId: z.string().optional().nullable(),
-  requestType: z.string().optional(),
-  title: z.string().min(2, 'عنوان المعاملة مطلوب'),
-  details: z.string().optional().nullable(),
-  identityDocName: z.string().optional().nullable(),
-  requestDocName: z.string().optional().nullable()
+  name: z.string().min(1, 'الاسم الكامل مطلوب'),
+  phone: z.string().min(6, 'رقم الهاتف غير صالح'),
+  altPhone: z.string().optional().nullable().or(z.literal('')),
+  nationalId: z.string().optional().nullable().or(z.literal('')),
+  cityId: z.string().optional().nullable().or(z.literal('')),
+  address: z.string().optional().nullable().or(z.literal('')),
+  ministryId: z.string().optional().nullable().or(z.literal('')),
+  requestTypeId: z.string().optional().nullable().or(z.literal('')),
+  requestType: z.string().optional().nullable().or(z.literal('')),
+  title: z.string().optional().nullable().or(z.literal('')),
+  details: z.string().optional().nullable().or(z.literal('')),
+  identityDocName: z.string().optional().nullable().or(z.literal('')),
+  requestDocName: z.string().optional().nullable().or(z.literal(''))
 });
 
 export const getPublicFormData = async (_req: Request, res: Response, next: NextFunction) => {
@@ -61,11 +61,23 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
   try {
     const data = publicRequestSchema.parse(req.body);
 
-    const ministry = await prisma.ministry.findUnique({
-      where: { id: data.ministryId, status: 'ACTIVE' }
-    });
+    let ministry = null;
+    if (data.ministryId) {
+      ministry = await prisma.ministry.findUnique({
+        where: { id: data.ministryId }
+      });
+    }
     if (!ministry) {
-      throw new AppError('الجهة الحكومية المحددة غير موجودة أو غير نشطة', 404, 'MINISTRY_NOT_FOUND');
+      ministry = await prisma.ministry.findFirst({
+        where: { status: 'ACTIVE' },
+        orderBy: { name: 'asc' }
+      });
+    }
+    if (!ministry) {
+      ministry = await prisma.ministry.findFirst();
+    }
+    if (!ministry) {
+      throw new AppError('لا توجد جهة حكومية مسجلة في المنظومة', 404, 'MINISTRY_NOT_FOUND');
     }
 
     let city = null;
@@ -163,7 +175,7 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
           ministryId: ministry.id,
           cityId: city?.id || null,
           requestTypeId: data.requestTypeId || null,
-          title: data.title,
+          title: data.title?.trim() || 'طلب مراجع عبر البوابة الإلكترونية',
           details: data.details || '',
           requestType: requestTypeName,
           status: 'استلام الطلب',

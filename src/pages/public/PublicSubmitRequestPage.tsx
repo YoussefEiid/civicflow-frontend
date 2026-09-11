@@ -61,9 +61,15 @@ export const PublicSubmitRequestPage: React.FC = () => {
       try {
         setLoadingData(true);
         const data = await publicService.getFormData();
-        setMinistries(data.ministries || []);
-        setCities(data.cities || []);
-        setRequestTypes(data.requestTypes || []);
+        const mins = data.ministries || [];
+        const cts = data.cities || [];
+        const rTypes = data.requestTypes || [];
+        setMinistries(mins);
+        setCities(cts);
+        setRequestTypes(rTypes);
+        if (mins.length > 0) setMinistryId(mins[0].id);
+        if (cts.length > 0) setCityId(cts[0].id);
+        if (rTypes.length > 0) setRequestTypeId(rTypes[0].id);
       } catch (err: any) {
         console.error('Error loading public form data:', err);
       } finally {
@@ -101,8 +107,8 @@ export const PublicSubmitRequestPage: React.FC = () => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!name.trim() || !phone.trim() || !title.trim() || !ministryId) {
-      setErrorMessage('يرجى تعبئة كافة الحقول الإلزامية');
+    if (!name.trim() || !phone.trim()) {
+      setErrorMessage('يرجى إدخال اسم المراجع ورقم هاتف واتساب');
       return;
     }
 
@@ -115,9 +121,9 @@ export const PublicSubmitRequestPage: React.FC = () => {
       if (nationalId.trim()) formData.append('nationalId', nationalId.trim());
       if (cityId) formData.append('cityId', cityId);
       if (address.trim()) formData.append('address', address.trim());
-      formData.append('ministryId', ministryId);
+      if (ministryId) formData.append('ministryId', ministryId);
       if (requestTypeId) formData.append('requestTypeId', requestTypeId);
-      formData.append('title', title.trim());
+      formData.append('title', title.trim() || 'طلب مراجع عبر البوابة الإلكترونية');
       if (details.trim()) formData.append('details', details.trim());
 
       // Append all identity files
@@ -658,7 +664,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto px-8 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-brand-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-blue-500/25 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
