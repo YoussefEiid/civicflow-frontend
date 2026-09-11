@@ -31,7 +31,7 @@ import {
 export const CreateRequestPage: React.FC = () => {
   const navigate = useNavigate();
   const { customers, ministries, employees, handleCreateRequest, handleCreateCustomer } = useData();
-  const { success, warning } = useToast();
+  const { success, warning, error } = useToast();
 
   // Dynamic lists from backend
   const [cities, setCities] = useState<City[]>([]);
@@ -55,9 +55,9 @@ export const CreateRequestPage: React.FC = () => {
   const [details, setDetails] = useState('');
   const [requestType, setRequestType] = useState<RequestType>('إصدار تصريح');
   const [requestTypeId, setRequestTypeId] = useState<string>('');
-  const [ministryId, setMinistryId] = useState<string>(ministryDefault());
+  const [ministryId, setMinistryId] = useState<string>(ministries[0]?.id || '');
   const [priority, setPriority] = useState<RequestPriority>('عادي');
-  const [assignedEmployeeId, setAssignedEmployeeId] = useState<string>(employees[0]?.id || 'emp-3');
+  const [assignedEmployeeId, setAssignedEmployeeId] = useState<string>(employees[0]?.id || '');
   const [receiveDate, setReceiveDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [expectedDate, setExpectedDate] = useState<string>('');
   const [internalNotes, setInternalNotes] = useState('');
@@ -88,9 +88,30 @@ export const CreateRequestPage: React.FC = () => {
     fetchOptions();
   }, []);
 
-  function ministryDefault() {
-    return ministries[0]?.id || 'min-1';
-  }
+  // Sync defaults when context data loads
+  useEffect(() => {
+    if (customers.length > 0) {
+      if (!selectedCustomerId || !customers.some((c) => c.id === selectedCustomerId)) {
+        setSelectedCustomerId(customers[0].id);
+      }
+    }
+  }, [customers, selectedCustomerId]);
+
+  useEffect(() => {
+    if (ministries.length > 0) {
+      if (!ministryId || !ministries.some((m) => m.id === ministryId)) {
+        setMinistryId(ministries[0].id);
+      }
+    }
+  }, [ministries, ministryId]);
+
+  useEffect(() => {
+    if (employees.length > 0) {
+      if (!assignedEmployeeId || !employees.some((e) => e.id === assignedEmployeeId)) {
+        setAssignedEmployeeId(employees[0].id);
+      }
+    }
+  }, [employees, assignedEmployeeId]);
 
   // Recalculate SLA expected completion date whenever ministry, priority, or receiveDate changes
   useEffect(() => {
@@ -179,38 +200,47 @@ export const CreateRequestPage: React.FC = () => {
         }
 
         const newCust = await handleCreateCustomer({
-          name: custName,
-          phone: custPhone,
-          altPhone: custAltPhone,
-          nationalId: custNationalId,
-          address: custAddress,
-          notes: custNotes
+          name: custName.trim(),
+          phone: custPhone.trim(),
+          altPhone: custAltPhone.trim() || undefined,
+          nationalId: custNationalId.trim() || undefined,
+          cityId: custCityId || undefined,
+          address: custAddress.trim() || '',
+          notes: custNotes.trim() || undefined
         });
 
         finalCustomerId = newCust.id;
         finalCustomerName = newCust.name;
         finalCustomerPhone = newCust.phone;
+      } else {
+        if (!finalCustomerId) {
+          warning('يرجى اختيار مراجع', 'يرجى اختيار مراجع من القائمة أو الضغط على "مراجع جديد"');
+          setIsLoading(false);
+          return;
+        }
       }
 
       const assignedEmp = employees.find((e) => e.id === assignedEmployeeId);
-      const selectedMin = ministries.find((m) => m.id === ministryId);
+      const selectedMin = ministries.find((m) => m.id === ministryId) || ministries[0];
 
       const created = await handleCreateRequest({
         customerId: finalCustomerId,
         customerName: finalCustomerName,
         customerPhone: finalCustomerPhone,
-        title,
-        details,
+        cityId: custCityId || selectedCustomer?.cityId || undefined,
+        requestTypeId: requestTypeId || undefined,
+        title: title.trim(),
+        details: details.trim(),
         requestType,
-        ministryId,
-        ministryName: selectedMin?.name || 'وزارة الصحة',
+        ministryId: selectedMin?.id || ministryId,
+        ministryName: selectedMin?.name || 'جهة حكومية',
         priority,
-        assignedEmployeeId,
-        assignedEmployeeName: assignedEmp?.name || 'أحمد علي',
+        assignedEmployeeId: assignedEmp?.id || assignedEmployeeId || undefined,
+        assignedEmployeeName: assignedEmp?.name || 'فريق الخدمة',
         receiveDate,
         expectedCompletionDate: expectedDate,
         attachments,
-        internalNotes
+        internalNotes: internalNotes.trim() || undefined
       });
 
       // Upload all real selected files to the created request
@@ -244,8 +274,10 @@ export const CreateRequestPage: React.FC = () => {
       } else {
         navigate(`/requests/${created.id}`);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Error creating request:', err);
+      const msg = err.response?.data?.message || err.message || 'حدث خطأ أثناء إنشاء المعاملة، يرجى المحاولة مرة أخرى';
+      error('تعذر إنشاء المعاملة', msg);
     } finally {
       setIsLoading(false);
     }

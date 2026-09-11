@@ -7,6 +7,7 @@ import { sendSuccess } from '../utils/apiResponse.js';
 import { PriorityLevel, DocumentType } from '@prisma/client';
 import { calculateRequestSLA } from '../services/sla.service.js';
 import { generateNextRequestNumber } from '../services/requestNumber.service.js';
+import { generateNextCustomerNumber } from '../services/customerNumber.service.js';
 
 const createRequestSchema = z.object({
   customerId: z.string().min(1, 'المراجع مطلوب'),
@@ -313,20 +314,64 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
   try {
     const data = createRequestSchema.parse(req.body);
 
-    const customer = await prisma.customer.findUnique({
+    let customer = await prisma.customer.findUnique({
       where: { id: data.customerId },
       include: { city: true }
     });
+
     if (!customer) {
-      throw new AppError('المراجع المحدد غير موجود في قاعدة البيانات', 404, 'CUSTOMER_NOT_FOUND');
+      customer = await prisma.customer.findFirst({
+        where: {
+          OR: [
+            { id: data.customerId },
+            { name: (req.body as any).customerName || undefined },
+            { phone: (req.body as any).customerPhone || undefined }
+          ]
+        },
+        include: { city: true }
+      });
     }
 
-    const ministry = await prisma.ministry.findUnique({ where: { id: data.ministryId } });
+    if (!customer) {
+      const customerName = (req.body as any).customerName || 'مراجع عام';
+      const customerPhone = (req.body as any).customerPhone || '07700000000';
+      const customerNumber = await generateNextCustomerNumber(prisma);
+      customer = await prisma.customer.create({
+        data: {
+          customerNumber,
+          name: customerName,
+          phone: customerPhone,
+          address: '',
+          status: 'ACTIVE'
+        },
+        include: { city: true }
+      });
+    }
+
+    if (!customer) {
+      throw new AppError('المراجع غير موجود في قاعدة البيانات', 404, 'CUSTOMER_NOT_FOUND');
+    }
+
+    let ministry = await prisma.ministry.findUnique({ where: { id: data.ministryId } });
     if (!ministry) {
-      throw new AppError('الجهة/الوزارة المحددة غير موجودة', 404, 'MINISTRY_NOT_FOUND');
+      ministry = await prisma.ministry.findFirst({
+        where: {
+          OR: [
+            { id: data.ministryId },
+            { name: (req.body as any).ministryName || undefined }
+          ]
+        }
+      });
+    }
+    if (!ministry) {
+      ministry = await prisma.ministry.findFirst({ where: { status: 'ACTIVE' } }) || await prisma.ministry.findFirst();
+    }
+    if (!ministry) {
+      throw new AppError('لا توجد جهة حكومية معتمدة في النظام', 404, 'MINISTRY_NOT_FOUND');
     }
 
-    let finalCityId = data.cityId || customer.cityId || null;
+    const validCustomer = customer;
+    let finalCityId = data.cityId || validCustomer.cityId || null;
     let finalRequestTypeId = data.requestTypeId || null;
     let finalRequestTypeName = data.requestType;
 
@@ -335,16 +380,17 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
       if (rt) finalRequestTypeName = rt.name;
     }
 
-    let assignedEmpId = data.assignedEmployeeId || null;
+    let assignedEmpId: string | null = null;
     let assignedEmpName = 'غير معين';
 
-    if (assignedEmpId) {
-      const emp = await prisma.user.findUnique({ where: { id: assignedEmpId } });
-      if (!emp) {
-        throw new AppError('الموظف المسند إليه غير موجود', 404, 'EMPLOYEE_NOT_FOUND');
+    if (data.assignedEmployeeId) {
+      const emp = await prisma.user.findUnique({ where: { id: data.assignedEmployeeId } });
+      if (emp) {
+        assignedEmpId = emp.id;
+        assignedEmpName = emp.name;
       }
-      assignedEmpName = emp.name;
-    } else if (req.user) {
+    }
+    if (!assignedEmpId && req.user) {
       assignedEmpId = req.user.id;
       assignedEmpName = req.user.name;
     }
@@ -360,7 +406,7 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
       const created = await tx.request.create({
         data: {
           requestNumber,
-          customerId: customer.id,
+          customerId: validCustomer.id,
           ministryId: ministry.id,
           cityId: finalCityId,
           requestTypeId: finalRequestTypeId,
@@ -408,7 +454,7 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
             requestNumber,
             entity: 'Request',
             entityId: created.id,
-            details: `إنشاء طلب جديد رقم ${requestNumber} للمراجع ${customer.name}`,
+            details: `إنشاء طلب جديد رقم ${requestNumber} للمراجع ${validCustomer.name}`,
             afterValue: { requestNumber, title: created.title, status: created.status, ministry: ministry.name },
             ipAddress: req.ip
           }

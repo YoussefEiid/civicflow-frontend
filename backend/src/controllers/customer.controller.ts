@@ -13,7 +13,7 @@ const customerSchema = z.object({
   nationalId: z.string().optional().nullable(),
   email: z.string().email('صيغة البريد الإلكتروني غير صحيحة').optional().nullable().or(z.literal('')),
   cityId: z.string().optional().nullable(),
-  address: z.string().min(2, 'العنوان مطلوب'),
+  address: z.string().optional().nullable().or(z.literal('')).default(''),
   notes: z.string().optional().nullable(),
   status: z.enum(['ACTIVE', 'BLOCKED', 'نشط', 'محظور']).optional().default('ACTIVE')
 });
@@ -212,7 +212,7 @@ export const createCustomer = async (req: Request, res: Response, next: NextFunc
           nationalId: data.nationalId || null,
           email: data.email || null,
           cityId: data.cityId || null,
-          address: data.address,
+          address: data.address || '',
           notes: data.notes || null,
           status: statusVal
         },
@@ -249,7 +249,7 @@ export const createCustomer = async (req: Request, res: Response, next: NextFunc
       nationalId: newCustomer.nationalId || undefined,
       email: newCustomer.email || undefined,
       cityId: newCustomer.cityId || undefined,
-      cityName: newCustomer.city?.name || undefined,
+      cityName: (newCustomer as any).city?.name || undefined,
       address: newCustomer.address,
       notes: newCustomer.notes || undefined,
       requestsCount: 0,
