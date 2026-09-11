@@ -4,8 +4,12 @@ import { z } from 'zod';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
+// Sanitize NODE_ENV safely
+const rawNodeEnv = (process.env.NODE_ENV || '').trim().toLowerCase();
+const nodeEnv = (rawNodeEnv === 'test' || rawNodeEnv === 'development') ? rawNodeEnv : 'production';
+
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
   PORT: z.coerce.number().default(5000),
   FRONTEND_URL: z.string().default('http://localhost:5173'),
   DATABASE_URL: z.string(),
@@ -19,7 +23,10 @@ const envSchema = z.object({
   WHATSAPP_PROVIDER: z.enum(['mock', 'cloud_api']).default('mock')
 });
 
-const parsed = envSchema.safeParse(process.env);
+const parsed = envSchema.safeParse({
+  ...process.env,
+  NODE_ENV: nodeEnv
+});
 
 if (!parsed.success) {
   console.error('❌ Invalid environment variables:', parsed.error.format());
