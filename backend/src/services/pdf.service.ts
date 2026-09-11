@@ -1,60 +1,63 @@
 import { Response } from 'express';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { TDocumentDefinitions } from 'pdfmake/interfaces.js';
+import { processPdfMakeContent, fixArabicPdfText } from '../utils/arabicPdfHelper.js';
 
 const require = createRequire(import.meta.url);
 const pdfmake = require('pdfmake');
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Resolve fonts with priority on project-relative fonts, then system fallbacks
 const getFontPaths = () => {
-  const localRegular = path.resolve(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
-  const localBold = path.resolve(process.cwd(), 'assets', 'fonts', 'Cairo-Bold.ttf');
-  const localBackendRegular = path.resolve(process.cwd(), 'backend', 'assets', 'fonts', 'Cairo-Regular.ttf');
-  const localBackendBold = path.resolve(process.cwd(), 'backend', 'assets', 'fonts', 'Cairo-Bold.ttf');
+  const fontDirCandidates = [
+    path.resolve(__dirname, '../../assets/fonts'),
+    path.resolve(__dirname, '../assets/fonts'),
+    path.resolve(process.cwd(), 'assets/fonts'),
+    path.resolve(process.cwd(), 'backend/assets/fonts')
+  ];
 
-  const winTahoma = 'C:\\Windows\\Fonts\\tahoma.ttf';
-  const winTahomaBold = 'C:\\Windows\\Fonts\\tahomabd.ttf';
-  const winArial = 'C:\\Windows\\Fonts\\arial.ttf';
-  const winArialBold = 'C:\\Windows\\Fonts\\arialbd.ttf';
+  let regularFont = '';
+  let boldFont = '';
 
-  let primary = {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique'
-  };
-
-  if (fs.existsSync(localRegular) && fs.existsSync(localBold)) {
-    primary = {
-      normal: localRegular,
-      bold: localBold,
-      italics: localRegular,
-      bolditalics: localBold
-    };
-  } else if (fs.existsSync(localBackendRegular) && fs.existsSync(localBackendBold)) {
-    primary = {
-      normal: localBackendRegular,
-      bold: localBackendBold,
-      italics: localBackendRegular,
-      bolditalics: localBackendBold
-    };
-  } else if (fs.existsSync(winTahoma) && fs.existsSync(winTahomaBold)) {
-    primary = {
-      normal: winTahoma,
-      bold: winTahomaBold,
-      italics: winTahoma,
-      bolditalics: winTahomaBold
-    };
-  } else if (fs.existsSync(winArial) && fs.existsSync(winArialBold)) {
-    primary = {
-      normal: winArial,
-      bold: winArialBold,
-      italics: winArial,
-      bolditalics: winArialBold
-    };
+  for (const dir of fontDirCandidates) {
+    const reg = path.join(dir, 'Cairo-Regular.ttf');
+    const bld = path.join(dir, 'Cairo-Bold.ttf');
+    if (fs.existsSync(reg) && fs.existsSync(bld)) {
+      regularFont = reg;
+      boldFont = bld;
+      break;
+    }
   }
+
+  // Windows system font fallbacks
+  if (!regularFont) {
+    const winTahoma = 'C:\\Windows\\Fonts\\tahoma.ttf';
+    const winTahomaBold = 'C:\\Windows\\Fonts\\tahomabd.ttf';
+    if (fs.existsSync(winTahoma) && fs.existsSync(winTahomaBold)) {
+      regularFont = winTahoma;
+      boldFont = winTahomaBold;
+    }
+  }
+  if (!regularFont) {
+    const winArial = 'C:\\Windows\\Fonts\\arial.ttf';
+    const winArialBold = 'C:\\Windows\\Fonts\\arialbd.ttf';
+    if (fs.existsSync(winArial) && fs.existsSync(winArialBold)) {
+      regularFont = winArial;
+      boldFont = winArialBold;
+    }
+  }
+
+  const primary = {
+    normal: regularFont || 'Helvetica',
+    bold: boldFont || regularFont || 'Helvetica-Bold',
+    italics: regularFont || 'Helvetica-Oblique',
+    bolditalics: boldFont || regularFont || 'Helvetica-BoldOblique'
+  };
 
   return {
     Roboto: primary,
@@ -98,8 +101,10 @@ export async function generateRequestsPdf(
 ) {
   const fonts = getFontPaths();
 
-  // Filter columns based on user selection, keeping standard order
-  const activeColumns = ALL_REQUEST_COLUMNS.filter((col) => selectedColumnKeys.includes(col.key));
+  // Filter columns based on user selection, keeping standard order or user preference
+  const activeColumns = selectedColumnKeys
+    .map((k) => ALL_REQUEST_COLUMNS.find((col) => col.key === k))
+    .filter((col): col is ColumnDefinition => Boolean(col));
   const finalColumns = activeColumns.length > 0 ? activeColumns : ALL_REQUEST_COLUMNS.slice(0, 7);
 
   // Build table headers
@@ -114,9 +119,9 @@ export async function generateRequestsPdf(
 
   requests.forEach((r, index) => {
     const row = finalColumns.map((col) => {
-      let val = r[col.key] || '-';
-      if (typeof val === 'string' && val.length > 40) {
-        val = val.substring(0, 37) + '...';
+      let val = r[col.key] !== undefined && r[col.key] !== null ? r[col.key] : '-';
+      if (typeof val === 'string' && val.length > 50) {
+        val = val.substring(0, 47) + '...';
       }
       return {
         text: String(val),
@@ -144,15 +149,15 @@ export async function generateRequestsPdf(
     header: (currentPage, pageCount) => ({
       margin: [30, 15, 30, 0],
       columns: [
-        { text: 'CivicFlow — منظومة إدارة وتتبع المعاملات الحكومية', fontSize: 8, color: '#64748b' },
-        { text: `صفحة ${currentPage} من ${pageCount}`, fontSize: 8, alignment: 'left', color: '#64748b' }
+        { text: fixArabicPdfText('CivicFlow — منظومة إدارة وتتبع المعاملات الحكومية'), fontSize: 8, color: '#64748b' },
+        { text: fixArabicPdfText(`صفحة ${currentPage} من ${pageCount}`), fontSize: 8, alignment: 'left', color: '#64748b' }
       ]
     }),
     footer: () => ({
       margin: [30, 0, 30, 15],
       columns: [
-        { text: `تاريخ التصدير: ${new Date().toLocaleDateString('ar-SA')} ${new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}`, fontSize: 8, color: '#94a3b8' },
-        { text: 'نظام التدقيق والرقابة الإدارية المعتمد', fontSize: 8, alignment: 'left', color: '#94a3b8' }
+        { text: fixArabicPdfText(`تاريخ التصدير: ${new Date().toISOString().split('T')[0]}`), fontSize: 8, color: '#94a3b8' },
+        { text: fixArabicPdfText('نظام التدقيق والرقابة الإدارية المعتمد'), fontSize: 8, alignment: 'left', color: '#94a3b8' }
       ]
     }),
     content: [
@@ -224,8 +229,10 @@ export async function generateRequestsPdf(
     }
   };
 
+  const processedDocDef = processPdfMakeContent(docDefinition);
+
   pdfmake.fonts = fonts;
-  const pdfDoc = pdfmake.createPdf(docDefinition);
+  const pdfDoc = pdfmake.createPdf(processedDocDef);
   const buffer = await pdfDoc.getBuffer();
 
   const encodedFilename = encodeURIComponent(filename);
@@ -289,15 +296,15 @@ export async function generateAuditLogsPdf(
     header: (currentPage, pageCount) => ({
       margin: [30, 15, 30, 0],
       columns: [
-        { text: 'CivicFlow — سجل تدقيق العمليات الأمنية والإدارية', fontSize: 8, color: '#64748b' },
-        { text: `صفحة ${currentPage} من ${pageCount}`, fontSize: 8, alignment: 'left', color: '#64748b' }
+        { text: fixArabicPdfText('CivicFlow — سجل تدقيق العمليات الأمنية والإدارية'), fontSize: 8, color: '#64748b' },
+        { text: fixArabicPdfText(`صفحة ${currentPage} من ${pageCount}`), fontSize: 8, alignment: 'left', color: '#64748b' }
       ]
     }),
     footer: () => ({
       margin: [30, 0, 30, 15],
       columns: [
-        { text: `تاريخ التصدير: ${new Date().toLocaleDateString('ar-SA')} ${new Date().toLocaleTimeString('ar-SA')}`, fontSize: 8, color: '#94a3b8' },
-        { text: 'سجل غير قابل للتعديل (Tamper-evident Audit Trail)', fontSize: 8, alignment: 'left', color: '#94a3b8' }
+        { text: fixArabicPdfText(`تاريخ التصدير: ${new Date().toISOString().split('T')[0]}`), fontSize: 8, color: '#94a3b8' },
+        { text: fixArabicPdfText('سجل غير قابل للتعديل (Tamper-evident Audit Trail)'), fontSize: 8, alignment: 'left', color: '#94a3b8' }
       ]
     }),
     content: [
@@ -369,8 +376,10 @@ export async function generateAuditLogsPdf(
     }
   };
 
+  const processedDocDef = processPdfMakeContent(docDefinition);
+
   pdfmake.fonts = fonts;
-  const pdfDoc = pdfmake.createPdf(docDefinition);
+  const pdfDoc = pdfmake.createPdf(processedDocDef);
   const buffer = await pdfDoc.getBuffer();
 
   const encodedFilename = encodeURIComponent(filename);

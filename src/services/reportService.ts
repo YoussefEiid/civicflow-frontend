@@ -1,4 +1,6 @@
 import { apiClient } from './apiClient';
+import { htmlPdfExportService } from './htmlPdfExportService';
+import { RequestItem } from '../types';
 
 export interface ReportColumnOption {
   key: string;
@@ -40,11 +42,37 @@ export const reportService = {
     await apiClient.download('/reports/requests/export', 'تقرير_معاملات_CivicFlow.xlsx', params);
   },
 
-  exportRequestsPdf: async (filters: any = {}, selectedColumns: string[] = []) => {
-    const params: Record<string, any> = { ...filters };
-    if (selectedColumns.length > 0) {
-      params.columns = selectedColumns.join(',');
+  exportRequestsPdf: async (
+    filters: any = {},
+    selectedColumns: string[] = [],
+    preloadedData?: RequestItem[]
+  ) => {
+    let requests: any[] = [];
+    if (preloadedData && preloadedData.length > 0) {
+      requests = preloadedData;
+    } else {
+      try {
+        const res = await apiClient.get<{ requests: RequestItem[]; total: number }>('/requests', {
+          params: { ...filters, limit: 500 }
+        });
+        requests = res.requests || [];
+      } catch {
+        requests = [];
+      }
     }
-    await apiClient.download('/reports/requests/export/pdf', 'تقرير_معاملات_CivicFlow.pdf', params);
+
+    const filtersSummary: Record<string, string> = {
+      'من تاريخ': filters.fromDate || '',
+      'إلى تاريخ': filters.toDate || '',
+      'الحالة': filters.status || '',
+      'الأولوية': filters.priority || ''
+    };
+
+    await htmlPdfExportService.exportRequestsReportToPdf(
+      requests,
+      selectedColumns,
+      filtersSummary,
+      'تقرير_معاملات_CivicFlow.pdf'
+    );
   }
 };

@@ -222,7 +222,7 @@ export const RequestsListPage: React.FC = () => {
       if (format === 'excel') {
         await reportService.exportRequestsExcel(filters, selectedColumns);
       } else {
-        await reportService.exportRequestsPdf(filters, selectedColumns);
+        await reportService.exportRequestsPdf(filters, selectedColumns, filteredRequests);
       }
       setIsExportModalOpen(false);
     } catch (err) {

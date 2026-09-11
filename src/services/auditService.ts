@@ -1,5 +1,6 @@
 import { apiClient } from './apiClient';
 import { AuditLog } from '../types';
+import { htmlPdfExportService } from './htmlPdfExportService';
 
 export interface AuditLogDetail extends AuditLog {
   entity?: string;
@@ -29,7 +30,32 @@ export const auditService = {
     return apiClient.get<AuditLogDetail>(`/audit-logs/${id}`);
   },
 
-  exportPdf: async (filters?: any) => {
-    await apiClient.download('/audit-logs/export/pdf', 'سجل_عمليات_CivicFlow.pdf', filters);
+  exportPdf: async (filters: any = {}, preloadedData?: AuditLog[]) => {
+    let logs: AuditLog[] = [];
+    if (preloadedData && preloadedData.length > 0) {
+      logs = preloadedData;
+    } else {
+      try {
+        const res = await apiClient.get<{ auditLogs: AuditLog[]; total: number }>('/audit-logs', {
+          params: { ...filters, limit: 500 }
+        });
+        logs = res.auditLogs || [];
+      } catch {
+        logs = [];
+      }
+    }
+
+    const filtersSummary: Record<string, string> = {
+      'المستخدم': filters.user || '',
+      'نوع العملية': filters.action || '',
+      'رقم المعاملة': filters.requestNumber || '',
+      'التاريخ': filters.date || ''
+    };
+
+    await htmlPdfExportService.exportAuditLogsReportToPdf(
+      logs,
+      filtersSummary,
+      'سجل_العمليات_CivicFlow.pdf'
+    );
   }
 };

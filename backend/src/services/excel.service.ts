@@ -16,8 +16,10 @@ export async function generateRequestsExcel(
     views: [{ rightToLeft: true }] // RTL Arabic layout
   });
 
-  // Filter columns based on user selection, keeping standard order
-  const activeColumns = ALL_REQUEST_COLUMNS.filter((col) => selectedColumnKeys.includes(col.key));
+  // Filter columns based on user selection, keeping requested columns
+  const activeColumns = selectedColumnKeys
+    .map((k) => ALL_REQUEST_COLUMNS.find((col) => col.key === k))
+    .filter((col): col is typeof ALL_REQUEST_COLUMNS[0] => Boolean(col));
   const finalColumns = activeColumns.length > 0 ? activeColumns : ALL_REQUEST_COLUMNS.slice(0, 10);
 
   worksheet.columns = finalColumns.map((col) => ({

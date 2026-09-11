@@ -61,7 +61,7 @@ export const ReportResultsPage: React.FC = () => {
       if (format === 'excel') {
         await reportService.exportRequestsExcel(filters, selectedColumns);
       } else {
-        await reportService.exportRequestsPdf(filters, selectedColumns);
+        await reportService.exportRequestsPdf(filters, selectedColumns, filtered);
       }
       setIsExportModalOpen(false);
     } catch (err) {

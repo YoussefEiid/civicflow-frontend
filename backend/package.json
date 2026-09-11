@@ -5,8 +5,10 @@
   "description": "Production Backend API for CivicFlow Government Request Management System",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
+    "postinstall": "prisma generate",
+    "deploy:db": "prisma db push && node dist/seed.js",
     "dev": "tsx watch src/server.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",

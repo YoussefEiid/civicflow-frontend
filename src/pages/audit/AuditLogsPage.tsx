@@ -40,12 +40,15 @@ export const AuditLogsPage: React.FC = () => {
   const handleExportPdf = async () => {
     try {
       setIsExporting(true);
-      await auditService.exportPdf({
-        search: search.trim() || undefined,
-        user: userFilter !== 'all' ? userFilter : undefined,
-        action: actionFilter !== 'all' ? actionFilter : undefined,
-        date: dateFilter || undefined
-      });
+      await auditService.exportPdf(
+        {
+          search: search.trim() || undefined,
+          user: userFilter !== 'all' ? userFilter : undefined,
+          action: actionFilter !== 'all' ? actionFilter : undefined,
+          date: dateFilter || undefined
+        },
+        filteredLogs
+      );
     } catch (err) {
       console.error('Export PDF error:', err);
     } finally {
