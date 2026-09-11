@@ -18,38 +18,46 @@ import {
   User
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 export const MobileNav: React.FC = () => {
   const location = useLocation();
   const { unreadNotificationsCount, overdueRequestsCount } = useData();
+  const { canAccessModule } = usePermissions();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const mainTabs = [
-    { name: 'الرئيسية', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+  const allMainTabs = [
+    { name: 'الرئيسية', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, module: 'الرئيسية' },
     {
       name: 'الطلبات',
       path: '/requests',
       icon: <FileSpreadsheet className="w-5 h-5" />,
+      module: 'الطلبات',
       badge: overdueRequestsCount > 0 ? overdueRequestsCount : undefined
     },
-    { name: 'المراجعون', path: '/customers', icon: <Users className="w-5 h-5" /> },
+    { name: 'المراجعون', path: '/customers', icon: <Users className="w-5 h-5" />, module: 'المراجعون' },
     {
       name: 'الإشعارات',
       path: '/notifications',
       icon: <Bell className="w-5 h-5" />,
+      module: 'الإشعارات',
       badge: unreadNotificationsCount > 0 ? unreadNotificationsCount : undefined
     }
   ];
 
-  const moreLinks = [
-    { name: 'الوزارات والجهات', path: '/ministries', icon: <Building2 className="w-5 h-5" /> },
-    { name: 'الموظفون', path: '/employees', icon: <UserCheck className="w-5 h-5" /> },
-    { name: 'التقارير والإحصائيات', path: '/reports', icon: <BarChart3 className="w-5 h-5" /> },
-    { name: 'سجل العمليات والرقابة', path: '/audit-logs', icon: <History className="w-5 h-5" /> },
-    { name: 'إعدادات المنظومة', path: '/settings', icon: <Settings className="w-5 h-5" /> },
-    { name: 'الملف الشخصي', path: '/profile', icon: <User className="w-5 h-5" /> },
-    { name: 'بوابة الاستعلام العام للمراجعين', path: '/track', icon: <Search className="w-5 h-5" />, external: true }
+  const mainTabs = allMainTabs.filter((tab) => canAccessModule(tab.module));
+
+  const allMoreLinks = [
+    { name: 'الوزارات والجهات', path: '/ministries', icon: <Building2 className="w-5 h-5" />, module: 'الوزارات' },
+    { name: 'الموظفون', path: '/employees', icon: <UserCheck className="w-5 h-5" />, module: 'الموظفون' },
+    { name: 'التقارير والإحصائيات', path: '/reports', icon: <BarChart3 className="w-5 h-5" />, module: 'التقارير' },
+    { name: 'سجل العمليات والرقابة', path: '/audit-logs', icon: <History className="w-5 h-5" />, module: 'سجل العمليات' },
+    { name: 'إعدادات المنظومة', path: '/settings', icon: <Settings className="w-5 h-5" />, module: 'الإعدادات' },
+    { name: 'الملف الشخصي', path: '/profile', icon: <User className="w-5 h-5" />, module: 'dashboard' },
+    { name: 'بوابة الاستعلام العام للمراجعين', path: '/track', icon: <Search className="w-5 h-5" />, external: true, module: 'dashboard' }
   ];
+
+  const moreLinks = allMoreLinks.filter((link) => canAccessModule(link.module));
 
   return (
     <>

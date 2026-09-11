@@ -18,6 +18,7 @@ import {
   Flame
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -27,13 +28,15 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const { unreadNotificationsCount, overdueRequestsCount } = useData();
+  const { canAccessModule } = usePermissions();
 
-  const navItems = [
-    { name: 'الرئيسية', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+  const allNavItems = [
+    { name: 'الرئيسية', path: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" />, module: 'الرئيسية' },
     {
       name: 'الطلبات والمعاملات',
       path: '/requests',
       icon: <FileSpreadsheet className="w-5 h-5" />,
+      module: 'الطلبات',
       badge: overdueRequestsCount > 0 ? (
         <span className="bg-rose-500 text-white text-[11px] font-bold px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
           <Flame className="w-2.5 h-2.5" />
@@ -41,23 +44,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
         </span>
       ) : undefined
     },
-    { name: 'المراجعون', path: '/customers', icon: <Users className="w-5 h-5" /> },
-    { name: 'الوزارات والجهات', path: '/ministries', icon: <Building2 className="w-5 h-5" /> },
-    { name: 'الموظفون', path: '/employees', icon: <UserCheck className="w-5 h-5" /> },
-    { name: 'التقارير', path: '/reports', icon: <BarChart3 className="w-5 h-5" /> },
+    { name: 'المراجعون', path: '/customers', icon: <Users className="w-5 h-5" />, module: 'المراجعون' },
+    { name: 'الوزارات والجهات', path: '/ministries', icon: <Building2 className="w-5 h-5" />, module: 'الوزارات' },
+    { name: 'الموظفون', path: '/employees', icon: <UserCheck className="w-5 h-5" />, module: 'الموظفون' },
+    { name: 'التقارير', path: '/reports', icon: <BarChart3 className="w-5 h-5" />, module: 'التقارير' },
     {
       name: 'الإشعارات',
       path: '/notifications',
       icon: <Bell className="w-5 h-5" />,
+      module: 'الإشعارات',
       badge: unreadNotificationsCount > 0 ? (
         <span className="bg-blue-600 text-white text-[11px] font-bold px-1.5 py-0.2 rounded-full">
           {unreadNotificationsCount}
         </span>
       ) : undefined
     },
-    { name: 'سجل العمليات', path: '/audit-logs', icon: <History className="w-5 h-5" /> },
-    { name: 'الإعدادات', path: '/settings', icon: <Settings className="w-5 h-5" /> }
+    { name: 'سجل العمليات', path: '/audit-logs', icon: <History className="w-5 h-5" />, module: 'سجل العمليات' },
+    { name: 'الإعدادات', path: '/settings', icon: <Settings className="w-5 h-5" />, module: 'الإعدادات' }
   ];
+
+  const navItems = allNavItems.filter((item) => canAccessModule(item.module));
 
   return (
     <aside

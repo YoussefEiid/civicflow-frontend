@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -9,6 +10,7 @@ import { UserCheck, Plus, Search, Eye, Edit, Shield, Mail, Phone, Lock } from 'l
 export const EmployeesListPage: React.FC = () => {
   const navigate = useNavigate();
   const { employees, requests } = useData();
+  const { isAdmin, canCreateEmployee, canUpdateEmployee } = usePermissions();
   const [search, setSearch] = useState('');
 
   const filteredEmployees = useMemo(() => {
@@ -35,22 +37,26 @@ export const EmployeesListPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="md"
-            onClick={() => navigate('/roles')}
-            icon={<Lock className="w-4 h-4" />}
-          >
-            مصفوفة الأدوار والصلاحيات
-          </Button>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => navigate('/employees/new')}
-            icon={<Plus className="w-4 h-4" />}
-          >
-            + إضافة موظف جديد
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => navigate('/roles')}
+              icon={<Lock className="w-4 h-4" />}
+            >
+              مصفوفة الأدوار والصلاحيات
+            </Button>
+          )}
+          {canCreateEmployee && (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => navigate('/employees/new')}
+              icon={<Plus className="w-4 h-4" />}
+            >
+              + إضافة موظف جديد
+            </Button>
+          )}
         </div>
       </div>
 
@@ -145,13 +151,15 @@ export const EmployeesListPage: React.FC = () => {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => navigate(`/employees/${emp.id}/edit`)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
-                            title="تعديل"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
+                          {canUpdateEmployee && (
+                            <button
+                              onClick={() => navigate(`/employees/${emp.id}/edit`)}
+                              className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                              title="تعديل"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

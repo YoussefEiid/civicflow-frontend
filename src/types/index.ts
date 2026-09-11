@@ -176,6 +176,7 @@ export interface Employee {
   status: 'نشط' | 'غير نشط';
   lastLogin: string;
   avatarUrl?: string;
+  permissions?: string[];
 }
 
 export interface RolePermissionMatrix {

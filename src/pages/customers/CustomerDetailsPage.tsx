@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -26,6 +27,7 @@ export const CustomerDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { customers, requests } = useData();
+  const { canUpdateCustomer, canCreateRequest } = usePermissions();
 
   const customer = customers.find((c) => c.id === id);
 
@@ -80,22 +82,26 @@ export const CustomerDetailsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/customers/${customer.id}/edit`)}
-            icon={<Edit className="w-4 h-4" />}
-          >
-            تعديل الملف
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => navigate(`/requests/new`)}
-            icon={<Plus className="w-4 h-4" />}
-          >
-            + إضافة معاملة جديدة
-          </Button>
+          {canUpdateCustomer && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/customers/${customer.id}/edit`)}
+              icon={<Edit className="w-4 h-4" />}
+            >
+              تعديل الملف
+            </Button>
+          )}
+          {canCreateRequest && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => navigate(`/requests/new`)}
+              icon={<Plus className="w-4 h-4" />}
+            >
+              + إضافة معاملة جديدة
+            </Button>
+          )}
         </div>
       </div>
 

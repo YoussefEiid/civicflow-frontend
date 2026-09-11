@@ -14,6 +14,7 @@ import { ChangeStatusModal } from '../../components/request/ChangeStatusModal';
 import { ExportColumnModal } from '../../components/common/ExportColumnModal';
 import { RequestItem, RequestStatus, RequestPriority } from '../../types';
 import { reportService } from '../../services/reportService';
+import { usePermissions } from '../../hooks/usePermissions';
 import {
   Plus,
   Search,
@@ -36,6 +37,13 @@ export const RequestsListPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { requests, ministries, employees, handleDeleteRequest, handleChangeStatus } = useData();
   const { success } = useToast();
+  const {
+    canCreateRequest,
+    canUpdateRequest,
+    canDeleteRequest,
+    canChangeStatus,
+    canExportReports
+  } = usePermissions();
 
   // URL query params
   const urlStatus = searchParams.get('status') || 'all';
@@ -243,33 +251,40 @@ export const RequestsListPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="md"
-            onClick={() => handleOpenExport('pdf')}
-            className="text-red-600 border-red-200 hover:bg-red-50"
-            icon={<FileText className="w-4 h-4" />}
-          >
-            تصدير PDF
-          </Button>
-          <Button
-            variant="outline"
-            size="md"
-            onClick={() => handleOpenExport('excel')}
-            className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-            icon={<FileSpreadsheet className="w-4 h-4" />}
-          >
-            تصدير Excel مخصص
-          </Button>
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => navigate('/requests/new')}
-            icon={<Plus className="w-4 h-4" />}
-          >
-            + إضافة طلب
-          </Button>
+        {/* Actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          {canExportReports && (
+            <>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => handleOpenExport('pdf')}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+                icon={<FileText className="w-4 h-4" />}
+              >
+                تصدير PDF
+              </Button>
+              <Button
+                variant="outline"
+                size="md"
+                onClick={() => handleOpenExport('excel')}
+                className="text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                icon={<FileSpreadsheet className="w-4 h-4" />}
+              >
+                تصدير Excel مخصص
+              </Button>
+            </>
+          )}
+          {canCreateRequest && (
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => navigate('/requests/new')}
+              icon={<Plus className="w-4 h-4" />}
+            >
+              + إضافة طلب
+            </Button>
+          )}
         </div>
       </div>
 
@@ -542,13 +557,15 @@ export const RequestsListPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => setStatusModalRequest(req)}
-                          className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
-                          title="تغيير الحالة"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </button>
+                        {canChangeStatus && (
+                          <button
+                            onClick={() => setStatusModalRequest(req)}
+                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                            title="تغيير الحالة"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => navigate(`/requests/${req.id}`)}
                           className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
@@ -556,20 +573,24 @@ export const RequestsListPage: React.FC = () => {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => navigate(`/requests/${req.id}/edit`)}
-                          className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
-                          title="تعديل"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(req.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                          title="حذف"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canUpdateRequest && (
+                          <button
+                            onClick={() => navigate(`/requests/${req.id}/edit`)}
+                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                            title="تعديل"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDeleteRequest && (
+                          <button
+                            onClick={() => setDeleteId(req.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                            title="حذف"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -14,6 +14,7 @@ import { SendNotificationModal } from '../../components/request/SendNotification
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { addRequestAttachment, addFinalResponse } from '../../services/api';
 import { requestService } from '../../services/requestService';
+import { usePermissions } from '../../hooks/usePermissions';
 import {
   User,
   Phone,
@@ -43,6 +44,14 @@ export const RequestDetailsPage: React.FC = () => {
   const navigate = useNavigate();
   const { requests, refreshData, handleDeleteRequest, handleChangeStatus, auditLogs } = useData();
   const { success } = useToast();
+  const {
+    canUpdateRequest,
+    canDeleteRequest,
+    canChangeStatus,
+    canUploadAttachments,
+    canFinalResponse,
+    canSendWhatsApp
+  } = usePermissions();
 
   const request = requests.find((r) => r.id === id || r.requestNumber === id);
 
@@ -152,62 +161,74 @@ export const RequestDetailsPage: React.FC = () => {
 
         {/* Action Buttons Toolbar */}
         <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto print:hidden">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsStatusModalOpen(true)}
-            icon={<RefreshCw className="w-4 h-4" />}
-          >
-            تغيير الحالة
-          </Button>
+          {canChangeStatus && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsStatusModalOpen(true)}
+              icon={<RefreshCw className="w-4 h-4" />}
+            >
+              تغيير الحالة
+            </Button>
+          )}
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsAttachmentModalOpen(true)}
-            icon={<Paperclip className="w-4 h-4" />}
-          >
-            إضافة مرفق
-          </Button>
+          {canUploadAttachments && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsAttachmentModalOpen(true)}
+              icon={<Paperclip className="w-4 h-4" />}
+            >
+              إضافة مرفق
+            </Button>
+          )}
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsFinalResponseModalOpen(true)}
-            icon={<Award className="w-4 h-4 text-emerald-600" />}
-          >
-            إضافة إجابة نهائية
-          </Button>
+          {canFinalResponse && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsFinalResponseModalOpen(true)}
+              icon={<Award className="w-4 h-4 text-emerald-600" />}
+            >
+              إضافة إجابة نهائية
+            </Button>
+          )}
 
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsNotificationModalOpen(true)}
-            icon={<Send className="w-4 h-4 text-blue-600" />}
-          >
-            إرسال إشعار
-          </Button>
+          {canSendWhatsApp && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsNotificationModalOpen(true)}
+              icon={<Send className="w-4 h-4 text-blue-600" />}
+            >
+              إرسال إشعار
+            </Button>
+          )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/requests/${request.id}/edit`)}
-            icon={<Edit className="w-4 h-4" />}
-          >
-            تعديل
-          </Button>
+          {canUpdateRequest && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/requests/${request.id}/edit`)}
+              icon={<Edit className="w-4 h-4" />}
+            >
+              تعديل
+            </Button>
+          )}
 
           <Button variant="outline" size="sm" onClick={handlePrint} icon={<Printer className="w-4 h-4" />}>
             طباعة
           </Button>
 
-          <button
-            onClick={() => setIsDeleteModalOpen(true)}
-            className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-slate-200"
-            title="حذف المعاملة"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {canDeleteRequest && (
+            <button
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition border border-slate-200"
+              title="حذف المعاملة"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 

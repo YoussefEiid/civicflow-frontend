@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '../layouts/AppLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { PublicLayout } from '../layouts/PublicLayout';
+import { ProtectedRoute } from '../components/common/ProtectedRoute';
+import { PERMISSIONS } from '../utils/permissions';
 
 // Auth Pages
 import { LoginPage } from '../pages/auth/LoginPage';
@@ -90,52 +92,276 @@ export const AppRoutes: React.FC = () => {
         <Route path="/profile" element={<ProfilePage />} />
 
         {/* Requests */}
-        <Route path="/requests" element={<RequestsListPage />} />
-        <Route path="/requests/new" element={<CreateRequestPage />} />
-        <Route path="/requests/:id" element={<RequestDetailsPage />} />
-        <Route path="/requests/:id/edit" element={<EditRequestPage />} />
+        <Route
+          path="/requests"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.REQUESTS_VIEW}>
+              <RequestsListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/requests/new"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.REQUESTS_CREATE}>
+              <CreateRequestPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/requests/:id"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.REQUESTS_VIEW}>
+              <RequestDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/requests/:id/edit"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.REQUESTS_UPDATE}>
+              <EditRequestPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Customers */}
-        <Route path="/customers" element={<CustomersListPage />} />
-        <Route path="/customers/new" element={<CreateCustomerPage />} />
-        <Route path="/customers/:id" element={<CustomerDetailsPage />} />
-        <Route path="/customers/:id/edit" element={<EditCustomerPage />} />
+        <Route
+          path="/customers"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.CUSTOMERS_VIEW}>
+              <CustomersListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customers/new"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.CUSTOMERS_CREATE}>
+              <CreateCustomerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customers/:id"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.CUSTOMERS_VIEW}>
+              <CustomerDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customers/:id/edit"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.CUSTOMERS_UPDATE}>
+              <EditCustomerPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Ministries */}
-        <Route path="/ministries" element={<MinistriesListPage />} />
-        <Route path="/ministries/new" element={<CreateMinistryPage />} />
-        <Route path="/ministries/:id" element={<MinistryDetailsPage />} />
-        <Route path="/ministries/:id/edit" element={<EditMinistryPage />} />
+        <Route
+          path="/ministries"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.MINISTRIES_VIEW}>
+              <MinistriesListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ministries/new"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.MINISTRIES_CREATE}>
+              <CreateMinistryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ministries/:id"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.MINISTRIES_VIEW}>
+              <MinistryDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ministries/:id/edit"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.MINISTRIES_UPDATE}>
+              <EditMinistryPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Employees */}
-        <Route path="/employees" element={<EmployeesListPage />} />
-        <Route path="/employees/new" element={<CreateEmployeePage />} />
-        <Route path="/employees/:id" element={<EmployeeDetailsPage />} />
-        <Route path="/employees/:id/edit" element={<EditEmployeePage />} />
+        <Route
+          path="/employees"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.USERS_VIEW}>
+              <EmployeesListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/new"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.USERS_CREATE}>
+              <CreateEmployeePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/:id"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.USERS_VIEW}>
+              <EmployeeDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employees/:id/edit"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.USERS_UPDATE}>
+              <EditEmployeePage />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Roles & Permissions */}
-        <Route path="/roles" element={<RolesListPage />} />
-        <Route path="/roles/:id" element={<RolePermissionsPage />} />
+        {/* Roles & Permissions (Admin Only) */}
+        <Route
+          path="/roles"
+          element={
+            <ProtectedRoute adminOnly>
+              <RolesListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/roles/:id"
+          element={
+            <ProtectedRoute adminOnly>
+              <RolePermissionsPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Notifications */}
-        <Route path="/notifications" element={<NotificationsListPage />} />
-        <Route path="/notifications/:id" element={<NotificationDetailsPage />} />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.NOTIFICATIONS_VIEW}>
+              <NotificationsListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications/:id"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.NOTIFICATIONS_VIEW}>
+              <NotificationDetailsPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Reports & Audit */}
-        <Route path="/reports" element={<ReportsDashboardPage />} />
-        <Route path="/reports/results" element={<ReportResultsPage />} />
-        <Route path="/audit-logs" element={<AuditLogsPage />} />
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.REPORTS_VIEW}>
+              <ReportsDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reports/results"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.REPORTS_VIEW}>
+              <ReportResultsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/audit-logs"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.AUDIT_LOGS_VIEW}>
+              <AuditLogsPage />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Settings */}
-        <Route path="/settings" element={<SettingsOverviewPage />} />
-        <Route path="/settings/general" element={<GeneralSettingsPage />} />
-        <Route path="/settings/cities" element={<CitiesSettingsPage />} />
-        <Route path="/settings/request-types" element={<RequestTypesSettingsPage />} />
-        <Route path="/settings/statuses" element={<StatusesSettingsPage />} />
-        <Route path="/settings/sla" element={<SlaSettingsPage />} />
-        <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
-        <Route path="/settings/whatsapp" element={<WhatsAppSettingsPage />} />
-        <Route path="/settings/whatsapp/templates" element={<WhatsAppTemplatesPage />} />
+        {/* Settings (Admin / Settings Manage Only) */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.SETTINGS_MANAGE}>
+              <SettingsOverviewPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/general"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.SETTINGS_MANAGE}>
+              <GeneralSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/cities"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.SETTINGS_MANAGE}>
+              <CitiesSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/request-types"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.SETTINGS_MANAGE}>
+              <RequestTypesSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/statuses"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.SETTINGS_MANAGE}>
+              <StatusesSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/sla"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.SETTINGS_MANAGE}>
+              <SlaSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/notifications"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.SETTINGS_MANAGE}>
+              <NotificationSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/whatsapp"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.SETTINGS_MANAGE}>
+              <WhatsAppSettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings/whatsapp/templates"
+          element={
+            <ProtectedRoute permission={PERMISSIONS.SETTINGS_MANAGE}>
+              <WhatsAppTemplatesPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* Root redirect */}

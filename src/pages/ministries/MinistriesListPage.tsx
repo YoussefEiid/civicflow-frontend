@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -9,6 +10,7 @@ import { Building2, Plus, Search, Eye, Edit, Clock, Flame, CheckCircle2 } from '
 export const MinistriesListPage: React.FC = () => {
   const navigate = useNavigate();
   const { ministries, requests } = useData();
+  const { canCreateMinistry, canUpdateMinistry } = usePermissions();
   const [search, setSearch] = useState('');
 
   const filteredMinistries = useMemo(() => {
@@ -30,14 +32,16 @@ export const MinistriesListPage: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => navigate('/ministries/new')}
-          icon={<Plus className="w-4 h-4" />}
-        >
-          + إضافة جهة حكومية
-        </Button>
+        {canCreateMinistry && (
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => navigate('/ministries/new')}
+            icon={<Plus className="w-4 h-4" />}
+          >
+            + إضافة جهة حكومية
+          </Button>
+        )}
       </div>
 
       {/* Search */}
@@ -143,13 +147,15 @@ export const MinistriesListPage: React.FC = () => {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => navigate(`/ministries/${min.id}/edit`)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
-                            title="تعديل"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
+                          {canUpdateMinistry && (
+                            <button
+                              onClick={() => navigate(`/ministries/${min.id}/edit`)}
+                              className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                              title="تعديل"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

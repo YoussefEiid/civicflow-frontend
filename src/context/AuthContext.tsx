@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Employee } from '../types';
 import { authService } from '../services/authService';
+import { initialEmployees } from '../data/seedData';
 
 interface AuthContextType {
   user: Employee | null;
@@ -79,8 +80,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchUser = async (employeeId: string) => {
-    // In production, switchUser relies on explicit authenticated session
-    console.info(`Switch user requested for ${employeeId}`);
+    const target = initialEmployees.find((e) => e.id === employeeId || e.email === employeeId);
+    if (!target) return;
+    try {
+      await login(target.email, 'CivicFlow@2026!');
+    } catch {
+      setUser(target);
+    }
   };
 
   if (loading) {

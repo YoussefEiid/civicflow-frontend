@@ -8,23 +8,23 @@ import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Pagination } from '../../components/ui/Pagination';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Customer } from '../../types';
+import { usePermissions } from '../../hooks/usePermissions';
 import {
-  Users,
-  UserPlus,
+  Plus,
   Search,
-  Phone,
-  MapPin,
-  FileText,
-  Calendar,
   Eye,
   Edit,
-  ArrowRight,
-  Plus
+  Phone,
+  MapPin,
+  Building,
+  ChevronLeft,
+  Calendar
 } from 'lucide-react';
 
 export const CustomersListPage: React.FC = () => {
   const navigate = useNavigate();
   const { customers } = useData();
+  const { canCreateCustomer, canUpdateCustomer } = usePermissions();
 
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,14 +59,16 @@ export const CustomersListPage: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="md"
-          onClick={() => navigate('/customers/new')}
-          icon={<Plus className="w-4 h-4" />}
-        >
-          + إضافة مراجع جديد
-        </Button>
+        {canCreateCustomer && (
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => navigate('/customers/new')}
+            icon={<Plus className="w-4 h-4" />}
+          >
+            + إضافة مراجع جديد
+          </Button>
+        )}
       </div>
 
       {/* Search Bar */}
@@ -147,13 +149,15 @@ export const CustomersListPage: React.FC = () => {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => navigate(`/customers/${cust.id}/edit`)}
-                          className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
-                          title="تعديل البيانات"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
+                        {canUpdateCustomer && (
+                          <button
+                            onClick={() => navigate(`/customers/${cust.id}/edit`)}
+                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                            title="تعديل البيانات"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

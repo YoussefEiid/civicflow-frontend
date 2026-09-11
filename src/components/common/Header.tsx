@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { usePermissions } from '../../hooks/usePermissions';
 import {
   Search,
   Bell,
@@ -26,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const navigate = useNavigate();
   const { user, logout, switchUser } = useAuth();
   const { notifications, unreadNotificationsCount, handleMarkAllNotificationsRead, employees } = useData();
+  const { canManageSettings } = usePermissions();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -258,14 +260,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                     <User className="w-4 h-4 text-slate-400" />
                     الملف الشخصي
                   </Link>
-                  <Link
-                    to="/settings"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    <Shield className="w-4 h-4 text-slate-400" />
-                    إعدادات المنظومة
-                  </Link>
+                  {canManageSettings && (
+                    <Link
+                      to="/settings"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      <Shield className="w-4 h-4 text-slate-400" />
+                      إعدادات المنظومة
+                    </Link>
+                  )}
                 </div>
 
                 <div className="border-t border-slate-100 pt-1">
