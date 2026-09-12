@@ -51,5 +51,17 @@ export const authService = {
       currentPassword,
       newPassword
     });
+  },
+
+  requestPasswordResetOTP: async (email: string): Promise<{ email: string; otpHint?: string }> => {
+    return apiClient.post('/auth/forgot-password-otp', { email });
+  },
+
+  verifyResetOTP: async (email: string, otp: string): Promise<{ verified: boolean }> => {
+    return apiClient.post('/auth/verify-reset-otp', { email, otp });
+  },
+
+  resetPasswordWithOTP: async (email: string, otp: string, newPassword: string): Promise<void> => {
+    return apiClient.post('/auth/reset-password-otp', { email, otp, newPassword });
   }
 };

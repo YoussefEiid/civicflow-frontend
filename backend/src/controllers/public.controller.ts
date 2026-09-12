@@ -16,6 +16,8 @@ const publicRequestSchema = z.object({
   phone: z.string().min(6, 'رقم الهاتف غير صالح'),
   altPhone: z.string().optional().nullable().or(z.literal('')),
   nationalId: z.string().optional().nullable().or(z.literal('')),
+  occupation: z.string().optional().nullable().or(z.literal('')),
+  birthYear: z.string().optional().nullable().or(z.literal('')),
   cityId: z.string().optional().nullable().or(z.literal('')),
   address: z.string().optional().nullable().or(z.literal('')),
   ministryId: z.string().optional().nullable().or(z.literal('')),
@@ -192,6 +194,8 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
             phone: data.phone,
             altPhone: data.altPhone || null,
             nationalId: data.nationalId || null,
+            occupation: data.occupation || null,
+            birthYear: data.birthYear || null,
             cityId: city?.id || null,
             address: data.address || '',
             status: CustomerStatus.ACTIVE
@@ -204,6 +208,8 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
           data: {
             name: data.name,
             altPhone: data.altPhone || customer.altPhone,
+            occupation: data.occupation || customer.occupation,
+            birthYear: data.birthYear || customer.birthYear,
             cityId: customer.cityId || city?.id,
             address: customer.address || data.address || ''
           }

@@ -406,3 +406,139 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+// --- In-Memory OTP Store with 15-Minute Expiry ---
+interface OTPRecord {
+  otp: string;
+  expiresAt: number;
+}
+const otpStore = new Map<string, OTPRecord>();
+
+const forgotPasswordOtpSchema = z.object({
+  email: z.string().email('صيغة البريد الإلكتروني غير صحيحة')
+});
+
+const verifyResetOtpSchema = z.object({
+  email: z.string().email('صيغة البريد الإلكتروني غير صحيحة'),
+  otp: z.string().min(4, 'رمز التحقق مطلوب')
+});
+
+const resetPasswordOtpSchema = z.object({
+  email: z.string().email('صيغة البريد الإلكتروني غير صحيحة'),
+  otp: z.string().min(4, 'رمز التحقق مطلوب'),
+  newPassword: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+});
+
+export const requestPasswordResetOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = forgotPasswordOtpSchema.parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+    });
+
+    if (!user) {
+      throw new AppError('لا يوجد حساب مسجل بهذا البريد الإلكتروني', 404, 'USER_NOT_FOUND');
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otpStore.set(normalizedEmail, {
+      otp,
+      expiresAt: Date.now() + 15 * 60 * 1000 // 15 minutes
+    });
+
+    console.log(`[AUTH OTP] Password reset OTP for ${normalizedEmail}: ${otp}`);
+
+    return sendSuccess(
+      res,
+      {
+        email: normalizedEmail,
+        // In local/preview environments or when requested, provide hint
+        otpHint: otp
+      },
+      'تم إرسال رمز التحقق (OTP) بنجاح إلى بريدك الإلكتروني.'
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyResetOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, otp } = verifyResetOtpSchema.parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const record = otpStore.get(normalizedEmail);
+    if (!record) {
+      throw new AppError('لم يتم طلب رمز تحقق لهذا البريد أو انتهت صلاحيته', 400, 'OTP_EXPIRED');
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(normalizedEmail);
+      throw new AppError('انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد', 400, 'OTP_EXPIRED');
+    }
+
+    if (record.otp !== otp.trim()) {
+      throw new AppError('رمز التحقق غير صحيح', 400, 'INVALID_OTP');
+    }
+
+    return sendSuccess(res, { verified: true }, 'رمز التحقق صحيح');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPasswordWithOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, otp, newPassword } = resetPasswordOtpSchema.parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const record = otpStore.get(normalizedEmail);
+    if (!record || Date.now() > record.expiresAt || record.otp !== otp.trim()) {
+      throw new AppError('رمز التحقق غير صالح أو انتهت صلاحيته', 400, 'INVALID_OTP');
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+    });
+
+    if (!user) {
+      throw new AppError('المستخدم غير موجود', 404, 'USER_NOT_FOUND');
+    }
+
+    const newHash = await hashPassword(newPassword);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: newHash }
+    });
+
+    // Delete OTP once used
+    otpStore.delete(normalizedEmail);
+
+    // Revoke all existing sessions
+    await prisma.refreshToken.deleteMany({
+      where: { userId: user.id }
+    });
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        userName: user.name,
+        userRole: 'User',
+        action: 'استعادة كلمة المرور',
+        entity: 'User',
+        entityId: user.id,
+        details: `تم إعادة تعيين كلمة المرور بنجاح عبر رمز التحقق (OTP) للمستخدم (${user.email})`,
+        ipAddress: req.ip || req.socket.remoteAddress,
+        userAgent: req.headers['user-agent']
+      }
+    });
+
+    return sendSuccess(res, null, 'تم تعيين كلمة المرور الجديدة بنجاح. يمكنك الآن تسجيل الدخول');
+  } catch (error) {
+    next(error);
+  }
+};

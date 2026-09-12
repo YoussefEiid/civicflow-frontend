@@ -163,6 +163,16 @@ export const CustomerDetailsPage: React.FC = () => {
             <p className="font-bold text-slate-800 font-mono text-sm">{customer.email || '---'}</p>
           </div>
 
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+            <span className="text-slate-400 block mb-1">المهنة / العمل</span>
+            <p className="font-bold text-slate-800 text-sm">{customer.occupation || '---'}</p>
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+            <span className="text-slate-400 block mb-1">سنة الميلاد</span>
+            <p className="font-bold text-slate-800 font-mono text-sm">{customer.birthYear || '---'}</p>
+          </div>
+
           <div className="sm:col-span-2 p-3 bg-slate-50 rounded-xl border border-slate-200/80">
             <span className="text-slate-400 block mb-1">عنوان السكن / أقرب نقطة دالة</span>
             <p className="font-bold text-slate-800">{customer.address || '---'}</p>

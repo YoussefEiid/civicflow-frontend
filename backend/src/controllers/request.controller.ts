@@ -121,6 +121,8 @@ const formatRequestItem = (r: any) => {
     customerName: r.customer?.name || 'مراجع غير محدد',
     customerPhone: r.customer?.phone || '',
     customerAltPhone: r.customer?.altPhone || undefined,
+    customerOccupation: r.customer?.occupation || r.occupation || undefined,
+    customerBirthYear: r.customer?.birthYear || r.birthYear || undefined,
     customerAddress: r.customer?.address || undefined,
     cityId: r.cityId || r.customer?.cityId || undefined,
     cityName: r.city?.name || r.customer?.city?.name || 'غير محدد',

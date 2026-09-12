@@ -11,6 +11,7 @@ import { Pagination } from '../../components/ui/Pagination';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ChangeStatusModal } from '../../components/request/ChangeStatusModal';
+import { BulkChangeStatusModal } from '../../components/request/BulkChangeStatusModal';
 import { ExportColumnModal } from '../../components/common/ExportColumnModal';
 import { RequestItem, RequestStatus, RequestPriority } from '../../types';
 import { reportService } from '../../services/reportService';
@@ -33,7 +34,9 @@ import {
   Layers,
   Inbox,
   Building2,
-  Globe
+  Globe,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 
 export const RequestsListPage: React.FC = () => {
@@ -82,6 +85,10 @@ export const RequestsListPage: React.FC = () => {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
+
+  // Bulk Selection State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkStatusModalOpen, setIsBulkStatusModalOpen] = useState(false);
 
   // Modals state
   const [statusModalRequest, setStatusModalRequest] = useState<RequestItem | null>(null);
@@ -191,6 +198,35 @@ export const RequestsListPage: React.FC = () => {
     const start = (currentPage - 1) * pageSize;
     return filteredRequests.slice(start, start + pageSize);
   }, [filteredRequests, currentPage, pageSize]);
+
+  // Bulk Selection Helpers
+  const isAllPageSelected =
+    paginatedRequests.length > 0 && paginatedRequests.every((r) => selectedIds.includes(r.id));
+
+  const toggleSelectAllPage = () => {
+    if (isAllPageSelected) {
+      const pageIds = new Set(paginatedRequests.map((r) => r.id));
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.has(id)));
+    } else {
+      const pageIds = paginatedRequests.map((r) => r.id);
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const toggleSelectRow = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkChangeStatus = async (newStatus: RequestStatus, note?: string) => {
+    for (const reqId of selectedIds) {
+      await handleChangeStatus(reqId, newStatus, note);
+    }
+    success('تم تحديث الحالات بنجاح', `تم تحديث حالة (${selectedIds.length}) طلبات بنجاح إلى "${newStatus}"`);
+    setSelectedIds([]);
+  };
 
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
@@ -597,6 +633,41 @@ export const RequestsListPage: React.FC = () => {
         )}
       </div>
 
+      {/* Bulk Selection Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 animate-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-3">
+            <span className="w-7 h-7 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center text-xs">
+              {selectedIds.length}
+            </span>
+            <span className="text-xs font-bold">
+              تم تحديد {selectedIds.length} معاملة من أصل {filteredRequests.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {canChangeStatus && (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setIsBulkStatusModalOpen(true)}
+                icon={<RefreshCw className="w-4 h-4" />}
+              >
+                تغيير حالة الطلبات المحددة
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedIds([])}
+              className="text-slate-300 border-slate-700 hover:bg-slate-800"
+            >
+              إلغاء التحديد
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Requests Table / Cards Container */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-subtle overflow-hidden">
         {paginatedRequests.length === 0 ? (
@@ -611,6 +682,15 @@ export const RequestsListPage: React.FC = () => {
             <table className="w-full text-right text-xs">
               <thead className="bg-slate-50/90 text-slate-600 border-b border-slate-200">
                 <tr>
+                  <th className="py-3.5 px-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllPageSelected}
+                      onChange={toggleSelectAllPage}
+                      className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      title="تحديد الكل في هذه الصفحة"
+                    />
+                  </th>
                   <th
                     onClick={() => handleSort('requestNumber')}
                     className="py-3.5 px-4 font-bold cursor-pointer hover:text-blue-600 select-none"
@@ -650,93 +730,106 @@ export const RequestsListPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {paginatedRequests.map((req) => (
-                  <tr
-                    key={req.id}
-                    className="hover:bg-blue-50/30 transition group cursor-pointer"
-                    onClick={(e) => {
-                      // Prevent navigation if clicking action buttons
-                      if ((e.target as HTMLElement).closest('button')) return;
-                      navigate(`/requests/${req.id}`);
-                    }}
-                  >
-                    <td className="py-3.5 px-4 font-bold text-blue-600 font-mono group-hover:underline">
-                      <div className="flex flex-col gap-1">
-                        <span>{req.requestNumber}</span>
-                        {isPublicReceived(req) ? (
-                          <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                            بوابة المراجعين
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                            داخل النظام
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-slate-900">{req.customerName}</td>
-                    <td className="py-3.5 px-4 text-slate-500 font-mono">{req.customerPhone}</td>
-                    <td className="py-3.5 px-4 max-w-xs truncate text-slate-700 font-medium">
-                      {req.title}
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-700 font-semibold">{req.ministryName}</td>
-                    <td className="py-3.5 px-4">
-                      <StatusBadge status={req.status} size="sm" />
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <PriorityBadge priority={req.priority} />
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600">{req.assignedEmployeeName}</td>
-                    <td className="py-3.5 px-4 text-slate-500 font-mono">{req.receiveDate}</td>
-                    <td className="py-3.5 px-4 text-slate-700 font-bold font-mono">
-                      {req.expectedCompletionDate}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <DeadlineBadge
-                        status={req.deadlineStatus}
-                        daysRemainingOrOverdue={req.daysRemainingOrOverdue}
-                      />
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {canChangeStatus && (
+                {paginatedRequests.map((req) => {
+                  const isSelected = selectedIds.includes(req.id);
+                  return (
+                    <tr
+                      key={req.id}
+                      className={`hover:bg-blue-50/30 transition group cursor-pointer ${
+                        isSelected ? 'bg-blue-50/60' : ''
+                      }`}
+                      onClick={(e) => {
+                        // Prevent navigation if clicking action buttons or checkbox
+                        if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('input[type="checkbox"]')) return;
+                        navigate(`/requests/${req.id}`);
+                      }}
+                    >
+                      <td className="py-3.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => toggleSelectRow(req.id, e as any)}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-blue-600 font-mono group-hover:underline">
+                        <div className="flex flex-col gap-1">
+                          <span>{req.requestNumber}</span>
+                          {isPublicReceived(req) ? (
+                            <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              بوابة المراجعين
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                              داخل النظام
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900">{req.customerName}</td>
+                      <td className="py-3.5 px-4 text-slate-500 font-mono">{req.customerPhone}</td>
+                      <td className="py-3.5 px-4 max-w-xs truncate text-slate-700 font-medium">
+                        {req.title}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-700 font-semibold">{req.ministryName}</td>
+                      <td className="py-3.5 px-4">
+                        <StatusBadge status={req.status} size="sm" />
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <PriorityBadge priority={req.priority} />
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600">{req.assignedEmployeeName}</td>
+                      <td className="py-3.5 px-4 text-slate-500 font-mono">{req.receiveDate}</td>
+                      <td className="py-3.5 px-4 text-slate-700 font-bold font-mono">
+                        {req.expectedCompletionDate}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <DeadlineBadge
+                          status={req.deadlineStatus}
+                          daysRemainingOrOverdue={req.daysRemainingOrOverdue}
+                        />
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {canChangeStatus && (
+                            <button
+                              onClick={() => setStatusModalRequest(req)}
+                              className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                              title="تغيير الحالة"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
-                            onClick={() => setStatusModalRequest(req)}
+                            onClick={() => navigate(`/requests/${req.id}`)}
                             className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
-                            title="تغيير الحالة"
+                            title="عرض التفاصيل"
                           >
-                            <RefreshCw className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
-                        )}
-                        <button
-                          onClick={() => navigate(`/requests/${req.id}`)}
-                          className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
-                          title="عرض التفاصيل"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        {canUpdateRequest && (
-                          <button
-                            onClick={() => navigate(`/requests/${req.id}/edit`)}
-                            className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
-                            title="تعديل"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                        )}
-                        {canDeleteRequest && (
-                          <button
-                            onClick={() => setDeleteId(req.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
-                            title="حذف"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {canUpdateRequest && (
+                            <button
+                              onClick={() => navigate(`/requests/${req.id}/edit`)}
+                              className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition"
+                              title="تعديل"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canDeleteRequest && (
+                            <button
+                              onClick={() => setDeleteId(req.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                              title="حذف"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -750,6 +843,16 @@ export const RequestsListPage: React.FC = () => {
           onPageChange={setCurrentPage}
         />
       </div>
+
+      {/* Bulk Change Status Modal */}
+      {isBulkStatusModalOpen && (
+        <BulkChangeStatusModal
+          isOpen={isBulkStatusModalOpen}
+          onClose={() => setIsBulkStatusModalOpen(false)}
+          selectedCount={selectedIds.length}
+          onSubmit={handleBulkChangeStatus}
+        />
+      )}
 
       {/* Change Status Modal */}
       {statusModalRequest && (

@@ -375,22 +375,25 @@ export const RequestDetailsPage: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          try {
-                            await requestService.downloadAttachment(att.id, att.name);
-                            success('تم التحميل', `تم تحميل الملف: ${att.name}`);
-                          } catch {
-                            // Handled via toast or API
-                          }
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-blue-600 transition"
-                        title="تحميل المرفق"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            try {
+                              await requestService.downloadAttachment(att.id, att.name);
+                              success('تم التحميل', `تم تحميل الملف: ${att.name}`);
+                            } catch {
+                              // Handled via toast or API
+                            }
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition font-bold text-[11px]"
+                          title="عرض وتحميل المرفق"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          <span>تحميل</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -442,6 +445,20 @@ export const RequestDetailsPage: React.FC = () => {
                     <MapPin className="w-3.5 h-3.5 text-slate-400" />
                     {request.customerAddress}
                   </p>
+                </div>
+              )}
+
+              {request.customerOccupation && (
+                <div>
+                  <span className="text-slate-400">المهنة / العمل:</span>
+                  <p className="font-bold text-slate-800 mt-0.5">{request.customerOccupation}</p>
+                </div>
+              )}
+
+              {request.customerBirthYear && (
+                <div>
+                  <span className="text-slate-400">سنة الميلاد:</span>
+                  <p className="font-bold text-slate-800 font-mono mt-0.5">{request.customerBirthYear}</p>
                 </div>
               )}
 

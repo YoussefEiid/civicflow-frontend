@@ -20,6 +20,8 @@ export const CreateCustomerPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [altPhone, setAltPhone] = useState('');
   const [nationalId, setNationalId] = useState('');
+  const [occupation, setOccupation] = useState<'موظف حكومي' | 'كاسب' | 'طالب' | 'عاطل عن العمل' | 'قطاع خاص' | 'أخرى' | string>('كاسب');
+  const [birthYear, setBirthYear] = useState('');
   const [email, setEmail] = useState('');
   const [cityId, setCityId] = useState('');
   const [address, setAddress] = useState('');
@@ -45,6 +47,8 @@ export const CreateCustomerPage: React.FC = () => {
         phone,
         altPhone,
         nationalId,
+        occupation,
+        birthYear: birthYear.trim() || undefined,
         email,
         cityId: cityId || undefined,
         address,
@@ -115,6 +119,31 @@ export const CreateCustomerPage: React.FC = () => {
                 value={nationalId}
                 onChange={(e) => setNationalId(e.target.value)}
                 placeholder="19xxxxxxxxxx"
+              />
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  العمل / المهنة
+                </label>
+                <Select
+                  value={occupation}
+                  onChange={(e) => setOccupation(e.target.value)}
+                >
+                  <option value="موظف حكومي">موظف حكومي</option>
+                  <option value="كاسب">كاسب</option>
+                  <option value="طالب">طالب</option>
+                  <option value="عاطل عن العمل">عاطل عن العمل</option>
+                  <option value="قطاع خاص">قطاع خاص</option>
+                  <option value="أخرى">أخرى</option>
+                </Select>
+              </div>
+
+              <Input
+                label="المواليد (سنة الميلاد)"
+                type="text"
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value)}
+                placeholder="مثال: 1995"
               />
 
               <div>

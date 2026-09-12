@@ -135,6 +135,8 @@ model Customer {
   phone          String
   altPhone       String?
   nationalId     String?             @unique
+  occupation     String?
+  birthYear      String?
   email          String?
   cityId         String?
   city           City?               @relation(fields: [cityId], references: [id], onDelete: SetNull)
@@ -207,6 +209,8 @@ model Request {
   requestType            String
   status                 String                 @default("استلام الطلب")
   priority               PriorityLevel          @default(NORMAL)
+  customerOccupation     String?
+  customerBirthYear      String?
   
   receiveDate            DateTime               @default(now())
   expectedCompletionDate DateTime

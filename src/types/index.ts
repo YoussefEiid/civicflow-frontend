@@ -95,6 +95,8 @@ export interface FinalResponse {
   deliveryDate?: string;
 }
 
+export type OccupationType = 'موظف حكومي' | 'كاسب' | 'طالب' | 'عاطل عن العمل' | 'قطاع خاص' | 'أخرى' | string;
+
 export interface RequestItem {
   id: string;
   requestNumber: string; // e.g. REQ-1025
@@ -104,6 +106,8 @@ export interface RequestItem {
   customerPhone: string;
   customerAltPhone?: string;
   nationalId?: string;
+  customerOccupation?: OccupationType;
+  customerBirthYear?: string;
   customerAddress?: string;
   cityId?: string;
   cityName?: string;
@@ -138,6 +142,9 @@ export interface Customer {
   phone: string;
   altPhone?: string;
   nationalId?: string;
+  occupation?: OccupationType;
+  birthYear?: string;
+  birthDate?: string;
   cityId?: string;
   cityName?: string;
   email?: string;

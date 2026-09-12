@@ -47,6 +47,8 @@ export const CreateRequestPage: React.FC = () => {
   const [custPhone, setCustPhone] = useState('');
   const [custAltPhone, setCustAltPhone] = useState('');
   const [custNationalId, setCustNationalId] = useState('');
+  const [custOccupation, setCustOccupation] = useState<'موظف حكومي' | 'كاسب' | 'طالب' | 'عاطل عن العمل' | 'قطاع خاص' | 'أخرى' | string>('كاسب');
+  const [custBirthYear, setCustBirthYear] = useState('');
   const [custCityId, setCustCityId] = useState('');
   const [custAddress, setCustAddress] = useState('');
   const [custNotes, setCustNotes] = useState('');
@@ -205,6 +207,8 @@ export const CreateRequestPage: React.FC = () => {
           phone: custPhone.trim(),
           altPhone: custAltPhone.trim() || undefined,
           nationalId: custNationalId.trim() || undefined,
+          occupation: custOccupation,
+          birthYear: custBirthYear.trim() || undefined,
           cityId: custCityId || undefined,
           address: custAddress.trim() || '',
           notes: custNotes.trim() || undefined
@@ -228,6 +232,8 @@ export const CreateRequestPage: React.FC = () => {
         customerId: finalCustomerId,
         customerName: finalCustomerName,
         customerPhone: finalCustomerPhone,
+        customerOccupation: (custOccupation || selectedCustomer?.occupation) as any,
+        customerBirthYear: custBirthYear || selectedCustomer?.birthYear,
         cityId: custCityId || selectedCustomer?.cityId || undefined,
         requestTypeId: requestTypeId || undefined,
         title: title.trim(),
@@ -408,6 +414,31 @@ export const CreateRequestPage: React.FC = () => {
                   value={custNationalId}
                   onChange={(e) => setCustNationalId(e.target.value)}
                   placeholder="19xxxxxxxxxx"
+                />
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                    العمل / المهنة
+                  </label>
+                  <Select
+                    value={custOccupation}
+                    onChange={(e) => setCustOccupation(e.target.value)}
+                  >
+                    <option value="موظف حكومي">موظف حكومي</option>
+                    <option value="كاسب">كاسب</option>
+                    <option value="طالب">طالب</option>
+                    <option value="عاطل عن العمل">عاطل عن العمل</option>
+                    <option value="قطاع خاص">قطاع خاص</option>
+                    <option value="أخرى">أخرى</option>
+                  </Select>
+                </div>
+
+                <Input
+                  label="المواليد (سنة الميلاد)"
+                  type="text"
+                  value={custBirthYear}
+                  onChange={(e) => setCustBirthYear(e.target.value)}
+                  placeholder="مثال: 1995"
                 />
 
                 <div>

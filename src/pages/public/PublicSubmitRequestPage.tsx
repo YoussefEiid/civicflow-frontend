@@ -36,6 +36,8 @@ export const PublicSubmitRequestPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [altPhone, setAltPhone] = useState('');
   const [nationalId, setNationalId] = useState('');
+  const [occupation, setOccupation] = useState<'موظف حكومي' | 'كاسب' | 'طالب' | 'عاطل عن العمل' | 'قطاع خاص' | 'أخرى' | string>('كاسب');
+  const [birthYear, setBirthYear] = useState('');
   const [selectedGovernorate, setSelectedGovernorate] = useState<string>(IRAQI_GOVERNORATES[8]); // Default to بغداد
   const [address, setAddress] = useState('');
   const [ministryId, setMinistryId] = useState('');
@@ -129,6 +131,8 @@ export const PublicSubmitRequestPage: React.FC = () => {
       formData.append('phone', phone.trim());
       if (altPhone.trim()) formData.append('altPhone', altPhone.trim());
       if (nationalId.trim()) formData.append('nationalId', nationalId.trim());
+      if (occupation) formData.append('occupation', occupation);
+      if (birthYear.trim()) formData.append('birthYear', birthYear.trim());
 
       // Match city by selected governorate name or ID
       const matchedCity = cities.find(
@@ -339,6 +343,37 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     onChange={(e) => setNationalId(e.target.value)}
                     placeholder="19xxxxxxxxxx"
                     className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
+                    العمل / المهنة
+                  </label>
+                  <select
+                    value={occupation}
+                    onChange={(e) => setOccupation(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  >
+                    <option value="موظف حكومي">موظف حكومي</option>
+                    <option value="كاسب">كاسب</option>
+                    <option value="طالب">طالب</option>
+                    <option value="عاطل عن العمل">عاطل عن العمل</option>
+                    <option value="قطاع خاص">قطاع خاص</option>
+                    <option value="أخرى">أخرى</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
+                    المواليد (سنة الميلاد)
+                  </label>
+                  <input
+                    type="text"
+                    value={birthYear}
+                    onChange={(e) => setBirthYear(e.target.value)}
+                    placeholder="مثال: 1995"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   />
                 </div>
 
