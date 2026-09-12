@@ -8,33 +8,59 @@ interface SendOtpOptions {
   userName?: string;
 }
 
-const getTransporter = () => {
-  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST;
-  const port = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587', 10);
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+const sanitizeSender = (rawFrom?: string, fallbackUser?: string): string => {
+  const defaultSender = fallbackUser ? `"منظومة CivicFlow" <${fallbackUser}>` : '"منظومة CivicFlow" <no-reply@civicflow.gov>';
+  if (!rawFrom) return defaultSender;
 
-  if (host && user && pass) {
-    return nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: {
-        user,
-        pass
-      }
-    });
+  const emailMatch = rawFrom.match(/<([^>]+)>/) || rawFrom.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+  if (emailMatch) {
+    const email = emailMatch[1] || emailMatch[0];
+    return `"منظومة CivicFlow" <${email}>`;
   }
 
-  // Check Gmail specific shortcut
-  if (user && pass && !host) {
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user,
-        pass
-      }
-    });
+  return defaultSender;
+};
+
+const getTransporter = () => {
+  const host = (process.env.SMTP_HOST || process.env.EMAIL_HOST || '').trim();
+  const port = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587', 10);
+  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '').trim();
+  let pass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || '').trim();
+
+  // Strip spaces from Google App Password (e.g. "hquo zwyt jyfv moni" -> "hquozwytjyfvmoni")
+  if (pass) {
+    pass = pass.replace(/\s+/g, '');
+  }
+
+  if (user && pass) {
+    // If Gmail host or gmail address, use optimized Gmail service
+    if (host.includes('gmail') || user.includes('@gmail.com') || host === 'smtp.gmail.com') {
+      return nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user,
+          pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
+
+    if (host) {
+      return nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: {
+          user,
+          pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
   }
 
   return null;
@@ -98,11 +124,12 @@ export const sendOtpEmail = async ({
     </html>
   `;
 
+  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '').trim();
   const transporter = getTransporter();
 
   if (transporter) {
     try {
-      const sender = process.env.SMTP_FROM || process.env.EMAIL_FROM || '"CivicFlow System" <no-reply@civicflow.gov>';
+      const sender = sanitizeSender(process.env.SMTP_FROM || process.env.EMAIL_FROM, user);
       await transporter.sendMail({
         from: sender,
         to: email,
