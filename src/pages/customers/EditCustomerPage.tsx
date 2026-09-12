@@ -9,6 +9,7 @@ import { Select } from '../../components/ui/Select';
 import { cityService } from '../../services/cityService';
 import { City } from '../../types';
 import { ArrowRight, Save, User } from 'lucide-react';
+import { IRAQI_GOVERNORATES } from '../../constants/iraqGovernorates';
 
 export const EditCustomerPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -167,11 +168,14 @@ export const EditCustomerPage: React.FC = () => {
                   onChange={(e) => setCityId(e.target.value)}
                 >
                   <option value="">اختر المحافظة...</option>
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
+                  {IRAQI_GOVERNORATES.map((gov, idx) => {
+                    const matched = cities.find((c) => c.name === gov);
+                    return (
+                      <option key={gov} value={matched ? matched.id : gov}>
+                        {idx + 1}. {gov}
+                      </option>
+                    );
+                  })}
                 </Select>
               </div>
 

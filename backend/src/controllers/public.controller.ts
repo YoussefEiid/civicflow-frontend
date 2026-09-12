@@ -27,6 +27,28 @@ const publicRequestSchema = z.object({
   requestDocName: z.string().optional().nullable().or(z.literal(''))
 });
 
+const IRAQI_GOVERNORATES = [
+  'دهوك',
+  'نينوى',
+  'أربيل',
+  'كركوك',
+  'السليمانية',
+  'صلاح الدين',
+  'الأنبار',
+  'ديالى',
+  'بغداد',
+  'واسط',
+  'بابل',
+  'كربلاء',
+  'النجف',
+  'القادسية',
+  'ميسان',
+  'ذي قار',
+  'المثنى',
+  'البصرة',
+  'حلبجة'
+];
+
 export const getPublicFormData = async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [ministries, cities, requestTypes] = await Promise.all([
@@ -37,7 +59,6 @@ export const getPublicFormData = async (_req: Request, res: Response, next: Next
       }),
       prisma.city.findMany({
         where: { status: 'ACTIVE' },
-        orderBy: { name: 'asc' },
         select: { id: true, name: true }
       }),
       prisma.requestType.findMany({
@@ -47,9 +68,19 @@ export const getPublicFormData = async (_req: Request, res: Response, next: Next
       })
     ]);
 
+    // Sort cities in exact Iraqi Governorates order (North to South)
+    const sortedCities = [...cities].sort((a, b) => {
+      const indexA = IRAQI_GOVERNORATES.indexOf(a.name);
+      const indexB = IRAQI_GOVERNORATES.indexOf(b.name);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.name.localeCompare(b.name, 'ar');
+    });
+
     return sendSuccess(res, {
       ministries,
-      cities,
+      cities: sortedCities,
       requestTypes
     });
   } catch (error) {
@@ -82,9 +113,14 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
 
     let city = null;
     if (data.cityId) {
-      city = await prisma.city.findUnique({
+      city = await prisma.city.findFirst({
         where: { id: data.cityId, status: 'ACTIVE' }
       });
+      if (!city) {
+        city = await prisma.city.findFirst({
+          where: { name: { equals: data.cityId, mode: 'insensitive' }, status: 'ACTIVE' }
+        });
+      }
     }
     if (!city) {
       city = await prisma.city.findFirst({

@@ -28,6 +28,17 @@ export const IRAQI_GOVERNORATES = [
 
 async function ensureIraqiGovernorates() {
   try {
+    // 1. Deactivate non-Iraqi cities
+    await prisma.city.updateMany({
+      where: {
+        name: {
+          notIn: IRAQI_GOVERNORATES
+        }
+      },
+      data: { status: 'INACTIVE' }
+    });
+
+    // 2. Ensure all 19 Iraqi Governorates exist and are ACTIVE
     for (const name of IRAQI_GOVERNORATES) {
       const existing = await prisma.city.findFirst({
         where: { name: { equals: name, mode: 'insensitive' } }
@@ -36,9 +47,14 @@ async function ensureIraqiGovernorates() {
         await prisma.city.create({
           data: { name, status: 'ACTIVE' }
         });
+      } else if (existing.status !== 'ACTIVE') {
+        await prisma.city.update({
+          where: { id: existing.id },
+          data: { status: 'ACTIVE' }
+        });
       }
     }
-    console.log('✅ Ensured all 19 Iraqi Governorates are registered in the database.');
+    console.log('✅ Ensured all 19 Iraqi Governorates are registered and active in the database.');
   } catch (err) {
     console.warn('⚠️ Governorates sync notice:', err);
   }

@@ -9,6 +9,7 @@ import { Select } from '../../components/ui/Select';
 import { cityService } from '../../services/cityService';
 import { City } from '../../types';
 import { User, Phone, MapPin, ArrowRight, Save } from 'lucide-react';
+import { IRAQI_GOVERNORATES } from '../../constants/iraqGovernorates';
 
 export const CreateCustomerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -135,11 +136,14 @@ export const CreateCustomerPage: React.FC = () => {
                   onChange={(e) => setCityId(e.target.value)}
                 >
                   <option value="">اختر المحافظة...</option>
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
+                  {IRAQI_GOVERNORATES.map((gov, idx) => {
+                    const matched = cities.find((c) => c.name === gov);
+                    return (
+                      <option key={gov} value={matched ? matched.id : gov}>
+                        {idx + 1}. {gov}
+                      </option>
+                    );
+                  })}
                 </Select>
               </div>
 

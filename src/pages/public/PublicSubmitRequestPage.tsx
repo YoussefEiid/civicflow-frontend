@@ -3,25 +3,30 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   FileText,
   User,
-  Phone,
-  CreditCard,
-  MapPin,
   Building2,
-  Layers,
   UploadCloud,
   CheckCircle2,
-  ShieldCheck,
   AlertCircle,
   Copy,
   ExternalLink,
   Lock,
   ArrowRight,
-  File,
+  File as FileIcon,
   X,
-  Plus
+  Plus,
+  ShieldCheck
 } from 'lucide-react';
 import { publicService, PublicSubmissionResult } from '../../services/publicService';
 import { City, Ministry, RequestTypeEntity } from '../../types';
+import { IRAQI_GOVERNORATES } from '../../constants/iraqGovernorates';
+
+interface UploadItem {
+  id: string;
+  file: File;
+  name: string;
+  size: string;
+  documentType: 'IDENTITY' | 'REQUEST_DOCUMENT';
+}
 
 export const PublicSubmitRequestPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,18 +36,19 @@ export const PublicSubmitRequestPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [altPhone, setAltPhone] = useState('');
   const [nationalId, setNationalId] = useState('');
-  const [cityId, setCityId] = useState('');
+  const [selectedGovernorate, setSelectedGovernorate] = useState<string>(IRAQI_GOVERNORATES[8]); // Default to بغداد
   const [address, setAddress] = useState('');
   const [ministryId, setMinistryId] = useState('');
   const [requestTypeId, setRequestTypeId] = useState('');
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
 
-  // Multi-Files State
-  const [identityFiles, setIdentityFiles] = useState<File[]>([]);
-  const [requestFiles, setRequestFiles] = useState<File[]>([]);
+  // Uploaded Files State (Matching Image 5 layout)
+  const [uploadFiles, setUploadFiles] = useState<UploadItem[]>([]);
   const identityInputRef = useRef<HTMLInputElement>(null);
   const requestInputRef = useRef<HTMLInputElement>(null);
+  const genericInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Dynamic Options
   const [ministries, setMinistries] = useState<Ministry[]>([]);
@@ -68,7 +74,6 @@ export const PublicSubmitRequestPage: React.FC = () => {
         setCities(cts);
         setRequestTypes(rTypes);
         if (mins.length > 0) setMinistryId(mins[0].id);
-        if (cts.length > 0) setCityId(cts[0].id);
         if (rTypes.length > 0) setRequestTypeId(rTypes[0].id);
       } catch (err: any) {
         console.error('Error loading public form data:', err);
@@ -80,27 +85,31 @@ export const PublicSubmitRequestPage: React.FC = () => {
     loadFormData();
   }, []);
 
-  const handleAddIdentityFiles = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setIdentityFiles((prev) => [...prev, ...Array.from(files)]);
-  };
-
-  const handleRemoveIdentityFile = (index: number) => {
-    setIdentityFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleAddRequestFiles = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setRequestFiles((prev) => [...prev, ...Array.from(files)]);
-  };
-
-  const handleRemoveRequestFile = (index: number) => {
-    setRequestFiles((prev) => prev.filter((_, i) => i !== index));
-  };
-
   const formatFileSize = (bytes: number) => {
-    if (bytes > 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    if (bytes > 1024 * 1024) return `MB ${(bytes / (1024 * 1024)).toFixed(1)}`;
+    return `KB ${Math.max(1, Math.round(bytes / 1024))}`;
+  };
+
+  const addFiles = (files: FileList | null, defaultType: 'IDENTITY' | 'REQUEST_DOCUMENT') => {
+    if (!files || files.length === 0) return;
+    const newItems: UploadItem[] = Array.from(files).map((f) => ({
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      file: f,
+      name: f.name,
+      size: formatFileSize(f.size),
+      documentType: defaultType
+    }));
+    setUploadFiles((prev) => [...prev, ...newItems]);
+  };
+
+  const handleRemoveFile = (id: string) => {
+    setUploadFiles((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleToggleDocType = (id: string, newType: 'IDENTITY' | 'REQUEST_DOCUMENT') => {
+    setUploadFiles((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, documentType: newType } : item))
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,6 +118,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
 
     if (!name.trim() || !phone.trim()) {
       setErrorMessage('يرجى إدخال اسم المراجع ورقم هاتف واتساب');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -119,27 +129,40 @@ export const PublicSubmitRequestPage: React.FC = () => {
       formData.append('phone', phone.trim());
       if (altPhone.trim()) formData.append('altPhone', altPhone.trim());
       if (nationalId.trim()) formData.append('nationalId', nationalId.trim());
-      if (cityId) formData.append('cityId', cityId);
+
+      // Match city by selected governorate name or ID
+      const matchedCity = cities.find(
+        (c) => c.name === selectedGovernorate || c.id === selectedGovernorate
+      );
+      if (matchedCity) {
+        formData.append('cityId', matchedCity.id);
+      } else {
+        formData.append('cityId', selectedGovernorate);
+      }
+
       if (address.trim()) formData.append('address', address.trim());
       if (ministryId) formData.append('ministryId', ministryId);
       if (requestTypeId) formData.append('requestTypeId', requestTypeId);
       formData.append('title', title.trim() || 'طلب مراجع عبر البوابة الإلكترونية');
       if (details.trim()) formData.append('details', details.trim());
 
-      // Append all identity files
-      identityFiles.forEach((f) => {
-        formData.append('identityFiles', f);
-      });
-
-      // Append all request files
-      requestFiles.forEach((f) => {
-        formData.append('requestFiles', f);
+      // Append classified files
+      uploadFiles.forEach((item) => {
+        if (item.documentType === 'IDENTITY') {
+          formData.append('identityFiles', item.file);
+        } else {
+          formData.append('requestFiles', item.file);
+        }
+        formData.append('files', item.file);
       });
 
       const res = await publicService.submitRequest(formData);
       setResult(res);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      setErrorMessage(err.message || 'تعذر تقديم الطلب، يرجى المحاولة لاحقاً');
+      const msg = err.response?.data?.message || err.message || 'تعذر تقديم الطلب، يرجى مراجعة البيانات والمحاولة مجدداً';
+      setErrorMessage(msg);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -169,7 +192,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
           <div className="bg-slate-50 dark:bg-gray-750 p-5 rounded-2xl border border-slate-200 dark:border-gray-700 mb-6 text-right space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500 dark:text-gray-400">رقم المعاملة:</span>
-              <span className="text-base font-bold font-mono text-brand-600 dark:text-brand-400">{result.requestNumber}</span>
+              <span className="text-base font-bold font-mono text-blue-600 dark:text-blue-400">{result.requestNumber}</span>
             </div>
             {result.customerNumber && (
               <div className="flex items-center justify-between">
@@ -189,7 +212,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
           <div className="space-y-3">
             <button
               onClick={handleCopyTracking}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-semibold transition"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-semibold transition cursor-pointer"
             >
               <Copy className="w-4 h-4" />
               {copied ? 'تم نسخ الرقم!' : 'نسخ رقم المعاملة'}
@@ -197,7 +220,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
 
             <Link
               to={`/track/${result.requestNumber}`}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition shadow-md"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-md"
             >
               <ExternalLink className="w-4 h-4" />
               متابعة حالة الطلب الآن
@@ -208,10 +231,9 @@ export const PublicSubmitRequestPage: React.FC = () => {
                 setResult(null);
                 setTitle('');
                 setDetails('');
-                setIdentityFiles([]);
-                setRequestFiles([]);
+                setUploadFiles([]);
               }}
-              className="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 transition mt-2 block mx-auto"
+              className="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 transition mt-2 block mx-auto cursor-pointer"
             >
               تقديم طلب آخر
             </button>
@@ -227,7 +249,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
         {/* Navigation & Brand */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-brand-600 flex items-center justify-center text-white font-bold shadow-md shadow-brand-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/20">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
@@ -237,7 +259,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
           </div>
           <Link
             to="/track"
-            className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
+            className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
           >
             متابعة معاملة سابقة <ArrowRight className="w-3.5 h-3.5 rotate-180" />
           </Link>
@@ -253,8 +275,8 @@ export const PublicSubmitRequestPage: React.FC = () => {
           </div>
 
           {errorMessage && (
-            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-2xl flex items-center gap-3 text-rose-800 dark:text-rose-300 text-xs font-medium">
-              <AlertCircle className="w-5 h-5 shrink-0" />
+            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-2xl flex items-center gap-3 text-rose-800 dark:text-rose-300 text-xs font-semibold animate-fade-in">
+              <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
               <span>{errorMessage}</span>
             </div>
           )}
@@ -263,7 +285,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
             {/* Citizen Information */}
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <User className="w-4 h-4 text-brand-600" />
+                <User className="w-4 h-4 text-blue-600" />
                 بيانات مقدم الطلب (المراجع)
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -276,8 +298,8 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="مثال: علي حسن كاظم"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+                    placeholder="مثال: عباس محمد"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   />
                 </div>
 
@@ -291,7 +313,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="077********"
-                    className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-right"
+                    className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-right"
                   />
                 </div>
 
@@ -304,7 +326,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     value={altPhone}
                     onChange={(e) => setAltPhone(e.target.value)}
                     placeholder="078********"
-                    className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-right"
+                    className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-right"
                   />
                 </div>
 
@@ -317,23 +339,22 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     value={nationalId}
                     onChange={(e) => setNationalId(e.target.value)}
                     placeholder="19xxxxxxxxxx"
-                    className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition text-right"
+                    className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-right"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    المحافظة
+                    المحافظة <span className="text-slate-400 font-normal">(قائمة محافظات العراق الـ 19)</span>
                   </label>
                   <select
-                    value={cityId}
-                    onChange={(e) => setCityId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+                    value={selectedGovernorate}
+                    onChange={(e) => setSelectedGovernorate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   >
-                    <option value="">اختر المحافظة...</option>
-                    {cities.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
+                    {IRAQI_GOVERNORATES.map((gov, idx) => (
+                      <option key={gov} value={gov}>
+                        {idx + 1}. {gov}
                       </option>
                     ))}
                   </select>
@@ -348,7 +369,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="المحافظة، الحي، أقرب نقطة دالة..."
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   />
                 </div>
               </div>
@@ -357,7 +378,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
             {/* Request Details */}
             <div className="pt-4 border-t border-slate-100 dark:border-gray-700">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-brand-600" />
+                <FileText className="w-4 h-4 text-blue-600" />
                 تفاصيل المعاملة والجهة
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -369,7 +390,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     required
                     value={ministryId}
                     onChange={(e) => setMinistryId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   >
                     <option value="">اختر الجهة...</option>
                     {ministries.map((m) => (
@@ -387,7 +408,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
                   <select
                     value={requestTypeId}
                     onChange={(e) => setRequestTypeId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   >
                     <option value="">اختر نوع الطلب...</option>
                     {requestTypes.map((t) => (
@@ -408,7 +429,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="موجز واضح لعنوان المعاملة"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   />
                 </div>
 
@@ -421,240 +442,184 @@ export const PublicSubmitRequestPage: React.FC = () => {
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
                     placeholder="تفاصيل المعاملة، التوضيحات، وأي أرقام سابقة..."
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 transition"
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Attachments Section */}
-            <div className="pt-4 border-t border-slate-100 dark:border-gray-700">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                <UploadCloud className="w-4 h-4 text-brand-600" />
-                المرفقات والمستندات (إمكانية رفع أكثر من مستند)
-              </h3>
+            {/* Attachments Section - Matching Image 5 Exact Design */}
+            <div className="pt-4 border-t border-slate-100 dark:border-gray-700 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <UploadCloud className="w-4 h-4 text-blue-600" />
+                  المرفقات والمستندات (إمكانية رفع أكثر من مستند)
+                </h3>
+                <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">
+                  {uploadFiles.length > 0 ? `(${uploadFiles.length} مستندات محددة)` : 'اختياري'}
+                </span>
+              </div>
 
-              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl mb-4 flex items-center gap-2.5 text-amber-800 dark:text-amber-300 text-xs">
+              {/* Privacy Notice */}
+              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex items-center gap-2.5 text-amber-800 dark:text-amber-300 text-xs">
                 <Lock className="w-4 h-4 shrink-0 text-amber-600" />
                 <span>حماية الخصوصية: وثائق الهوية مشفرة ومحمية ولا تظهر في صفحة التتبع العامة للمراجعين</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Identity Documents (Multi) */}
-                <div className="p-4 rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-750 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200">
-                        صورة الهوية الوطنية / البطاقة الموحدة
-                      </label>
-                      <span className="text-[10px] text-slate-500 font-medium">
-                        ({identityFiles.length} مستندات)
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 mb-3">
-                      يمكنك اختيار أكثر من صورة (الوجه الأمامي والخلفي أو بطاقات متعددة)
-                    </p>
+              {/* Hidden Inputs */}
+              <input
+                type="file"
+                ref={identityInputRef}
+                multiple
+                accept=".pdf,image/*"
+                onChange={(e) => {
+                  addFiles(e.target.files, 'IDENTITY');
+                  if (identityInputRef.current) identityInputRef.current.value = '';
+                }}
+                className="hidden"
+              />
 
-                    <input
-                      type="file"
-                      ref={identityInputRef}
-                      multiple
-                      accept=".pdf,image/*"
-                      onChange={(e) => {
-                        handleAddIdentityFiles(e.target.files);
-                        if (identityInputRef.current) identityInputRef.current.value = '';
-                      }}
-                      className="hidden"
-                    />
+              <input
+                type="file"
+                ref={requestInputRef}
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
+                onChange={(e) => {
+                  addFiles(e.target.files, 'REQUEST_DOCUMENT');
+                  if (requestInputRef.current) requestInputRef.current.value = '';
+                }}
+                className="hidden"
+              />
 
-                    <button
-                      type="button"
-                      onClick={() => identityInputRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-gray-600 hover:border-brand-500 bg-white dark:bg-gray-800 text-xs font-bold text-brand-600 hover:bg-brand-50/50 transition mb-3"
-                    >
-                      <Plus className="w-4 h-4" />
-                      إضافة صور / ملفات الهوية
-                    </button>
-                  </div>
+              <input
+                type="file"
+                ref={genericInputRef}
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                onChange={(e) => {
+                  addFiles(e.target.files, 'REQUEST_DOCUMENT');
+                  if (genericInputRef.current) genericInputRef.current.value = '';
+                }}
+                className="hidden"
+              />
 
-                  {identityFiles.length > 0 && (
-                    <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-gray-700 max-h-36 overflow-y-auto">
-                      {identityFiles.map((file, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-xs"
-                        >
-                          <div className="flex items-center gap-1.5 truncate">
-                            <File className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                            <span className="truncate font-medium text-slate-800 dark:text-gray-200" title={file.name}>
-                              {file.name}
-                            </span>
-                            <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                              ({formatFileSize(file.size)})
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveIdentityFile(idx)}
-                            className="text-slate-400 hover:text-rose-600 p-0.5 transition"
-                            title="حذف"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              {/* Quick Action Upload Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => identityInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed border-amber-300 dark:border-amber-700 hover:border-amber-500 bg-amber-50/40 dark:bg-amber-900/10 text-xs font-bold text-amber-900 dark:text-amber-300 hover:bg-amber-50 transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-amber-600" />
+                  + إضافة صور / ملفات الهوية (سري ومحمي)
+                </button>
 
-                {/* Request Documents (Multi) */}
-                <div className="p-4 rounded-2xl border border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-750 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-bold text-slate-800 dark:text-gray-200">
-                        مستندات وخطاب المعاملة
-                      </label>
-                      <span className="text-[10px] text-slate-500 font-medium">
-                        ({requestFiles.length} مستندات)
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 mb-3">
-                      يمكنك اختيار أكثر من مستند ثبوتي أو خطابات أو تقارير داعمة
-                    </p>
-
-                    <input
-                      type="file"
-                      ref={requestInputRef}
-                      multiple
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,image/*"
-                      onChange={(e) => {
-                        handleAddRequestFiles(e.target.files);
-                        if (requestInputRef.current) requestInputRef.current.value = '';
-                      }}
-                      className="hidden"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => requestInputRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border border-dashed border-slate-300 dark:border-gray-600 hover:border-brand-500 bg-white dark:bg-gray-800 text-xs font-bold text-brand-600 hover:bg-brand-50/50 transition mb-3"
-                    >
-                      <Plus className="w-4 h-4" />
-                      إضافة مستندات المعاملة
-                    </button>
-                  </div>
-
-                  {requestFiles.length > 0 && (
-                    <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-gray-700 max-h-36 overflow-y-auto">
-                      {requestFiles.map((file, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-xs"
-                        >
-                          <div className="flex items-center gap-1.5 truncate">
-                            <File className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                            <span className="truncate font-medium text-slate-800 dark:text-gray-200" title={file.name}>
-                              {file.name}
-                            </span>
-                            <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                              ({formatFileSize(file.size)})
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveRequestFile(idx)}
-                            className="text-slate-400 hover:text-rose-600 p-0.5 transition"
-                            title="حذف"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => requestInputRef.current?.click()}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed border-blue-300 dark:border-blue-700 hover:border-blue-500 bg-blue-50/40 dark:bg-blue-900/10 text-xs font-bold text-blue-900 dark:text-blue-300 hover:bg-blue-50 transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-blue-600" />
+                  + إضافة مستندات وخطاب المعاملة
+                </button>
               </div>
+
+              {/* Drag & Drop Zone */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  addFiles(e.dataTransfer.files, 'REQUEST_DOCUMENT');
+                }}
+                onClick={() => genericInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-5 text-center transition-all cursor-pointer ${
+                  isDragging
+                    ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-900/20'
+                    : 'border-slate-300 dark:border-gray-600 hover:border-blue-500 bg-slate-50/50 dark:bg-gray-750'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto mb-2">
+                  <UploadCloud className="w-5 h-5" />
+                </div>
+                <h4 className="text-xs font-bold text-slate-800 dark:text-gray-200 mb-1">
+                  اسحب وأفلت الملفات هنا، أو <span className="text-blue-600 dark:text-blue-400 hover:underline">اضغط لاختيار الملفات من جهازك</span>
+                </h4>
+                <p className="text-[11px] text-slate-400 dark:text-gray-400">
+                  يدعم صور الهويات (JPG, PNG)، ومستندات PDF، Word، Excel حتى 10MB لكل ملف
+                </p>
+              </div>
+
+              {/* Uploaded Files List (Matching Image 5) */}
+              {uploadFiles.length > 0 && (
+                <div className="space-y-2.5 pt-2 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-gray-200">
+                      الملفات المرفقة الجاهزة للرفع ({uploadFiles.length}):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setUploadFiles([])}
+                      className="text-[11px] text-rose-500 hover:underline cursor-pointer"
+                    >
+                      حذف الكل
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {uploadFiles.map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-3 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs flex flex-col gap-2 transition hover:border-blue-300"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 truncate">
+                            <FileIcon className="w-4 h-4 text-blue-600 shrink-0" />
+                            <span className="font-bold text-xs text-slate-800 dark:text-gray-200 truncate" title={item.name}>
+                              {item.name}
+                            </span>
+                            <span className="text-[11px] font-mono text-slate-400 shrink-0">
+                              ({item.size})
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(item.id)}
+                            className="text-slate-400 hover:text-rose-600 p-1 transition cursor-pointer"
+                            title="حذف المرفق"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* File Classification Selector */}
+                        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-gray-700 text-[11px]">
+                          <select
+                            value={item.documentType}
+                            onChange={(e) => handleToggleDocType(item.id, e.target.value as any)}
+                            className="w-full bg-slate-50 dark:bg-gray-700 border border-slate-200 dark:border-gray-600 text-slate-700 dark:text-gray-200 rounded-lg py-1 px-2 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="IDENTITY">صورة هوية / بطاقة موحدة (سري ومحمي)</option>
+                            <option value="REQUEST_DOCUMENT">مستند معاملة / خطاب ثبوتي</option>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Summary of attached documents before submit */}
-            {(identityFiles.length > 0 || requestFiles.length > 0) && (
-              <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-3 animate-fade-in">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-                    <h4 className="text-xs font-bold text-blue-950 dark:text-blue-200">
-                      المستندات الجاهزة للإرسال والرفع مع الطلب
-                    </h4>
-                  </div>
-                  <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-blue-200/80 dark:bg-blue-800 text-blue-900 dark:text-blue-100">
-                    {identityFiles.length + requestFiles.length} ملفات مرفقة
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {identityFiles.map((file, idx) => (
-                    <div
-                      key={`id-${idx}`}
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-700 shadow-xs text-xs"
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-[10px] font-bold shrink-0">
-                          هوية (سري)
-                        </span>
-                        <span className="truncate font-medium text-slate-800 dark:text-gray-200" title={file.name}>
-                          {file.name}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                          ({formatFileSize(file.size)})
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveIdentityFile(idx)}
-                        className="text-slate-400 hover:text-rose-600 p-1 transition"
-                        title="حذف"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-
-                  {requestFiles.map((file, idx) => (
-                    <div
-                      key={`req-${idx}`}
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-blue-100 dark:border-gray-700 shadow-xs text-xs"
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-[10px] font-bold shrink-0">
-                          مستند طلب
-                        </span>
-                        <span className="truncate font-medium text-slate-800 dark:text-gray-200" title={file.name}>
-                          {file.name}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                          ({formatFileSize(file.size)})
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRequestFile(idx)}
-                        className="text-slate-400 hover:text-rose-600 p-1 transition"
-                        title="حذف"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <div className="pt-6 border-t border-slate-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+            {/* Submit Button & Confirmation Bar */}
+            <div className="pt-6 border-t border-slate-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-xs text-slate-500 dark:text-gray-400">
-                {identityFiles.length + requestFiles.length > 0 ? (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> سيتم إرفاق {identityFiles.length + requestFiles.length} مستندات مع الطلب
+                {uploadFiles.length > 0 ? (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" /> سيتم إرفاق {uploadFiles.length} مستندات مع الطلب
                   </span>
                 ) : (
                   <span>لم يتم إرفاق ملفات (اختياري)</span>
@@ -664,7 +629,7 @@ export const PublicSubmitRequestPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-blue-500/25 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full sm:w-auto px-9 py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-sm font-bold transition shadow-lg shadow-blue-500/25 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -682,3 +647,4 @@ export const PublicSubmitRequestPage: React.FC = () => {
     </div>
   );
 };
+
