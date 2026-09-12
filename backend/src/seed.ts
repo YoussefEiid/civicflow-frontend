@@ -129,7 +129,7 @@ export async function seedDatabase() {
     'ministries.view', 'ministries.create', 'ministries.update',
     'cities.view', 'cities.create', 'cities.update',
     'request_types.view', 'request_types.create', 'request_types.update',
-    'users.view',
+    'users.view', 'users.create', 'users.update', 'users.delete',
     'reports.view', 'reports.export', 'reports.export_pdf',
     'notifications.view',
     'whatsapp.view', 'whatsapp.send',

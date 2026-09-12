@@ -1,4 +1,4 @@
-﻿import { Employee } from '../types';
+import { Employee } from '../types';
 
 export const PERMISSIONS = {
   // Requests
@@ -89,7 +89,7 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     'ministries.view', 'ministries.create', 'ministries.update',
     'cities.view', 'cities.create', 'cities.update',
     'request_types.view', 'request_types.create', 'request_types.update',
-    'users.view',
+    'users.view', 'users.create', 'users.update', 'users.delete',
     'reports.view', 'reports.export', 'reports.export_pdf',
     'notifications.view',
     'whatsapp.view', 'whatsapp.send',
