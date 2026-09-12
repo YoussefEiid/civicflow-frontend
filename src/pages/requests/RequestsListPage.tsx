@@ -242,6 +242,7 @@ export const RequestsListPage: React.FC = () => {
 
   const clearFilters = () => {
     setSearch('');
+    setSourceTab('all');
     setStatusFilter('all');
     setMinistryFilter('all');
     setEmployeeFilter('all');
