@@ -97,10 +97,12 @@ export const RequestsListPage: React.FC = () => {
 
   // Helper to distinguish portal received requests
   const isPublicReceived = (r: RequestItem) => {
-    return (
+    return Boolean(
       r.status === 'استلام الطلب' ||
-      r.timeline?.some((h: any) => h.employeeName?.includes('بوابة') || h.note?.includes('البوابة')) ||
-      (r as any).statusHistory?.some((h: any) => h.employeeName?.includes('بوابة') || h.note?.includes('البوابة'))
+      r.title?.includes('البوابة') ||
+      r.details?.includes('البوابة') ||
+      r.timeline?.some((h: any) => h.employeeName?.includes('بوابة') || h.note?.includes('البوابة') || h.employeeName?.includes('Portal')) ||
+      (r as any).statusHistory?.some((h: any) => h.employeeName?.includes('بوابة') || h.note?.includes('البوابة') || h.employeeName?.includes('Portal'))
     );
   };
 
@@ -179,6 +181,7 @@ export const RequestsListPage: React.FC = () => {
     return list;
   }, [
     requests,
+    sourceTab,
     search,
     statusFilter,
     ministryFilter,
