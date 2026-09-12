@@ -137,20 +137,30 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
       if (rt) requestTypeName = rt.name;
     }
 
-    // Handle uploaded files if multipart
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-    const identityFiles: Express.Multer.File[] = [
-      ...(files?.['identityFiles'] || []),
-      ...(files?.['identityDocument'] || []),
-      ...(files?.['identityFile'] || [])
-    ];
-    const requestFiles: Express.Multer.File[] = [
-      ...(files?.['requestFiles'] || []),
-      ...(files?.['requestDocument'] || []),
-      ...(files?.['requestFile'] || []),
-      ...(files?.['files'] || []),
-      ...(req.file ? [req.file] : [])
-    ];
+    // Handle uploaded files from upload.any() or upload.fields()
+    let rawFilesList: Express.Multer.File[] = [];
+    if (Array.isArray(req.files)) {
+      rawFilesList = req.files;
+    } else if (req.files && typeof req.files === 'object') {
+      rawFilesList = Object.values(req.files).flat();
+    }
+    if (req.file) {
+      rawFilesList.push(req.file);
+    }
+
+    const identityFiles: Express.Multer.File[] = rawFilesList.filter(
+      (f) =>
+        f.fieldname === 'identityFiles' ||
+        f.fieldname === 'identityFile' ||
+        f.fieldname === 'identityDocument' ||
+        f.originalname.includes('هوية') ||
+        f.originalname.includes('بطاقة') ||
+        f.originalname.includes('اقامة')
+    );
+
+    const requestFiles: Express.Multer.File[] = rawFilesList.filter(
+      (f) => !identityFiles.includes(f)
+    );
 
     const receiveDate = new Date();
     const slaResult = await calculateRequestSLA(ministry.id, PriorityLevel.NORMAL, receiveDate);

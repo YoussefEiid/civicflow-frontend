@@ -153,7 +153,6 @@ export const PublicSubmitRequestPage: React.FC = () => {
         } else {
           formData.append('requestFiles', item.file);
         }
-        formData.append('files', item.file);
       });
 
       const res = await publicService.submitRequest(formData);

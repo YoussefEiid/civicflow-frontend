@@ -68,7 +68,7 @@ export const PublicTrackResultPage: React.FC = () => {
   if (loading) {
     return (
       <div className="text-center py-20 space-y-4">
-        <div className="w-12 h-12 border-4 border-brand-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
         <p className="text-xs text-gray-500 font-semibold">جاري الاستعلام عن بيانات المعاملة من المنظومة...</p>
       </div>
     );

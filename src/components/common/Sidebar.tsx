@@ -15,7 +15,8 @@ import {
   ChevronRight,
   ChevronLeft,
   ShieldAlert,
-  Flame
+  Flame,
+  Plus
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -131,8 +132,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed })
         })}
       </div>
 
-      {/* Public Tracking Banner & Quick Link */}
-      <div className="p-3 border-t border-slate-800/80">
+      {/* Public Tracking & Submission Quick Links */}
+      <div className="p-3 border-t border-slate-800/80 space-y-2">
+        <NavLink
+          to="/submit-request"
+          target="_blank"
+          className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold text-emerald-400 bg-emerald-950/40 hover:bg-emerald-900/50 hover:text-emerald-300 transition border border-emerald-800/40 ${
+            isCollapsed ? 'justify-center' : 'justify-between'
+          }`}
+          title="بوابة تقديم طلبات المراجعين (رابط عام للجمهور)"
+        >
+          <div className="flex items-center gap-2 truncate">
+            <Plus className="w-4 h-4 text-emerald-400 shrink-0" />
+            {!isCollapsed && <span>بوابة تقديم طلب جديد</span>}
+          </div>
+          {!isCollapsed && <ExternalLink className="w-3.5 h-3.5 opacity-60 shrink-0" />}
+        </NavLink>
+
         <NavLink
           to="/track"
           target="_blank"
