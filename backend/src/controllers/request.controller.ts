@@ -314,18 +314,22 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
   try {
     const data = createRequestSchema.parse(req.body);
 
-    let customer = await prisma.customer.findUnique({
-      where: { id: data.customerId },
-      include: { city: true }
-    });
+    let customer = null;
+    if (data.customerId) {
+      customer = await prisma.customer.findUnique({
+        where: { id: data.customerId },
+        include: { city: true }
+      });
+    }
 
-    if (!customer) {
+    if (!customer && data.customerId) {
       customer = await prisma.customer.findFirst({
         where: {
           OR: [
             { id: data.customerId },
-            { name: (req.body as any).customerName || undefined },
-            { phone: (req.body as any).customerPhone || undefined }
+            { customerNumber: data.customerId },
+            { phone: data.customerId },
+            { nationalId: data.customerId }
           ]
         },
         include: { city: true }
@@ -333,8 +337,24 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
     }
 
     if (!customer) {
+      const custName = (req.body as any).customerName;
+      const custPhone = (req.body as any).customerPhone;
+      if (custPhone || custName) {
+        customer = await prisma.customer.findFirst({
+          where: {
+            OR: [
+              custPhone ? { phone: custPhone } : {},
+              custName ? { name: { equals: custName, mode: 'insensitive' } } : {}
+            ]
+          },
+          include: { city: true }
+        });
+      }
+    }
+
+    if (!customer) {
       const customerName = (req.body as any).customerName || 'مراجع عام';
-      const customerPhone = (req.body as any).customerPhone || '07700000000';
+      const customerPhone = (req.body as any).customerPhone || `077${Date.now().toString().slice(-8)}`;
       const customerNumber = await generateNextCustomerNumber(prisma);
       customer = await prisma.customer.create({
         data: {
@@ -349,7 +369,7 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
     }
 
     if (!customer) {
-      throw new AppError('المراجع غير موجود في قاعدة البيانات', 404, 'CUSTOMER_NOT_FOUND');
+      throw new AppError('تعذر العثور على المراجع أو إنشاؤه في قاعدة البيانات', 404, 'CUSTOMER_NOT_FOUND');
     }
 
     let ministry = await prisma.ministry.findUnique({ where: { id: data.ministryId } });
@@ -371,13 +391,38 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
     }
 
     const validCustomer = customer;
-    let finalCityId = data.cityId || validCustomer.cityId || null;
-    let finalRequestTypeId = data.requestTypeId || null;
-    let finalRequestTypeName = data.requestType;
+    let finalCityId: string | null = null;
+    const candidateCity = data.cityId || validCustomer.cityId;
+    if (candidateCity) {
+      const city = await prisma.city.findFirst({
+        where: {
+          OR: [
+            { id: candidateCity },
+            { name: { equals: candidateCity, mode: 'insensitive' } }
+          ],
+          status: 'ACTIVE'
+        }
+      });
+      finalCityId = city ? city.id : null;
+    }
 
-    if (finalRequestTypeId) {
-      const rt = await prisma.requestType.findUnique({ where: { id: finalRequestTypeId } });
-      if (rt) finalRequestTypeName = rt.name;
+    let finalRequestTypeId: string | null = null;
+    let finalRequestTypeName = data.requestType || 'طلب عام';
+
+    if (data.requestTypeId) {
+      const rt = await prisma.requestType.findFirst({
+        where: {
+          OR: [
+            { id: data.requestTypeId },
+            { name: { equals: data.requestTypeId, mode: 'insensitive' } }
+          ],
+          status: 'ACTIVE'
+        }
+      });
+      if (rt) {
+        finalRequestTypeId = rt.id;
+        finalRequestTypeName = rt.name;
+      }
     }
 
     let assignedEmpId: string | null = null;

@@ -7,8 +7,8 @@ import { CustomerStatus } from '@prisma/client';
 import { generateNextCustomerNumber } from '../services/customerNumber.service.js';
 
 const customerSchema = z.object({
-  name: z.string().min(2, 'اسم المراجع يجب أن يكون حرفين على الأقل'),
-  phone: z.string().min(8, 'رقم الهاتف غير صالح'),
+  name: z.string().min(1, 'اسم المراجع مطلوب'),
+  phone: z.string().min(6, 'رقم الهاتف غير صالح'),
   altPhone: z.string().optional().nullable(),
   nationalId: z.string().optional().nullable(),
   email: z.string().email('صيغة البريد الإلكتروني غير صحيحة').optional().nullable().or(z.literal('')),
@@ -123,7 +123,7 @@ export const getCustomerById = async (req: Request, res: Response, next: NextFun
 
     const customer = await prisma.customer.findFirst({
       where: {
-        OR: [{ id }, { customerNumber: id }, { nationalId: id }]
+        OR: [{ id }, { customerNumber: id }, { nationalId: id }, { phone: id }]
       },
       include: {
         city: { select: { id: true, name: true } },
@@ -200,6 +200,20 @@ export const createCustomer = async (req: Request, res: Response, next: NextFunc
         ? CustomerStatus.BLOCKED
         : CustomerStatus.ACTIVE;
 
+    let validCityId: string | null = null;
+    if (data.cityId) {
+      const city = await prisma.city.findFirst({
+        where: {
+          OR: [
+            { id: data.cityId },
+            { name: { equals: data.cityId, mode: 'insensitive' } }
+          ],
+          status: 'ACTIVE'
+        }
+      });
+      validCityId = city ? city.id : null;
+    }
+
     const newCustomer = await prisma.$transaction(async (tx) => {
       const customerNumber = await generateNextCustomerNumber(tx);
 
@@ -211,7 +225,7 @@ export const createCustomer = async (req: Request, res: Response, next: NextFunc
           altPhone: data.altPhone || null,
           nationalId: data.nationalId || null,
           email: data.email || null,
-          cityId: data.cityId || null,
+          cityId: validCityId,
           address: data.address || '',
           notes: data.notes || null,
           status: statusVal
@@ -282,6 +296,24 @@ export const updateCustomer = async (req: Request, res: Response, next: NextFunc
           : CustomerStatus.ACTIVE;
     }
 
+    let validCityId: string | null | undefined = undefined;
+    if (data.cityId !== undefined) {
+      if (data.cityId) {
+        const city = await prisma.city.findFirst({
+          where: {
+            OR: [
+              { id: data.cityId },
+              { name: { equals: data.cityId, mode: 'insensitive' } }
+            ],
+            status: 'ACTIVE'
+          }
+        });
+        validCityId = city ? city.id : null;
+      } else {
+        validCityId = null;
+      }
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       const custUpdated = await tx.customer.update({
         where: { id },
@@ -291,7 +323,7 @@ export const updateCustomer = async (req: Request, res: Response, next: NextFunc
           ...(data.altPhone !== undefined && { altPhone: data.altPhone || null }),
           ...(data.nationalId !== undefined && { nationalId: data.nationalId || null }),
           ...(data.email !== undefined && { email: data.email || null }),
-          ...(data.cityId !== undefined && { cityId: data.cityId || null }),
+          ...(validCityId !== undefined && { cityId: validCityId }),
           ...(data.address && { address: data.address }),
           ...(data.notes !== undefined && { notes: data.notes || null }),
           ...(statusVal && { status: statusVal })
