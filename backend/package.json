@@ -27,6 +27,17 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.14.0",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/morgan": "^1.9.9",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.19.43",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^8.0.1",
+    "@types/pdfmake": "^0.3.3",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -41,23 +52,11 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^10.0.9",
     "pdfmake": "^0.3.11",
-    "zod": "^3.23.8"
-  },
-  "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
-    "@types/cookie-parser": "^1.4.7",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/jsonwebtoken": "^9.0.6",
-    "@types/morgan": "^1.9.9",
-    "@types/multer": "^1.4.11",
-    "@types/node": "^20.19.43",
-    "@types/node-cron": "^3.0.11",
-    "@types/nodemailer": "^8.0.1",
-    "@types/pdfmake": "^0.3.3",
     "prisma": "^5.14.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.9.3"
-  }
+    "typescript": "^5.9.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {}
 }
