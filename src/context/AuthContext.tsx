@@ -20,9 +20,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Restore session on initial load
   const initAuth = useCallback(async () => {
+    // If on public pages, never block UI rendering
+    const isPublicPath =
+      typeof window !== 'undefined' &&
+      (window.location.pathname.startsWith('/submit-request') ||
+        window.location.pathname.startsWith('/track') ||
+        window.location.pathname.startsWith('/login') ||
+        window.location.pathname.startsWith('/forgot-password') ||
+        window.location.pathname.startsWith('/reset-password'));
+
+    if (isPublicPath) {
+      setLoading(false);
+      // Run session restoration in background without blocking
+      authService
+        .refreshToken()
+        .then((res) => {
+          if (res?.user) setUser(res.user);
+        })
+        .catch(() => {});
+      return;
+    }
+
     try {
-      // First try to refresh session via HTTP-only cookie
-      const res = await authService.refreshToken();
+      // 3.5s timeout safety for waking backends
+      const refreshPromise = authService.refreshToken();
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
+      const res = await Promise.race([refreshPromise, timeoutPromise]);
       if (res?.user) {
         setUser(res.user);
       } else {

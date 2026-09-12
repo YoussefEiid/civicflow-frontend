@@ -1,10 +1,12 @@
 const isBrowser = typeof window !== 'undefined';
 const isLocalhost = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-const API_BASE_URL =
+const rawApiUrl =
   (import.meta as any).env?.VITE_API_BASE_URL ||
   (import.meta as any).env?.VITE_API_URL ||
   (isLocalhost ? 'http://localhost:5000/api' : 'https://civicflow-backend-1u3o.onrender.com/api');
+
+const API_BASE_URL = rawApiUrl.replace(/\/+$/, '');
 
 
 let accessToken: string | null = null;
