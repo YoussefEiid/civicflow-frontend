@@ -23,7 +23,6 @@ export const ProfilePage: React.FC = () => {
   const [otpInput, setOtpInput] = useState('');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [otpHint, setOtpHint] = useState('');
   const [verificationError, setVerificationError] = useState('');
 
   // Edit state
@@ -43,10 +42,7 @@ export const ProfilePage: React.FC = () => {
     setVerificationError('');
     try {
       const { authService } = await import('../../services/authService');
-      const res = await authService.sendVerificationOTP(user.email);
-      if (res?.otpHint) {
-        setOtpHint(res.otpHint);
-      }
+      await authService.sendVerificationOTP(user.email);
       success('تم إرسال رمز التحقق', `تم إرسال رمز التحقق المكون من 6 أرقام إلى بريدك (${user.email})`);
       setIsVerifyModalOpen(true);
     } catch (err: any) {
@@ -286,15 +282,6 @@ export const ProfilePage: React.FC = () => {
             تم إرسال رمز تحقق مكون من 6 أرقام إلى:
             <p className="font-bold font-mono text-blue-950 mt-1">{user?.email}</p>
           </div>
-
-          {otpHint && (
-            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-center justify-between">
-              <span>رمز التحقق:</span>
-              <span className="font-mono font-black text-sm bg-white px-2 py-0.5 rounded border border-amber-300 tracking-widest">
-                {otpHint}
-              </span>
-            </div>
-          )}
 
           {verificationError && (
             <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs">

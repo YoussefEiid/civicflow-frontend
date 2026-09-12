@@ -462,8 +462,7 @@ export const requestPasswordResetOTP = async (req: Request, res: Response, next:
     return sendSuccess(
       res,
       {
-        email: normalizedEmail,
-        otpHint: otp
+        email: normalizedEmail
       },
       'تم إرسال رمز التحقق (OTP) بنجاح إلى بريدك الإلكتروني.'
     );
@@ -584,8 +583,7 @@ export const sendVerificationOTP = async (req: Request, res: Response, next: Nex
     return sendSuccess(
       res,
       {
-        email: targetEmail,
-        otpHint: otp
+        email: targetEmail
       },
       'تم إرسال رمز التحقق لتأكيد الحساب بنجاح إلى بريدك الإلكتروني.'
     );

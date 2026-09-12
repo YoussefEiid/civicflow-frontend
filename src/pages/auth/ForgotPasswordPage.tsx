@@ -20,7 +20,6 @@ export const ForgotPasswordPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [otpHint, setOtpHint] = useState('');
 
   // Step 1: Request OTP
   const handleRequestOTP = async (e: React.FormEvent) => {
@@ -30,10 +29,7 @@ export const ForgotPasswordPage: React.FC = () => {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const res = await authService.requestPasswordResetOTP(email.trim());
-      if (res?.otpHint) {
-        setOtpHint(res.otpHint);
-      }
+      await authService.requestPasswordResetOTP(email.trim());
       success('تم إرسال رمز التحقق', 'تم إرسال رمز التحقق المكون من 6 أرقام إلى بريدك الإلكتروني');
       setStep('OTP_AND_NEW_PASSWORD');
     } catch (err: any) {
@@ -131,15 +127,6 @@ export const ForgotPasswordPage: React.FC = () => {
               تغيير البريد
             </button>
           </div>
-
-          {otpHint && (
-            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-center justify-between">
-              <span>رمز التحقق المرسل:</span>
-              <span className="font-mono font-black text-sm bg-white px-2 py-0.5 rounded border border-amber-300 tracking-widest">
-                {otpHint}
-              </span>
-            </div>
-          )}
 
           <Input
             label="رمز التحقق (OTP) المكون من 6 أرقام"
