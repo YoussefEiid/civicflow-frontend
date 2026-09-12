@@ -17,6 +17,7 @@ export const CreateEmployeePage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [roleId, setRoleId] = useState(roles[0]?.id || 'role-3');
+  const [password, setPassword] = useState('');
   const [department, setDepartment] = useState('إدارة المتابعة والتنسيق');
   const [status, setStatus] = useState<'نشط' | 'غير نشط'>('نشط');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,17 +34,18 @@ export const CreateEmployeePage: React.FC = () => {
       const selectedRole = roles.find((r) => r.id === roleId);
       const created = await handleCreateEmployee({
         name,
-        email,
+        email: email.trim().toLowerCase(),
         phone,
         roleId,
         role: selectedRole?.name || 'موظف متابعة',
         department,
-        status
-      });
+        status,
+        ...(password.trim() ? { password: password.trim() } : { password: 'CivicFlow@2026!' })
+      } as any);
 
-      success('تم إضافة الموظف بنجاح', `تم إنشاء حساب ${created.name}`);
+      success('تم إضافة الموظف بنجاح', `تم إنشاء وتفعيل حساب ${created.name}`);
       navigate(`/employees/${created.id}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -93,7 +95,7 @@ export const CreateEmployeePage: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="youssef@civicflow.gov.sa"
+                placeholder="name@example.com"
                 required
               />
 
@@ -101,7 +103,7 @@ export const CreateEmployeePage: React.FC = () => {
                 label="رقم الهاتف الجوال"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="05XXXXXXXX"
+                placeholder="07XXXXXXXX"
                 required
               />
 
@@ -123,9 +125,19 @@ export const CreateEmployeePage: React.FC = () => {
                 value={status}
                 onChange={(e) => setStatus(e.target.value as 'نشط' | 'غير نشط')}
               >
-                <option value="نشط">نشط</option>
+                <option value="نشط">نشط (مفعل ومصرح له بالدخول)</option>
                 <option value="غير نشط">غير نشط (معطل)</option>
               </Select>
+
+              <div className="sm:col-span-2">
+                <Input
+                  label="كلمة المرور المبدئية (اختياري - افتراضياً: CivicFlow@2026!)"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="CivicFlow@2026!"
+                />
+              </div>
 
               <div className="sm:col-span-2">
                 <Input

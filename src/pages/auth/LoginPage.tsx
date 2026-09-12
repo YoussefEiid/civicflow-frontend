@@ -11,7 +11,7 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const { success, error: toastError } = useToast();
 
-  const [email, setEmail] = useState('admin@civicflow.gov');
+  const [email, setEmail] = useState('alzmat66@gmail.com');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,7 +39,7 @@ export const LoginPage: React.FC = () => {
     <div>
       <div className="mb-6 text-center">
         <h2 className="text-xl font-bold text-slate-900">تسجيل الدخول للنظام</h2>
-        <p className="text-xs text-slate-500 mt-1">أدخل بيانات الاعتماد للوصول إلى لوحة الإدارة</p>
+        <p className="text-xs text-slate-500 mt-1">أدخل بيانات الاعتماد المعتمدة للوصول إلى لوحة الإدارة</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -48,7 +48,7 @@ export const LoginPage: React.FC = () => {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="admin@civicflow.gov"
+          placeholder="name@example.com"
           required
           icon={<Mail className="w-4 h-4" />}
         />
@@ -77,60 +77,7 @@ export const LoginPage: React.FC = () => {
         </div>
       </form>
 
-      {/* Demo Accounts Quick Selection */}
-      <div className="mt-6 pt-5 border-t border-slate-100">
-        <p className="text-xs font-semibold text-slate-500 mb-2.5 text-center">
-          حسابات تجريبية سريعة (اضغط للتعبئة التلقائية):
-        </p>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('admin@civicflow.gov');
-              setPassword('CivicFlow@2026!');
-            }}
-            className="p-2 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50/50 text-right transition-colors"
-          >
-            <div className="font-bold text-slate-800">مدير النظام</div>
-            <div className="text-[10px] text-slate-400 truncate">admin@civicflow.gov</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('m.hassan@civicflow.gov');
-              setPassword('CivicFlow@2026!');
-            }}
-            className="p-2 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50/50 text-right transition-colors"
-          >
-            <div className="font-bold text-slate-800">مشرف النظام</div>
-            <div className="text-[10px] text-slate-400 truncate">m.hassan@civicflow.gov</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('sara.m@civicflow.gov');
-              setPassword('CivicFlow@2026!');
-            }}
-            className="p-2 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50/50 text-right transition-colors"
-          >
-            <div className="font-bold text-slate-800">موظف متابعة</div>
-            <div className="text-[10px] text-slate-400 truncate">sara.m@civicflow.gov</div>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail('khaled.i@civicflow.gov');
-              setPassword('CivicFlow@2026!');
-            }}
-            className="p-2 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50/50 text-right transition-colors"
-          >
-            <div className="font-bold text-slate-800">موظف استقبال</div>
-            <div className="text-[10px] text-slate-400 truncate">khaled.i@civicflow.gov</div>
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+      <div className="mt-8 pt-4 border-t border-slate-100 text-center">
         <p className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
           <Shield className="w-3.5 h-3.5 text-blue-600" />
           منظومة آمنة ومخصصة للموظفين والمشرفين المصرح لهم فقط

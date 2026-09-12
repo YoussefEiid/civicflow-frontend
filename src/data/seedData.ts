@@ -185,52 +185,52 @@ export const initialCustomers: Customer[] = [
 export const initialEmployees: Employee[] = [
   {
     id: 'emp-1',
-    name: 'أحمد علي',
-    email: 'ahmed.ali@civicflow.gov',
-    phone: '0500000001',
+    name: 'أحمد (مدير النظام)',
+    email: 'alzmat66@gmail.com',
+    phone: '07700000001',
     roleId: 'role-1',
     role: 'مدير النظام',
     department: 'الإدارة العامة والمتابعة',
     assignedRequestsCount: 24,
     status: 'نشط',
-    lastLogin: '2026-09-03 19:45',
+    lastLogin: 'الآن',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
   },
   {
     id: 'emp-2',
-    name: 'محمد حسن',
-    email: 'm.hassan@civicflow.gov',
-    phone: '0500000002',
-    roleId: 'role-2',
-    role: 'مشرف',
-    department: 'قسم الاتصال والتنسيق الحكومي',
-    assignedRequestsCount: 38,
+    name: 'مدير النظام المساعد',
+    email: 'alzmat99@gmail.com',
+    phone: '07700000002',
+    roleId: 'role-1',
+    role: 'مدير النظام',
+    department: 'الإدارة العامة والمتابعة',
+    assignedRequestsCount: 18,
     status: 'نشط',
-    lastLogin: '2026-09-03 18:20'
+    lastLogin: 'الآن'
   },
   {
     id: 'emp-3',
-    name: 'سارة محمود',
-    email: 'sara.m@civicflow.gov',
-    phone: '0500000003',
-    roleId: 'role-3',
-    role: 'موظف متابعة',
-    department: 'إدارة متابعة المعاملات والسجلات',
-    assignedRequestsCount: 52,
+    name: 'مشرف النظام',
+    email: 'baszmat3@gmail.com',
+    phone: '07700000003',
+    roleId: 'role-2',
+    role: 'مشرف',
+    department: 'قسم الاتصال والتنسيق الحكومي',
+    assignedRequestsCount: 32,
     status: 'نشط',
-    lastLogin: '2026-09-03 16:15'
+    lastLogin: 'الآن'
   },
   {
     id: 'emp-4',
-    name: 'خالد إبراهيم',
-    email: 'khaled.i@civicflow.gov',
-    phone: '0500000004',
-    roleId: 'role-4',
-    role: 'موظف استقبال',
-    department: 'مركز خدمة المراجعين والصادر والوارد',
-    assignedRequestsCount: 28,
+    name: 'مشرف المتابعة',
+    email: 'mbas89077@gmail.com',
+    phone: '07700000004',
+    roleId: 'role-2',
+    role: 'مشرف',
+    department: 'إدارة متابعة المعاملات والسجلات',
+    assignedRequestsCount: 45,
     status: 'نشط',
-    lastLogin: '2026-09-03 17:50'
+    lastLogin: 'الآن'
   }
 ];
 

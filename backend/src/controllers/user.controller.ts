@@ -132,9 +132,28 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
       throw new AppError('البريد الإلكتروني مسجل مسبقاً لموظف آخر', 409, 'DUPLICATE_EMAIL');
     }
 
-    const role = await prisma.role.findUnique({ where: { id: data.roleId } });
+    let role = await prisma.role.findUnique({ where: { id: data.roleId } });
     if (!role) {
-      throw new AppError('الدور الإداري المحدد غير موجود', 404, 'ROLE_NOT_FOUND');
+      role = await prisma.role.findFirst({
+        where: {
+          OR: [
+            { name: data.roleId },
+            ...(data.roleId === 'role-1' ? [{ name: 'مدير النظام' }] : []),
+            ...(data.roleId === 'role-2' ? [{ name: 'مشرف' }] : []),
+            ...(data.roleId === 'role-3' ? [{ name: 'موظف متابعة' }] : []),
+            ...(data.roleId === 'role-4' ? [{ name: 'موظف استقبال' }] : [])
+          ]
+        }
+      });
+    }
+
+    if (!role) {
+      // Fallback to first available role (usually admin or supervisor)
+      role = await prisma.role.findFirst();
+    }
+
+    if (!role) {
+      throw new AppError('لم يتم العثور على أي دور إداري في النظام', 404, 'ROLE_NOT_FOUND');
     }
 
     const statusVal =
@@ -142,12 +161,12 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
         ? UserStatus.INACTIVE
         : UserStatus.ACTIVE;
 
-    const passwordHash = await hashPassword(data.password || 'demo123456');
+    const passwordHash = await hashPassword(data.password || 'CivicFlow@2026!');
 
     const newUser = await prisma.user.create({
       data: {
         name: data.name,
-        email: data.email,
+        email: data.email.toLowerCase().trim(),
         phone: data.phone || null,
         roleId: role.id,
         department: data.department || 'إدارة المتابعة',

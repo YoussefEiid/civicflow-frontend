@@ -186,9 +186,9 @@ export async function seedDatabase() {
 
   const adminUser = await prisma.user.create({
     data: {
-      name: 'مدير المنظومة',
-      email: 'admin@civicflow.gov',
-      phone: '0500000000',
+      name: 'أحمد (مدير النظام)',
+      email: 'alzmat66@gmail.com',
+      phone: '07700000001',
       passwordHash: adminPasswordHash,
       roleId: adminRole.id,
       department: 'الإدارة العامة والمتابعة',
@@ -201,9 +201,22 @@ export async function seedDatabase() {
 
   const supervisorUser = await prisma.user.create({
     data: {
-      name: 'محمد حسن',
-      email: 'm.hassan@civicflow.gov',
-      phone: '0500000002',
+      name: 'مدير النظام المساعد',
+      email: 'alzmat99@gmail.com',
+      phone: '07700000002',
+      passwordHash: defaultPasswordHash,
+      roleId: adminRole.id,
+      department: 'الإدارة العامة والمتابعة',
+      status: UserStatus.ACTIVE,
+      lastLogin: new Date()
+    }
+  });
+
+  const followUpUser = await prisma.user.create({
+    data: {
+      name: 'مشرف النظام',
+      email: 'baszmat3@gmail.com',
+      phone: '07700000003',
       passwordHash: defaultPasswordHash,
       roleId: supervisorRole.id,
       department: 'قسم الاتصال والتنسيق الحكومي',
@@ -212,32 +225,19 @@ export async function seedDatabase() {
     }
   });
 
-  const followUpUser = await prisma.user.create({
+  const receptionistUser = await prisma.user.create({
     data: {
-      name: 'سارة محمود',
-      email: 'sara.m@civicflow.gov',
-      phone: '0500000003',
+      name: 'مشرف المتابعة',
+      email: 'mbas89077@gmail.com',
+      phone: '07700000004',
       passwordHash: defaultPasswordHash,
-      roleId: followUpRole.id,
+      roleId: supervisorRole.id,
       department: 'إدارة متابعة المعاملات والسجلات',
       status: UserStatus.ACTIVE,
       lastLogin: new Date()
     }
   });
-
-  const receptionistUser = await prisma.user.create({
-    data: {
-      name: 'خالد إبراهيم',
-      email: 'khaled.i@civicflow.gov',
-      phone: '0500000004',
-      passwordHash: defaultPasswordHash,
-      roleId: receptionistRole.id,
-      department: 'مركز خدمة المراجعين والصادر والوارد',
-      status: UserStatus.ACTIVE,
-      lastLogin: new Date()
-    }
-  });
-  console.log('✅ Seeded 4 standard users with hashed passwords.');
+  console.log('✅ Seeded real verified accounts requested by user (alzmat66, alzmat99, baszmat3, mbas89077).');
 
   // 5. Seed Cities (محافظات العراق الـ 19 من الشمال إلى الجنوب)
   const citiesData = [

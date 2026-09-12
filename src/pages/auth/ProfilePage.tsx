@@ -24,20 +24,37 @@ export const ProfilePage: React.FC = () => {
   // Password state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile({ name, email, phone, department });
-    success('تم تحديث الملف الشخصي', 'تم حفظ التعديلات بنجاح');
-    setIsEditModalOpen(false);
+    try {
+      await updateProfile({ name, email, phone, department });
+      success('تم تحديث الملف الشخصي', 'تم حفظ التعديلات بنجاح');
+      setIsEditModalOpen(false);
+    } catch (err: any) {
+      console.error(err);
+    }
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    success('تم تغيير كلمة المرور بنجاح', 'استخدم كلمة المرور الجديدة في المرات القادمة');
-    setIsPasswordModalOpen(false);
-    setCurrentPassword('');
-    setNewPassword('');
+    if (!currentPassword || !newPassword) {
+      return;
+    }
+    setIsChangingPassword(true);
+    try {
+      const { authService } = await import('../../services/authService');
+      await authService.changePassword(currentPassword, newPassword);
+      success('تم تغيير كلمة المرور بنجاح', 'تم تحديث كلمة المرور في قاعدة البيانات. يرجى استخدامها للدخول القادم.');
+      setIsPasswordModalOpen(false);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err: any) {
+      console.error('Change password error:', err);
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
@@ -181,7 +198,7 @@ export const ProfilePage: React.FC = () => {
             <Button type="button" variant="outline" onClick={() => setIsPasswordModalOpen(false)}>
               إلغاء
             </Button>
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" isLoading={isChangingPassword}>
               تحديث كلمة المرور
             </Button>
           </div>
