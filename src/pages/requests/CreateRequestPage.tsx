@@ -202,6 +202,12 @@ export const CreateRequestPage: React.FC = () => {
           return;
         }
 
+        if (!custOccupation || !custBirthYear.trim() || !custCityId || !custAddress.trim()) {
+          warning('بيانات المراجع ناقصة', 'يرجى إدخال جميع الحقول الإلزامية للمراجع (المهنة، سنة الميلاد، المحافظة، عنوان السكن)');
+          setIsLoading(false);
+          return;
+        }
+
         const newCust = await handleCreateCustomer({
           name: custName.trim(),
           phone: custPhone.trim(),
@@ -418,11 +424,12 @@ export const CreateRequestPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    العمل / المهنة
+                    العمل / المهنة <span className="text-rose-500">*</span>
                   </label>
                   <Select
                     value={custOccupation}
                     onChange={(e) => setCustOccupation(e.target.value)}
+                    required
                   >
                     <option value="موظف حكومي">موظف حكومي</option>
                     <option value="كاسب">كاسب</option>
@@ -436,6 +443,7 @@ export const CreateRequestPage: React.FC = () => {
                 <Input
                   label="المواليد (سنة الميلاد)"
                   type="text"
+                  required
                   value={custBirthYear}
                   onChange={(e) => setCustBirthYear(e.target.value)}
                   placeholder="مثال: 1995"
@@ -443,11 +451,12 @@ export const CreateRequestPage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                    المحافظة
+                    المحافظة <span className="text-rose-500">*</span>
                   </label>
                   <Select
                     value={custCityId}
                     onChange={(e) => setCustCityId(e.target.value)}
+                    required
                   >
                     <option value="">اختر المحافظة...</option>
                     {IRAQI_GOVERNORATES.map((gov, idx) => {
@@ -463,6 +472,7 @@ export const CreateRequestPage: React.FC = () => {
 
                 <Input
                   label="عنوان السكن / أقرب نقطة دالة"
+                  required
                   value={custAddress}
                   onChange={(e) => setCustAddress(e.target.value)}
                   placeholder="المحافظة، الحي، أقرب نقطة دالة..."

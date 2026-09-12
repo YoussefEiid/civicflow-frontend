@@ -35,8 +35,8 @@ export const CreateCustomerPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !phone.trim()) {
-      warning('حقول مطلوبة', 'يرجى إدخال اسم المراجع ورقم هاتف واتساب');
+    if (!name.trim() || !phone.trim() || !occupation || !birthYear.trim() || !cityId || !address.trim()) {
+      warning('حقول مطلوبة', 'يرجى إدخال جميع الحقول الإلزامية (الاسم، الهاتف، العمل، سنة الميلاد، المحافظة، عنوان السكن)');
       return;
     }
 
@@ -123,11 +123,12 @@ export const CreateCustomerPage: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  العمل / المهنة
+                  العمل / المهنة <span className="text-rose-500">*</span>
                 </label>
                 <Select
                   value={occupation}
                   onChange={(e) => setOccupation(e.target.value)}
+                  required
                 >
                   <option value="موظف حكومي">موظف حكومي</option>
                   <option value="كاسب">كاسب</option>
@@ -141,6 +142,7 @@ export const CreateCustomerPage: React.FC = () => {
               <Input
                 label="المواليد (سنة الميلاد)"
                 type="text"
+                required
                 value={birthYear}
                 onChange={(e) => setBirthYear(e.target.value)}
                 placeholder="مثال: 1995"
@@ -158,11 +160,12 @@ export const CreateCustomerPage: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  المحافظة
+                  المحافظة <span className="text-rose-500">*</span>
                 </label>
                 <Select
                   value={cityId}
                   onChange={(e) => setCityId(e.target.value)}
+                  required
                 >
                   <option value="">اختر المحافظة...</option>
                   {IRAQI_GOVERNORATES.map((gov, idx) => {
@@ -179,6 +182,7 @@ export const CreateCustomerPage: React.FC = () => {
               <div className="sm:col-span-2">
                 <Input
                   label="عنوان السكن / أقرب نقطة دالة"
+                  required
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="المحافظة - الحي - أقرب نقطة دالة"

@@ -6,7 +6,15 @@ const prisma = new PrismaClient();
 export async function seedDatabase() {
   console.log('🌱 Starting CivicFlow database seeding with product upgrade...');
 
-  // 1. Clean existing records in reverse dependency order
+  // 1. Check if database already contains real data to prevent wiping
+  const existingReqsCount = await prisma.request.count();
+  const existingUsersCount = await prisma.user.count();
+  if (existingReqsCount > 0 || existingUsersCount > 0) {
+    console.log('✅ Real database records already exist. Preserving user data and skipping destructive purge.');
+    return;
+  }
+
+  // 1. Clean existing records only on initial blank setup
   await prisma.auditLog.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.finalResponse.deleteMany();

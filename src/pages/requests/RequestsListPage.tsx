@@ -100,9 +100,25 @@ export const RequestsListPage: React.FC = () => {
     return Boolean(
       r.status === 'استلام الطلب' ||
       r.title?.includes('البوابة') ||
+      r.title?.includes('بوابة') ||
       r.details?.includes('البوابة') ||
-      r.timeline?.some((h: any) => h.employeeName?.includes('بوابة') || h.note?.includes('البوابة') || h.employeeName?.includes('Portal')) ||
-      (r as any).statusHistory?.some((h: any) => h.employeeName?.includes('بوابة') || h.note?.includes('البوابة') || h.employeeName?.includes('Portal'))
+      r.details?.includes('بوابة') ||
+      r.timeline?.some((h: any) =>
+        h.employeeName?.includes('بوابة') ||
+        h.employeeName?.includes('Portal') ||
+        h.actorName?.includes('بوابة') ||
+        h.actorName?.includes('Portal') ||
+        h.note?.includes('البوابة') ||
+        h.note?.includes('بوابة')
+      ) ||
+      (r as any).statusHistory?.some((h: any) =>
+        h.employeeName?.includes('بوابة') ||
+        h.employeeName?.includes('Portal') ||
+        h.actorName?.includes('بوابة') ||
+        h.actorName?.includes('Portal') ||
+        h.note?.includes('البوابة') ||
+        h.note?.includes('بوابة')
+      )
     );
   };
 

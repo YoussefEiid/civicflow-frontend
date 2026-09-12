@@ -118,8 +118,8 @@ export const PublicSubmitRequestPage: React.FC = () => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!name.trim() || !phone.trim()) {
-      setErrorMessage('يرجى إدخال اسم المراجع ورقم هاتف واتساب');
+    if (!name.trim() || !phone.trim() || !occupation || !birthYear.trim() || !address.trim() || !ministryId) {
+      setErrorMessage('يرجى ملء جميع الحقول الإلزامية المطلوبة (*)');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -131,8 +131,9 @@ export const PublicSubmitRequestPage: React.FC = () => {
       formData.append('phone', phone.trim());
       if (altPhone.trim()) formData.append('altPhone', altPhone.trim());
       if (nationalId.trim()) formData.append('nationalId', nationalId.trim());
-      if (occupation) formData.append('occupation', occupation);
-      if (birthYear.trim()) formData.append('birthYear', birthYear.trim());
+      formData.append('occupation', occupation);
+      formData.append('birthYear', birthYear.trim());
+      formData.append('address', address.trim());
 
       // Match city by selected governorate name or ID
       const matchedCity = cities.find(
@@ -348,13 +349,15 @@ export const PublicSubmitRequestPage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    العمل / المهنة
+                    العمل / المهنة <span className="text-rose-500">*</span>
                   </label>
                   <select
+                    required
                     value={occupation}
                     onChange={(e) => setOccupation(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                   >
+                    <option value="">اختر المهنة...</option>
                     <option value="موظف حكومي">موظف حكومي</option>
                     <option value="كاسب">كاسب</option>
                     <option value="طالب">طالب</option>
@@ -366,10 +369,11 @@ export const PublicSubmitRequestPage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    المواليد (سنة الميلاد)
+                    المواليد (سنة الميلاد) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
+                    required
                     value={birthYear}
                     onChange={(e) => setBirthYear(e.target.value)}
                     placeholder="مثال: 1995"
@@ -379,9 +383,10 @@ export const PublicSubmitRequestPage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    المحافظة <span className="text-slate-400 font-normal">(قائمة محافظات العراق الـ 19)</span>
+                    المحافظة <span className="text-rose-500">*</span> <span className="text-slate-400 font-normal">(قائمة محافظات العراق الـ 19)</span>
                   </label>
                   <select
+                    required
                     value={selectedGovernorate}
                     onChange={(e) => setSelectedGovernorate(e.target.value)}
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
@@ -396,10 +401,11 @@ export const PublicSubmitRequestPage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    عنوان السكن / أقرب نقطة دالة
+                    عنوان السكن / أقرب نقطة دالة <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
+                    required
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="المحافظة، الحي، أقرب نقطة دالة..."
