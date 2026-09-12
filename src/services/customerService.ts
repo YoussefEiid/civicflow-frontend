@@ -16,10 +16,12 @@ export const customerService = {
       params = { ...filters };
     }
 
-    const data = await apiClient.get<{ customers: Customer[]; total: number }>('/customers', {
+    const data = await apiClient.get<any>('/customers', {
       params
     });
-    return data.customers;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.customers)) return data.customers;
+    return [];
   },
 
   getCustomerById: async (id: string): Promise<Customer> => {

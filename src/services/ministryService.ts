@@ -3,9 +3,12 @@ import { Ministry } from '../types';
 
 export const ministryService = {
   getMinistries: async (search?: string, status?: string): Promise<Ministry[]> => {
-    return apiClient.get<Ministry[]>('/ministries', {
+    const data = await apiClient.get<any>('/ministries', {
       params: { search, status }
     });
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.ministries)) return data.ministries;
+    return [];
   },
 
   getMinistryById: async (id: string): Promise<Ministry> => {

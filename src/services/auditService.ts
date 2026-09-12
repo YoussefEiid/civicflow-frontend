@@ -20,10 +20,12 @@ export const auditService = {
     endDate?: string;
     search?: string;
   }): Promise<AuditLog[]> => {
-    const data = await apiClient.get<{ auditLogs: AuditLog[]; total: number }>('/audit-logs', {
+    const data = await apiClient.get<any>('/audit-logs', {
       params: filters
     });
-    return data.auditLogs;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.auditLogs)) return data.auditLogs;
+    return [];
   },
 
   getAuditLogById: async (id: string): Promise<AuditLogDetail> => {

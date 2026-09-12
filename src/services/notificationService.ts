@@ -3,8 +3,10 @@ import { NotificationItem } from '../types';
 
 export const notificationService = {
   getNotifications: async (): Promise<NotificationItem[]> => {
-    const data = await apiClient.get<{ notifications: NotificationItem[]; unreadCount: number }>('/notifications');
-    return data.notifications;
+    const data = await apiClient.get<any>('/notifications');
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.notifications)) return data.notifications;
+    return [];
   },
 
   markAsRead: async (id: string): Promise<void> => {

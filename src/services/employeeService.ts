@@ -3,7 +3,11 @@ import { Employee } from '../types';
 
 export const employeeService = {
   getEmployees: async (): Promise<Employee[]> => {
-    return apiClient.get<Employee[]>('/users');
+    const data = await apiClient.get<any>('/users');
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.users)) return data.users;
+    if (data && Array.isArray(data.employees)) return data.employees;
+    return [];
   },
 
   getEmployeeById: async (id: string): Promise<Employee> => {

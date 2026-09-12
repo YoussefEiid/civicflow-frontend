@@ -3,7 +3,10 @@ import { Role } from '../types';
 
 export const roleService = {
   getRoles: async (): Promise<Role[]> => {
-    return apiClient.get<Role[]>('/roles');
+    const data = await apiClient.get<any>('/roles');
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.roles)) return data.roles;
+    return [];
   },
 
   getRoleById: async (id: string): Promise<Role> => {

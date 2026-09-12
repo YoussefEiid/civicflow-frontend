@@ -16,10 +16,12 @@ export const requestService = {
     page?: number;
     limit?: number;
   }): Promise<RequestItem[]> => {
-    const data = await apiClient.get<{ requests: RequestItem[]; total: number }>('/requests', {
+    const data = await apiClient.get<any>('/requests', {
       params: filters
     });
-    return data.requests;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.requests)) return data.requests;
+    return [];
   },
 
   getRequestById: async (id: string): Promise<RequestItem> => {

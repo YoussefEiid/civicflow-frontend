@@ -88,24 +88,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       initStorage();
       const [reqs, custs, mins, emps, rols, notifs, logs, setts] = await Promise.all([
-        getRequests(),
-        getCustomers(),
-        getMinistries(),
-        getEmployees(),
-        getRoles(),
-        getNotifications(),
-        getAuditLogs(),
-        getSystemSettings()
+        getRequests().catch(() => []),
+        getCustomers().catch(() => []),
+        getMinistries().catch(() => []),
+        getEmployees().catch(() => []),
+        getRoles().catch(() => []),
+        getNotifications().catch(() => []),
+        getAuditLogs().catch(() => []),
+        getSystemSettings().catch(() => null)
       ]);
 
-      setRequests(reqs);
-      setCustomers(custs);
-      setMinistries(mins);
-      setEmployees(emps);
-      setRoles(rols);
-      setNotifications(notifs);
-      setAuditLogs(logs);
-      setSettings(setts);
+      setRequests(Array.isArray(reqs) ? reqs : (reqs as any)?.requests || []);
+      setCustomers(Array.isArray(custs) ? custs : (custs as any)?.customers || []);
+      setMinistries(Array.isArray(mins) ? mins : (mins as any)?.ministries || []);
+      setEmployees(Array.isArray(emps) ? emps : (emps as any)?.users || (emps as any)?.employees || []);
+      setRoles(Array.isArray(rols) ? rols : (rols as any)?.roles || []);
+      setNotifications(Array.isArray(notifs) ? notifs : (notifs as any)?.notifications || []);
+      setAuditLogs(Array.isArray(logs) ? logs : (logs as any)?.auditLogs || []);
+      setSettings(setts && typeof setts === 'object' ? setts : null);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -132,17 +132,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Derived metrics
-  const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
-  const overdueRequestsCount = requests.filter((r) => r.deadlineStatus === 'متأخر').length;
-  const inProgressRequestsCount = requests.filter(
-    (r) => r.status === 'قيد المعالجة' || r.status === 'قيد المراجعة' || r.status === 'تم إرسال الطلب للجهة'
-  ).length;
-  const completedRequestsCount = requests.filter(
-    (r) => r.status === 'تم التسليم' || r.status === 'مغلق' || r.status === 'الإجابة جاهزة'
-  ).length;
-  const totalRequestsCount = requests.length;
+  const unreadNotificationsCount = Array.isArray(notifications) ? notifications.filter((n) => n && !n.read).length : 0;
+  const overdueRequestsCount = Array.isArray(requests) ? requests.filter((r) => r && r.deadlineStatus === 'متأخر').length : 0;
+  const inProgressRequestsCount = Array.isArray(requests)
+    ? requests.filter(
+        (r) => r && (r.status === 'قيد المعالجة' || r.status === 'قيد المراجعة' || r.status === 'تم إرسال الطلب للجهة')
+      ).length
+    : 0;
+  const completedRequestsCount = Array.isArray(requests)
+    ? requests.filter((r) => r && (r.status === 'تم التسليم' || r.status === 'مغلق' || r.status === 'الإجابة جاهزة')).length
+    : 0;
+  const totalRequestsCount = Array.isArray(requests) ? requests.length : 0;
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayRequestsCount = requests.filter((r) => r.receiveDate === todayStr).length || 2;
+  const todayRequestsCount = Array.isArray(requests) ? requests.filter((r) => r && r.receiveDate === todayStr).length : 0;
 
   // Wrapped actions with auto-refresh
   const handleCreateRequest: typeof createRequest = async (data) => {
