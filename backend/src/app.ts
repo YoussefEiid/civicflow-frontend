@@ -11,6 +11,9 @@ import { apiRouter } from './routes/index.js';
 
 export const app = express();
 
+// Trust proxy for Render / Cloudflare reverse proxies so rate limiter gets real client IP
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet());
 

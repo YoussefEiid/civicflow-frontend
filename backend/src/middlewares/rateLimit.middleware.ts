@@ -1,16 +1,18 @@
 import rateLimit from 'express-rate-limit';
 
-// Strict limiter for login attempts (10 requests per 15 minutes)
+// Generous auth limiter (100 requests per 15 minutes)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: {
     success: false,
+    message: 'تم إرسال عدد كبير من الطلبات في وقت قصير. يرجى الانتظار بضع دقائق ثم المحاولة مجدداً.',
     error: {
       code: 'TOO_MANY_REQUESTS',
-      message: 'تم تجاوز الحد الأقصى لمحاولات تسجيل الدخول. يرجى المحاولة بعد 15 دقيقة.'
+      message: 'تم إرسال عدد كبير من الطلبات في وقت قصير. يرجى الانتظار بضع دقائق ثم المحاولة مجدداً.'
     }
   }
 });
