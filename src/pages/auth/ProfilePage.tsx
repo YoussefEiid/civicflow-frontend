@@ -14,6 +14,17 @@ export const ProfilePage: React.FC = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+
+  // Email verification state
+  const [isEmailVerified, setIsEmailVerified] = useState(
+    localStorage.getItem(`email_verified_${user?.email}`) === 'true'
+  );
+  const [otpInput, setOtpInput] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpHint, setOtpHint] = useState('');
+  const [verificationError, setVerificationError] = useState('');
 
   // Edit state
   const [name, setName] = useState(user?.name || '');
@@ -25,6 +36,48 @@ export const ProfilePage: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const handleStartEmailVerification = async () => {
+    if (!user?.email) return;
+    setIsSendingOtp(true);
+    setVerificationError('');
+    try {
+      const { authService } = await import('../../services/authService');
+      const res = await authService.sendVerificationOTP(user.email);
+      if (res?.otpHint) {
+        setOtpHint(res.otpHint);
+      }
+      success('تم إرسال رمز التحقق', `تم إرسال رمز التحقق المكون من 6 أرقام إلى بريدك (${user.email})`);
+      setIsVerifyModalOpen(true);
+    } catch (err: any) {
+      console.error(err);
+      setVerificationError(err.message || 'تعذر إرسال رمز التحقق');
+      setIsVerifyModalOpen(true);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleConfirmEmailVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpInput || !user?.email) return;
+
+    setIsVerifyingOtp(true);
+    setVerificationError('');
+    try {
+      const { authService } = await import('../../services/authService');
+      await authService.verifyEmailOTP(user.email, otpInput.trim());
+      setIsEmailVerified(true);
+      localStorage.setItem(`email_verified_${user.email}`, 'true');
+      success('تم تأكيد الحساب', 'تم التحقق من بريدك الإلكتروني وتأكيد الحساب بنجاح ✓');
+      setIsVerifyModalOpen(false);
+      setOtpInput('');
+    } catch (err: any) {
+      setVerificationError(err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +170,23 @@ export const ProfilePage: React.FC = () => {
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <span className="text-xs font-semibold text-slate-500 block mb-1">البريد الإلكتروني</span>
-              <p className="font-bold text-slate-800 font-mono">{user?.email}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-bold text-slate-800 font-mono truncate">{user?.email}</p>
+                {isEmailVerified ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 shrink-0">
+                    <CheckCircle2 className="w-3 h-3" />
+                    مؤكد ✓
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleStartEmailVerification}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline shrink-0"
+                  >
+                    تأكيد برمز OTP
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
@@ -204,6 +273,67 @@ export const ProfilePage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Verify Email OTP Modal */}
+      <Modal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+        title="تأكيد البريد الإلكتروني برمز تحقق"
+        maxWidth="sm"
+      >
+        <form onSubmit={handleConfirmEmailVerification} className="space-y-4" dir="rtl">
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900">
+            تم إرسال رمز تحقق مكون من 6 أرقام إلى:
+            <p className="font-bold font-mono text-blue-950 mt-1">{user?.email}</p>
+          </div>
+
+          {otpHint && (
+            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-center justify-between">
+              <span>رمز التحقق:</span>
+              <span className="font-mono font-black text-sm bg-white px-2 py-0.5 rounded border border-amber-300 tracking-widest">
+                {otpHint}
+              </span>
+            </div>
+          )}
+
+          {verificationError && (
+            <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs">
+              {verificationError}
+            </div>
+          )}
+
+          <Input
+            label="رمز التحقق (OTP)"
+            type="text"
+            value={otpInput}
+            onChange={(e) => setOtpInput(e.target.value)}
+            placeholder="123456"
+            maxLength={6}
+            required
+            autoFocus
+          />
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleStartEmailVerification}
+              disabled={isSendingOtp}
+              className="text-xs font-bold text-blue-600 hover:text-blue-800 underline"
+            >
+              {isSendingOtp ? 'جاري الإرسال...' : 'إعادة إرسال الرمز'}
+            </button>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsVerifyModalOpen(false)}>
+                إلغاء
+              </Button>
+              <Button type="submit" variant="primary" size="sm" isLoading={isVerifyingOtp}>
+                تأكيد البريد
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };
+

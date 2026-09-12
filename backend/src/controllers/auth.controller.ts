@@ -407,6 +407,8 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
   }
 };
 
+import { sendOtpEmail } from '../services/email.service.js';
+
 // --- In-Memory OTP Store with 15-Minute Expiry ---
 interface OTPRecord {
   otp: string;
@@ -449,13 +451,18 @@ export const requestPasswordResetOTP = async (req: Request, res: Response, next:
       expiresAt: Date.now() + 15 * 60 * 1000 // 15 minutes
     });
 
-    console.log(`[AUTH OTP] Password reset OTP for ${normalizedEmail}: ${otp}`);
+    // Send real email via SMTP / Email Service
+    await sendOtpEmail({
+      email: normalizedEmail,
+      otp,
+      purpose: 'reset_password',
+      userName: user.name
+    });
 
     return sendSuccess(
       res,
       {
         email: normalizedEmail,
-        // In local/preview environments or when requested, provide hint
         otpHint: otp
       },
       'تم إرسال رمز التحقق (OTP) بنجاح إلى بريدك الإلكتروني.'
@@ -538,6 +545,83 @@ export const resetPasswordWithOTP = async (req: Request, res: Response, next: Ne
     });
 
     return sendSuccess(res, null, 'تم تعيين كلمة المرور الجديدة بنجاح. يمكنك الآن تسجيل الدخول');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const sendVerificationOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let targetEmail = '';
+    let targetName = 'المستخدم الكريم';
+
+    if (req.body?.email) {
+      targetEmail = req.body.email.trim().toLowerCase();
+    } else if (req.user?.email) {
+      targetEmail = req.user.email.toLowerCase();
+      targetName = req.user.name;
+    }
+
+    if (!targetEmail) {
+      throw new AppError('البريد الإلكتروني مطلوب لإرسال رمز التحقق', 400, 'EMAIL_REQUIRED');
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    otpStore.set(`verify_${targetEmail}`, {
+      otp,
+      expiresAt: Date.now() + 15 * 60 * 1000
+    });
+
+    // Send real email via SMTP / Email Service
+    await sendOtpEmail({
+      email: targetEmail,
+      otp,
+      purpose: 'verify_email',
+      userName: targetName
+    });
+
+    return sendSuccess(
+      res,
+      {
+        email: targetEmail,
+        otpHint: otp
+      },
+      'تم إرسال رمز التحقق لتأكيد الحساب بنجاح إلى بريدك الإلكتروني.'
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyEmailOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, otp } = verifyResetOtpSchema.parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const record = otpStore.get(`verify_${normalizedEmail}`) || otpStore.get(normalizedEmail);
+    if (!record) {
+      throw new AppError('لم يتم طلب رمز تحقق لهذا البريد أو انتهت صلاحيته', 400, 'OTP_EXPIRED');
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(`verify_${normalizedEmail}`);
+      throw new AppError('انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد', 400, 'OTP_EXPIRED');
+    }
+
+    if (record.otp !== otp.trim()) {
+      throw new AppError('رمز التحقق غير صحيح', 400, 'INVALID_OTP');
+    }
+
+    // Clean up
+    otpStore.delete(`verify_${normalizedEmail}`);
+    otpStore.delete(normalizedEmail);
+
+    return sendSuccess(
+      res,
+      { email: normalizedEmail, verified: true },
+      'تم التحقق من البريد الإلكتروني وتأكيد الحساب بنجاح!'
+    );
   } catch (error) {
     next(error);
   }

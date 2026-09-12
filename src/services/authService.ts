@@ -63,5 +63,13 @@ export const authService = {
 
   resetPasswordWithOTP: async (email: string, otp: string, newPassword: string): Promise<void> => {
     return apiClient.post('/auth/reset-password-otp', { email, otp, newPassword });
+  },
+
+  sendVerificationOTP: async (email?: string): Promise<{ email: string; otpHint?: string }> => {
+    return apiClient.post('/auth/send-verification-otp', { email });
+  },
+
+  verifyEmailOTP: async (email: string, otp: string): Promise<{ verified: boolean }> => {
+    return apiClient.post('/auth/verify-email-otp', { email, otp });
   }
 };
