@@ -60,6 +60,122 @@ async function ensureIraqiGovernorates() {
   }
 }
 
+async function ensureRealAccounts() {
+  try {
+    const { hashPassword } = await import('./utils/password.js');
+    const { UserStatus } = await import('@prisma/client');
+
+    let adminRole = await prisma.role.findFirst({
+      where: { name: 'مدير النظام' }
+    });
+    if (!adminRole) {
+      adminRole = await prisma.role.create({
+        data: {
+          name: 'مدير النظام',
+          description: 'صلاحيات كاملة وشاملة'
+        }
+      });
+    }
+
+    let supervisorRole = await prisma.role.findFirst({
+      where: { name: 'مشرف' }
+    });
+    if (!supervisorRole) {
+      supervisorRole = await prisma.role.create({
+        data: {
+          name: 'مشرف',
+          description: 'صلاحيات إشرافية ومتابعة'
+        }
+      });
+    }
+
+    const defaultPasswordHash = await hashPassword('CivicFlow@2026!');
+
+    const accountsToEnsure = [
+      {
+        email: 'alzmat66@gmail.com',
+        name: 'أحمد (مدير النظام)',
+        phone: '07700000001',
+        roleId: adminRole.id,
+        department: 'الإدارة العامة والمتابعة'
+      },
+      {
+        email: 'alzmat99@gmail.com',
+        name: 'مدير النظام المساعد',
+        phone: '07700000002',
+        roleId: adminRole.id,
+        department: 'الإدارة العامة والمتابعة'
+      },
+      {
+        email: 'baszmat3@gmail.com',
+        name: 'مشرف النظام',
+        phone: '07700000003',
+        roleId: supervisorRole.id,
+        department: 'قسم الاتصال والتنسيق الحكومي'
+      },
+      {
+        email: 'mbas89077@gmail.com',
+        name: 'مشرف المتابعة',
+        phone: '07700000004',
+        roleId: supervisorRole.id,
+        department: 'إدارة متابعة المعاملات والسجلات'
+      }
+    ];
+
+    for (const acc of accountsToEnsure) {
+      const existing = await prisma.user.findFirst({
+        where: { email: { equals: acc.email, mode: 'insensitive' } }
+      });
+
+      if (!existing) {
+        await prisma.user.create({
+          data: {
+            email: acc.email.toLowerCase().trim(),
+            name: acc.name,
+            phone: acc.phone,
+            roleId: acc.roleId,
+            department: acc.department,
+            status: UserStatus.ACTIVE,
+            passwordHash: defaultPasswordHash
+          }
+        });
+        console.log(`✅ Automatically registered user account: ${acc.email}`);
+      } else {
+        await prisma.user.update({
+          where: { id: existing.id },
+          data: {
+            roleId: acc.roleId,
+            status: UserStatus.ACTIVE
+          }
+        });
+      }
+    }
+
+    // Purge old mock demo users if they have no linked requests
+    try {
+      const oldDemoEmails = [
+        'admin@civicflow.gov',
+        'm.hassan@civicflow.gov',
+        'sara.m@civicflow.gov',
+        'khaled.i@civicflow.gov',
+        'ahmed.ali@civicflow.gov'
+      ];
+      await prisma.user.deleteMany({
+        where: {
+          email: { in: oldDemoEmails },
+          assignedRequests: { none: {} }
+        }
+      });
+    } catch {
+      // ignore
+    }
+
+    console.log('✅ Real user accounts synchronized successfully in PostgreSQL database.');
+  } catch (err) {
+    console.warn('⚠️ Accounts sync notice:', err);
+  }
+}
+
 async function startServer() {
   try {
     // Verify database connection
@@ -78,7 +194,8 @@ async function startServer() {
       console.warn('⚠️ Seeding check notice:', seedErr);
     }
 
-    // Ensure all 19 Iraqi Governorates exist
+    // Ensure real accounts and Iraqi governorates exist
+    await ensureRealAccounts();
     await ensureIraqiGovernorates();
 
     // Start background SLA job
