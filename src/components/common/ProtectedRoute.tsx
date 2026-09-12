@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ShieldAlert, ArrowRight, LayoutDashboard } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -21,7 +21,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, isAdmin, hasPermission, canAccessModule } = usePermissions();
 
   if (!user) {
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   // Admin bypass
