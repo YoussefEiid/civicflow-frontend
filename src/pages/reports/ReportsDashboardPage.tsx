@@ -91,18 +91,14 @@ export const ReportsDashboardPage: React.FC = () => {
   const total = filtered.length;
   const completed = filtered.filter((r) => r.status === 'تم التسليم' || r.status === 'مغلق' || r.status === 'الإجابة جاهزة').length;
   const overdue = filtered.filter((r) => r.deadlineStatus === 'متأخر').length;
-  const avgSla = total > 0 ? (6.4).toFixed(1) : '0';
-
-  // Monthly breakdown
-  const monthlyData = [
-    { month: 'أبريل', count: 180 },
-    { month: 'مايو', count: 215 },
-    { month: 'يونيو', count: 240 },
-    { month: 'يوليو', count: 290 },
-    { month: 'أغسطس', count: 320 },
-    { month: 'سبتمبر', count: 380 }
-  ];
-  const maxMonthCount = Math.max(...monthlyData.map((m) => m.count));
+  const avgSla = useMemo(() => {
+    if (filtered.length === 0) return '0';
+    const sum = filtered.reduce((acc, r) => {
+      const min = ministries.find((m) => m.id === r.ministryId);
+      return acc + (min?.slaDays || 5);
+    }, 0);
+    return (sum / filtered.length).toFixed(1);
+  }, [filtered, ministries]);
 
   // Priorities breakdown
   const priorityCounts = {
@@ -233,7 +229,7 @@ export const ReportsDashboardPage: React.FC = () => {
           title="إجمالي المعاملات المشمولة"
           value={total}
           icon={<BarChart3 className="w-5 h-5 text-blue-600" />}
-          trend={{ value: '+18% مقارنة بالشهر السابق', isPositive: true }}
+          trend={total > 0 ? { value: `${Math.round((completed / (total || 1)) * 100)}% نسبة الإنجاز`, isPositive: true } : undefined}
           color="blue"
         />
         <StatCard

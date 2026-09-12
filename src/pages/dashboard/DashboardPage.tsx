@@ -41,6 +41,19 @@ export const DashboardPage: React.FC = () => {
   const recentRequests = [...requests].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
   const recentLogs = auditLogs.slice(0, 5);
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayRequestsCount = requests.filter(
+    (r) => r.receiveDate?.startsWith(todayStr) || r.createdAt?.startsWith(todayStr)
+  ).length;
+
+  const needsReviewCount = requests.filter(
+    (r) => r.status === 'مطلوب مستندات' || r.status === 'قيد المراجعة'
+  ).length;
+
+  const completionRate = requests.length > 0
+    ? `${Math.round((completedRequestsCount / requests.length) * 100)}%`
+    : '0%';
+
   // Status breakdown calculation
   const statusCounts: Record<string, number> = {
     'استلام الطلب': requests.filter((r) => r.status === 'استلام الطلب').length,
@@ -95,25 +108,23 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <StatCard
           title="إجمالي الطلبات"
-          value="1,248"
+          value={requests.length}
           subtitle="المسجلة بالنظام"
           icon={<FileText className="w-5 h-5" />}
           color="slate"
-          trend={{ value: '+12%', isPositive: true }}
           onClick={() => navigate('/requests')}
         />
         <StatCard
           title="طلبات اليوم"
-          value="19"
+          value={todayRequestsCount}
           subtitle="تم تسجيلها اليوم"
           icon={<Calendar className="w-5 h-5" />}
           color="blue"
-          trend={{ value: '+4', isPositive: true }}
           onClick={() => navigate('/requests')}
         />
         <StatCard
           title="قيد المعالجة"
-          value="142"
+          value={inProgressRequestsCount}
           subtitle="لدى الجهات المعنية"
           icon={<Clock className="w-5 h-5" />}
           color="indigo"
@@ -121,26 +132,26 @@ export const DashboardPage: React.FC = () => {
         />
         <StatCard
           title="طلبات متأخرة"
-          value="14"
+          value={overdueRequests.length}
           subtitle="تجاوزت SLA"
           icon={<Flame className="w-5 h-5" />}
           color="rose"
-          trend={{ value: 'تنبيه عاجل', isPositive: false }}
+          trend={overdueRequests.length > 0 ? { value: 'تنبيه عاجل', isPositive: false } : undefined}
           onClick={() => navigate('/requests?overdue=true')}
-          className="border-rose-200 ring-2 ring-rose-100 bg-rose-50/30"
+          className={overdueRequests.length > 0 ? "border-rose-200 ring-2 ring-rose-100 bg-rose-50/30" : ""}
         />
         <StatCard
           title="مكتملة"
-          value="986"
+          value={completedRequestsCount}
           subtitle="تم تسليمها بنجاح"
           icon={<CheckCircle2 className="w-5 h-5" />}
           color="emerald"
-          trend={{ value: '79%', isPositive: true }}
+          trend={{ value: completionRate, isPositive: true }}
           onClick={() => navigate('/requests?status=تم+التسليم')}
         />
         <StatCard
           title="تحتاج مراجعة"
-          value="38"
+          value={needsReviewCount}
           subtitle="مستندات أو استفسار"
           icon={<AlertTriangle className="w-5 h-5" />}
           color="amber"
@@ -264,6 +275,12 @@ export const DashboardPage: React.FC = () => {
           <CardContent className="space-y-4">
             {ministries.map((min) => {
               const reqsInMin = requests.filter((r) => r.ministryId === min.id);
+              const activeInMin = reqsInMin.filter(
+                (r) => r.status !== 'تم التسليم' && r.status !== 'مغلق'
+              ).length;
+              const completedInMin = reqsInMin.filter(
+                (r) => r.status === 'تم التسليم' || r.status === 'مغلق' || r.status === 'الإجابة جاهزة'
+              ).length;
               const overdueInMin = reqsInMin.filter((r) => r.deadlineStatus === 'متأخر').length;
 
               return (
@@ -289,10 +306,10 @@ export const DashboardPage: React.FC = () => {
 
                   <div className="flex items-center justify-between text-xs text-slate-500">
                     <span>
-                      إجمالي الطلبات النشطة: <strong className="text-slate-800">{min.activeRequestsCount + reqsInMin.length}</strong>
+                      إجمالي الطلبات النشطة: <strong className="text-slate-800">{activeInMin}</strong>
                     </span>
                     <span>
-                      مكتملة: <strong className="text-emerald-700">{min.completedRequestsCount}</strong>
+                      مكتملة: <strong className="text-emerald-700">{completedInMin}</strong>
                     </span>
                   </div>
                 </div>

@@ -133,7 +133,7 @@ export const EmployeesListPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span className="font-bold font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">
-                          {assignedCount || emp.assignedRequestsCount}
+                          {assignedCount}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center">

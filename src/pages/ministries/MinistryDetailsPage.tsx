@@ -103,21 +103,21 @@ export const MinistryDetailsPage: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard
           title="إجمالي الطلبات"
-          value={ministryRequests.length + ministry.completedRequestsCount}
+          value={ministryRequests.length}
           subtitle="كافة الطلبات المسندة"
           icon={<FileText className="w-5 h-5" />}
           color="slate"
         />
         <StatCard
           title="الطلبات النشطة"
-          value={activeCount + ministry.activeRequestsCount}
+          value={activeCount}
           subtitle="قيد المتابعة حالياً"
           icon={<Clock className="w-5 h-5" />}
           color="blue"
         />
         <StatCard
           title="المكتملة بنجاح"
-          value={completedCount + ministry.completedRequestsCount}
+          value={completedCount}
           subtitle="تم تسليمها للمراجعين"
           icon={<CheckCircle2 className="w-5 h-5" />}
           color="emerald"

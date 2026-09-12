@@ -87,6 +87,9 @@ export const MinistriesListPage: React.FC = () => {
                   const activeCount = reqsInMin.filter(
                     (r) => r.status !== 'تم التسليم' && r.status !== 'مغلق'
                   ).length;
+                  const completedCount = reqsInMin.filter(
+                    (r) => r.status === 'تم التسليم' || r.status === 'مغلق' || r.status === 'الإجابة جاهزة'
+                  ).length;
                   const overdueCount = reqsInMin.filter((r) => r.deadlineStatus === 'متأخر').length;
 
                   return (
@@ -116,12 +119,12 @@ export const MinistriesListPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span className="font-bold font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                          {activeCount + min.activeRequestsCount}
+                          {activeCount}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span className="font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {min.completedRequestsCount}
+                          {completedCount}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center">

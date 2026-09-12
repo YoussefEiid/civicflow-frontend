@@ -23,7 +23,7 @@ import {
 
 export const CustomersListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { customers } = useData();
+  const { customers, requests } = useData();
   const { canCreateCustomer, canUpdateCustomer } = usePermissions();
 
   const [search, setSearch] = useState('');
@@ -113,33 +113,38 @@ export const CustomersListPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {paginatedCustomers.map((cust) => (
-                  <tr
-                    key={cust.id}
-                    onClick={(e) => {
-                      if ((e.target as HTMLElement).closest('button')) return;
-                      navigate(`/customers/${cust.id}`);
-                    }}
-                    className="hover:bg-blue-50/30 transition group cursor-pointer"
-                  >
-                    <td className="py-3.5 px-4 font-bold text-slate-900 group-hover:text-blue-600">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
-                          {cust.name[0]}
+                {paginatedCustomers.map((cust) => {
+                  const actualCustRequests = requests.filter((r) => r.customerId === cust.id);
+                  const custReqCount = actualCustRequests.length || cust.requestsCount || 0;
+                  const latestReqDate = actualCustRequests[0]?.receiveDate || cust.lastRequestDate || '---';
+
+                  return (
+                    <tr
+                      key={cust.id}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).closest('button')) return;
+                        navigate(`/customers/${cust.id}`);
+                      }}
+                      className="hover:bg-blue-50/30 transition group cursor-pointer"
+                    >
+                      <td className="py-3.5 px-4 font-bold text-slate-900 group-hover:text-blue-600">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
+                            {cust.name[0]}
+                          </div>
+                          <span>{cust.name}</span>
                         </div>
-                        <span>{cust.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-700">{cust.phone}</td>
-                    <td className="py-3.5 px-4 font-mono text-slate-500">{cust.nationalId || '---'}</td>
-                    <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate">{cust.address || '---'}</td>
-                    <td className="py-3.5 px-4 text-center">
-                      <span className="font-bold font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                        {cust.requestsCount}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-500 font-mono">{cust.lastRequestDate}</td>
-                    <td className="py-3.5 px-4 text-slate-400 font-mono">{cust.createdAt}</td>
+                      </td>
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-700">{cust.phone}</td>
+                      <td className="py-3.5 px-4 font-mono text-slate-500">{cust.nationalId || '---'}</td>
+                      <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate">{cust.address || '---'}</td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="font-bold font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                          {custReqCount}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-500 font-mono">{latestReqDate}</td>
+                      <td className="py-3.5 px-4 text-slate-400 font-mono">{cust.createdAt}</td>
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button
@@ -161,7 +166,8 @@ export const CustomersListPage: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>
