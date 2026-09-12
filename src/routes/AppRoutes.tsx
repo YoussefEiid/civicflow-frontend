@@ -67,6 +67,7 @@ import { WhatsAppTemplatesPage } from '../pages/settings/WhatsAppTemplatesPage';
 import { PublicTrackPage } from '../pages/public/PublicTrackPage';
 import { PublicTrackResultPage } from '../pages/public/PublicTrackResultPage';
 import { PublicSubmitRequestPage } from '../pages/public/PublicSubmitRequestPage';
+import { NotFoundPage } from '../pages/public/NotFoundPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -77,6 +78,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="/track/:requestNumber" element={<PublicTrackResultPage />} />
         <Route path="/submit-request" element={<PublicSubmitRequestPage />} />
         <Route path="/public/submit-request" element={<PublicSubmitRequestPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
 
       {/* Auth Layout Routes */}
@@ -366,7 +368,6 @@ export const AppRoutes: React.FC = () => {
 
       {/* Root redirect */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };
