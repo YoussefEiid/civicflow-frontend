@@ -25,10 +25,10 @@ const sanitizeSender = (rawFrom?: string, fallbackUser?: string): string => {
 };
 
 const getTransporter = () => {
-  const host = (process.env.SMTP_HOST || process.env.EMAIL_HOST || '').trim();
-  const port = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587', 10);
-  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '').trim();
-  let pass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || '').trim();
+  const host = (env.SMTP_HOST || process.env.SMTP_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com').trim();
+  const port = Number(env.SMTP_PORT || process.env.SMTP_PORT || process.env.EMAIL_PORT || 587);
+  const user = (env.SMTP_USER || process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || 'baszmat3@gmail.com').trim();
+  let pass = (env.SMTP_PASS || process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || 'hquozwytjyfvmoni').trim();
 
   // Strip spaces from Google App Password (e.g. "hquo zwyt jyfv moni" -> "hquozwytjyfvmoni")
   if (pass) {
@@ -50,20 +50,18 @@ const getTransporter = () => {
       });
     }
 
-    if (host) {
-      return nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: {
-          user,
-          pass
-        },
-        tls: {
-          rejectUnauthorized: false
-        }
-      });
-    }
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        user,
+        pass
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
   }
 
   return null;
@@ -75,7 +73,7 @@ export const sendOtpEmail = async ({
   purpose,
   userName = 'المستخدم الكريم',
   expiresInMinutes = 10
-}: SendOtpOptions): Promise<{ success: boolean; mode: 'smtp' | 'dev' }> => {
+}: SendOtpOptions): Promise<{ success: boolean; messageId: string }> => {
   const isReset = purpose === 'reset_password';
   const title = isReset ? 'رمز استعادة وتعيين كلمة المرور' : 'رمز تأكيد البريد الإلكتروني';
   const actionText = isReset
@@ -128,32 +126,28 @@ export const sendOtpEmail = async ({
     </html>
   `;
 
-  const user = (process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '').trim();
+  const user = (env.SMTP_USER || process.env.SMTP_USER || process.env.EMAIL_USER || 'baszmat3@gmail.com').trim();
   const transporter = getTransporter();
 
-  if (transporter) {
-    try {
-      const sender = sanitizeSender(process.env.SMTP_FROM || process.env.EMAIL_FROM, user);
-      await transporter.sendMail({
-        from: sender,
-        to: email,
-        subject: `[CivicFlow] ${title}: ${otp}`,
-        text: `رمز التحقق الخاص بك هو: ${otp} (صالح لمدة ${expiresInMinutes} دقيقة)`,
-        html: htmlContent
-      });
-      console.log(`[EMAIL SERVICE] OTP successfully dispatched to ${email} via SMTP.`);
-      return { success: true, mode: 'smtp' };
-    } catch (err) {
-      console.error(`[EMAIL SERVICE ERROR] Failed to send email via SMTP:`, err);
-    }
+  if (!transporter) {
+    console.error('[EMAIL SERVICE ERROR] SMTP Transporter could not be initialized.');
+    throw new Error('خدمة إرسال البريد الإلكتروني غير مهيأة بالشكل الصحيح في الخادم');
   }
 
-  // Fallback to console logging when SMTP is not yet set up
-  console.log('================================================================');
-  console.log(`[CIVICFLOW OTP DISPATCH] To: ${email}`);
-  console.log(`[CIVICFLOW OTP CODE]     ==> ${otp} <==`);
-  console.log(`[CIVICFLOW PURPOSE]      ${purpose}`);
-  console.log('================================================================');
-
-  return { success: true, mode: 'dev' };
+  try {
+    const sender = sanitizeSender(env.SMTP_FROM || process.env.SMTP_FROM, user);
+    console.log(`📡 [EMAIL DISPATCH] Dispatching OTP email to: ${email}`);
+    const info = await transporter.sendMail({
+      from: sender,
+      to: email,
+      subject: `[CivicFlow] ${title}: ${otp}`,
+      text: `رمز التحقق الخاص بك في منظومة CivicFlow هو: ${otp} (صالح لمدة ${expiresInMinutes} دقيقة)`,
+      html: htmlContent
+    });
+    console.log(`✅ [EMAIL SUCCESS] Real OTP email dispatched successfully. MessageID: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err: any) {
+    console.error(`❌ [EMAIL SERVICE ERROR] Failed to send email to ${email}:`, err?.message || err);
+    throw new Error('تعذر إرسال رسالة البريد الإلكتروني المحتوية على رمز التحقق، يرجى المحاولة لاحقاً');
+  }
 };

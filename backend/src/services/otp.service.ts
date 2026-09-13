@@ -127,18 +127,13 @@ export const issueOtp = async ({
     }
   });
 
-  const mode = await sendOtpEmail({
+  await sendOtpEmail({
     email: normalizedEmail,
     otp,
     purpose: purposeToEmail(purpose),
     userName: userName || 'المستخدم الكريم',
     expiresInMinutes: env.OTP_TTL_MINUTES
   });
-
-  // Full delivery status: in dev mode SMTP may be unconfigured
-  if (purpose === 'VERIFY_EMAIL' && mode.mode === 'dev') {
-    console.log('[OTP SERVICE] Email delivered in DEV mode (SMTP not configured).');
-  }
 
   return {
     otp,
