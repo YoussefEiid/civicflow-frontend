@@ -355,16 +355,19 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
 
     // Send instant WhatsApp notification to the citizen
     const formattedDate = result.expectedCompletionDate ? result.expectedCompletionDate.toISOString().split('T')[0] : undefined;
-    whatsappNotificationService.sendRequestReceivedWhatsApp({
-      to: data.phone,
-      customerName: data.name,
-      requestNumber: result.requestNumber,
-      ministryName: ministry.name,
-      expectedDate: formattedDate,
-      requestId: result.id
-    }).catch((waErr) => {
+    try {
+      await whatsappNotificationService.sendRequestReceivedWhatsApp({
+        to: data.phone,
+        customerName: data.name,
+        requestNumber: result.requestNumber,
+        ministryName: ministry.name,
+        expectedDate: formattedDate,
+        requestId: result.id
+      });
+      console.log(`✅ [PUBLIC REQUEST] WhatsApp confirmation dispatched to ${data.phone} for ${result.requestNumber}`);
+    } catch (waErr) {
       console.warn('⚠️ Could not send WhatsApp to citizen:', waErr);
-    });
+    }
 
     return sendSuccess(
       res,

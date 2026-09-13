@@ -124,17 +124,19 @@ export const addOrUpdateFinalResponse = async (req: Request, res: Response, next
     });
 
     if (request.customer?.phone) {
-      whatsappNotificationService.sendFinalResponseWhatsApp({
-        to: request.customer.phone,
-        customerName: request.customer.name,
-        requestNumber: request.requestNumber,
-        ministryName: request.ministry.name,
-        decision: data.decision,
-        summary: data.summary,
-        requestId: request.id
-      }).catch((waErr) => {
+      try {
+        await whatsappNotificationService.sendFinalResponseWhatsApp({
+          to: request.customer.phone,
+          customerName: request.customer.name,
+          requestNumber: request.requestNumber,
+          ministryName: request.ministry.name,
+          decision: data.decision,
+          summary: data.summary,
+          requestId: request.id
+        });
+      } catch (waErr) {
         console.warn('⚠️ Could not send final response WhatsApp to customer:', waErr);
-      });
+      }
     }
 
     const formattedFr = {
