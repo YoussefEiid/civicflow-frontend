@@ -56,6 +56,7 @@ export class RealWhatsAppProvider implements IWhatsAppProvider {
 
     try {
       const payload = {
+        api_key: apiKey,
         to: formattedPhone,
         phone: formattedPhone,
         number: formattedPhone,
@@ -71,16 +72,25 @@ export class RealWhatsAppProvider implements IWhatsAppProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-          'Authorization': `Bearer ${apiKey}`
+          'x-api-key': apiKey
         },
         body: JSON.stringify(payload)
       });
 
       const responseData = await response.json().catch(() => ({}));
-      const isSuccess = response.ok && (responseData.status === 'success' || responseData.success === true || responseData.status === 'sent');
+      const isSuccess =
+        response.ok &&
+        (responseData.status === 'success' ||
+          responseData.success === true ||
+          responseData.data?.success === true ||
+          responseData.status === 'sent');
 
-      const messageId = responseData.messageId || responseData.id || responseData.data?.id || `wps-${Date.now()}`;
+      const messageId =
+        responseData.data?.messageLogId ||
+        responseData.messageLogId ||
+        responseData.messageId ||
+        responseData.id ||
+        `wps-${Date.now()}`;
       const status: 'SENT' | 'FAILED' = isSuccess ? 'SENT' : (response.ok ? 'SENT' : 'FAILED');
       const errorMessage = !isSuccess ? (responseData.message || responseData.error || `HTTP ${response.status}`) : undefined;
 
