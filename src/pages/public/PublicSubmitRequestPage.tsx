@@ -141,11 +141,10 @@ export const PublicSubmitRequestPage: React.FC = () => {
       );
       if (matchedCity) {
         formData.append('cityId', matchedCity.id);
-      } else {
+      } else if (selectedGovernorate) {
         formData.append('cityId', selectedGovernorate);
       }
 
-      if (address.trim()) formData.append('address', address.trim());
       if (ministryId) formData.append('ministryId', ministryId);
       if (requestTypeId) formData.append('requestTypeId', requestTypeId);
       formData.append('title', title.trim() || 'طلب مراجع عبر البوابة الإلكترونية');
@@ -164,7 +163,10 @@ export const PublicSubmitRequestPage: React.FC = () => {
       setResult(res);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'تعذر تقديم الطلب، يرجى مراجعة البيانات والمحاولة مجدداً';
+      let msg = err.response?.data?.message || err.message || 'تعذر تقديم الطلب، يرجى مراجعة البيانات والمحاولة مجدداً';
+      if (msg === 'Invalid input' || msg.includes('Invalid input')) {
+        msg = 'يرجى التأكد من ملء جميع الحقول المطلوبة والتأكد من صحة رقم الهاتف';
+      }
       setErrorMessage(msg);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {

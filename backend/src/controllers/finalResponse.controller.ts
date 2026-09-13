@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { sendSuccess } from '../utils/apiResponse.js';
+import { whatsappNotificationService } from '../services/whatsapp/whatsappNotification.service.js';
 
 const finalResponseSchema = z.object({
   decision: z.enum(['موافقة', 'رفض', 'إنجاز المعاملة', 'إحالة لجهة أخرى']),
@@ -121,6 +122,20 @@ export const addOrUpdateFinalResponse = async (req: Request, res: Response, next
 
       return { fr, updatedReq };
     });
+
+    if (request.customer?.phone) {
+      whatsappNotificationService.sendFinalResponseWhatsApp({
+        to: request.customer.phone,
+        customerName: request.customer.name,
+        requestNumber: request.requestNumber,
+        ministryName: request.ministry.name,
+        decision: data.decision,
+        summary: data.summary,
+        requestId: request.id
+      }).catch((waErr) => {
+        console.warn('⚠️ Could not send final response WhatsApp to customer:', waErr);
+      });
+    }
 
     const formattedFr = {
       id: result.fr.id,

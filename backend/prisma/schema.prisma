@@ -18,6 +18,12 @@ enum UserStatus {
   INACTIVE
 }
 
+enum OtpPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+  ACCOUNT_ACTIVATION
+}
+
 enum CustomerStatus {
   ACTIVE
   BLOCKED
@@ -41,6 +47,7 @@ model User {
   email                String                 @unique
   phone                String?
   passwordHash         String
+  emailVerified        Boolean                @default(false)
   roleId               String
   role                 Role                   @relation(fields: [roleId], references: [id])
   department           String?
@@ -55,6 +62,7 @@ model User {
   auditLogs            AuditLog[]
   refreshTokens        RefreshToken[]
   notifications        Notification[]
+  otpVerifications     OtpVerification[]
 
   @@map("users")
 }
@@ -101,6 +109,27 @@ model RefreshToken {
   createdAt DateTime @default(now())
 
   @@map("refresh_tokens")
+}
+
+model OtpVerification {
+  id         String      @id @default(uuid())
+  email      String
+  purpose    OtpPurpose  @default(VERIFY_EMAIL)
+  otpHash    String
+  expiresAt  DateTime
+  isUsed     Boolean     @default(false)
+  attempts   Int         @default(0)
+  lockedUntil DateTime?
+  lastSentAt DateTime    @default(now())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@unique([email, purpose])
+  @@index([expiresAt])
+  @@index([lockedUntil])
+  @@map("otp_verifications")
 }
 
 model City {

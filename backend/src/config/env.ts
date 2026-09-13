@@ -22,7 +22,19 @@ const envSchema = z.object({
   MAX_FILE_SIZE_MB: z.coerce.number().default(25),
   WHATSAPP_PROVIDER: z.enum(['mock', 'cloud_api', 'wpsender']).default('wpsender'),
   WHATSAPP_API_URL: z.string().default('https://backendapi.wpsenderx.com/api/messages/send'),
-  WHATSAPP_API_KEY: z.string().default('wps_7b5db2a829ff4377ad0c6c42ea7fe4af991c191992305e70eab136c8bb89f7d2')
+  WHATSAPP_API_KEY: z.string().default('wps_7b5db2a829ff4377ad0c6c42ea7fe4af991c191992305e70eab136c8bb89f7d2'),
+  WHATSAPP_SENDER_PHONE: z.string().default('+9647874120325')
+});
+
+// OTP security settings (optional overrides, safe production defaults enforced)
+const otpSchema = z.object({
+  OTP_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(10),
+  OTP_LENGTH: z.coerce.number().int().min(4).max(8).default(6),
+  OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(5),
+  OTP_LOCK_MINUTES: z.coerce.number().int().min(1).max(60).default(10),
+  OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().min(30).max(300).default(60),
+  OTP_BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(14).default(10),
+  OTP_EXPOSE_IN_RESPONSE: z.enum(['true', 'false']).default('false')
 });
 
 const parsed = envSchema.safeParse({
@@ -35,4 +47,10 @@ if (!parsed.success) {
   throw new Error('Environment configuration validation failed');
 }
 
-export const env = parsed.data;
+const otpParsed = otpSchema.safeParse(process.env);
+if (!otpParsed.success) {
+  console.error('❌ Invalid OTP environment variables:', otpParsed.error.format());
+  throw new Error('OTP configuration validation failed');
+}
+
+export const env = { ...parsed.data, ...otpParsed.data };

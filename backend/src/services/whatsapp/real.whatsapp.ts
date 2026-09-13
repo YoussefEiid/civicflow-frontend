@@ -16,19 +16,30 @@ export class RealWhatsAppProvider implements IWhatsAppProvider {
       cleaned = cleaned.substring(2);
     }
 
+    // Iraq formats:
+    // 96407... -> 9647...
+    if (cleaned.startsWith('96407')) {
+      cleaned = '964' + cleaned.substring(4);
+    }
+    // 07... (11 digits) -> 9647...
+    else if (cleaned.startsWith('07') && cleaned.length === 11) {
+      cleaned = '964' + cleaned.substring(1);
+    }
+    // 7... (10 digits, Iraq mobile prefix without 0) -> 9647...
+    else if (/^7[5789]\d{8}$/.test(cleaned)) {
+      cleaned = '964' + cleaned;
+    }
+
     // Egypt: 010..., 011..., 012..., 015... -> 2010...
-    if (cleaned.startsWith('01') && cleaned.length === 11) {
+    else if (cleaned.startsWith('01') && cleaned.length === 11) {
       cleaned = '2' + cleaned;
     }
 
-    // Iraq: 07... -> 9647...
-    if (cleaned.startsWith('07') && cleaned.length === 11) {
-      cleaned = '964' + cleaned.substring(1);
-    }
-
     // Saudi Arabia: 05... -> 9665...
-    if (cleaned.startsWith('05') && cleaned.length === 10) {
+    else if (cleaned.startsWith('05') && cleaned.length === 10) {
       cleaned = '966' + cleaned.substring(1);
+    } else if (/^5\d{8}$/.test(cleaned)) {
+      cleaned = '966' + cleaned;
     }
 
     return cleaned;
@@ -39,7 +50,9 @@ export class RealWhatsAppProvider implements IWhatsAppProvider {
     const apiUrl = process.env.WHATSAPP_API_URL || env.WHATSAPP_API_URL || 'https://backendapi.wpsenderx.com/api/messages/send';
     const apiKey = (process.env.WHATSAPP_API_KEY || env.WHATSAPP_API_KEY || 'wps_7b5db2a829ff4377ad0c6c42ea7fe4af991c191992305e70eab136c8bb89f7d2').trim();
 
-    console.log(`📡 [WP SENDER DISPATCH] Sending WhatsApp message to: ${formattedPhone} via ${apiUrl}`);
+    const senderPhone = this.formatPhoneNumber(process.env.WHATSAPP_SENDER_PHONE || env.WHATSAPP_SENDER_PHONE || '9647874120325');
+
+    console.log(`📡 [WP SENDER DISPATCH] Sending WhatsApp message from ${senderPhone} to: ${formattedPhone} via ${apiUrl}`);
 
     try {
       const payload = {
@@ -47,6 +60,10 @@ export class RealWhatsAppProvider implements IWhatsAppProvider {
         phone: formattedPhone,
         number: formattedPhone,
         recipient: formattedPhone,
+        sender: senderPhone,
+        from: senderPhone,
+        account: senderPhone,
+        sender_phone: senderPhone,
         message: options.message
       };
 

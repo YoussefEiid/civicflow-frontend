@@ -118,8 +118,9 @@ export const CreateRequestPage: React.FC = () => {
 
   // Recalculate SLA expected completion date whenever ministry, priority, or receiveDate changes
   useEffect(() => {
-    if (ministryId && receiveDate) {
-      const calculated = calculateExpectedDate(receiveDate, ministryId, priority);
+    if (receiveDate) {
+      const selectedMinistry = ministries.find((m) => m.id === ministryId);
+      const calculated = calculateExpectedDate(receiveDate, selectedMinistry?.slaDays || 7, priority);
       setExpectedDate(calculated);
     }
   }, [ministryId, priority, receiveDate, ministries]);

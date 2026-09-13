@@ -9,24 +9,27 @@ import { PriorityLevel, DocumentType, CustomerStatus } from '@prisma/client';
 import { calculateRequestSLA } from '../services/sla.service.js';
 import { generateNextRequestNumber } from '../services/requestNumber.service.js';
 import { generateNextCustomerNumber } from '../services/customerNumber.service.js';
+import { whatsappNotificationService } from '../services/whatsapp/whatsappNotification.service.js';
 import { env } from '../config/env.js';
 
+const optionalString = z.string().optional().nullable().or(z.literal(''));
+
 const publicRequestSchema = z.object({
-  name: z.string().min(1, 'الاسم الكامل مطلوب'),
-  phone: z.string().min(6, 'رقم الهاتف غير صالح'),
-  altPhone: z.string().optional().nullable().or(z.literal('')),
-  nationalId: z.string().optional().nullable().or(z.literal('')),
-  occupation: z.string().optional().nullable().or(z.literal('')),
-  birthYear: z.string().optional().nullable().or(z.literal('')),
-  cityId: z.string().optional().nullable().or(z.literal('')),
-  address: z.string().optional().nullable().or(z.literal('')),
-  ministryId: z.string().optional().nullable().or(z.literal('')),
-  requestTypeId: z.string().optional().nullable().or(z.literal('')),
-  requestType: z.string().optional().nullable().or(z.literal('')),
-  title: z.string().optional().nullable().or(z.literal('')),
-  details: z.string().optional().nullable().or(z.literal('')),
-  identityDocName: z.string().optional().nullable().or(z.literal('')),
-  requestDocName: z.string().optional().nullable().or(z.literal(''))
+  name: z.string({ required_error: 'الاسم الكامل مطلوب' }).trim().min(1, 'الاسم الكامل مطلوب'),
+  phone: z.string({ required_error: 'رقم الهاتف مطلوب' }).trim().min(6, 'رقم الهاتف غير صالح'),
+  altPhone: optionalString,
+  nationalId: optionalString,
+  occupation: optionalString,
+  birthYear: optionalString,
+  cityId: optionalString,
+  address: optionalString,
+  ministryId: optionalString,
+  requestTypeId: optionalString,
+  requestType: optionalString,
+  title: optionalString,
+  details: optionalString,
+  identityDocName: optionalString,
+  requestDocName: optionalString
 });
 
 const IRAQI_GOVERNORATES = [
@@ -345,6 +348,19 @@ export const submitPublicRequest = async (req: Request, res: Response, next: Nex
       });
 
       return newRequest;
+    });
+
+    // Send instant WhatsApp notification to the citizen
+    const formattedDate = result.expectedCompletionDate ? result.expectedCompletionDate.toISOString().split('T')[0] : undefined;
+    whatsappNotificationService.sendRequestReceivedWhatsApp({
+      to: data.phone,
+      customerName: data.name,
+      requestNumber: result.requestNumber,
+      ministryName: ministry.name,
+      expectedDate: formattedDate,
+      requestId: result.id
+    }).catch((waErr) => {
+      console.warn('⚠️ Could not send WhatsApp to citizen:', waErr);
     });
 
     return sendSuccess(

@@ -8,6 +8,7 @@ import { PriorityLevel, DocumentType } from '@prisma/client';
 import { calculateRequestSLA } from '../services/sla.service.js';
 import { generateNextRequestNumber } from '../services/requestNumber.service.js';
 import { generateNextCustomerNumber } from '../services/customerNumber.service.js';
+import { whatsappNotificationService } from '../services/whatsapp/whatsappNotification.service.js';
 
 const createRequestSchema = z.object({
   customerId: z.string().min(1, 'المراجع مطلوب'),
@@ -523,6 +524,20 @@ export const createRequest = async (req: Request, res: Response, next: NextFunct
       return created;
     });
 
+    if (newRequest.customer?.phone) {
+      const formattedDate = newRequest.expectedCompletionDate ? new Date(newRequest.expectedCompletionDate).toISOString().split('T')[0] : undefined;
+      whatsappNotificationService.sendRequestReceivedWhatsApp({
+        to: newRequest.customer.phone,
+        customerName: newRequest.customer.name,
+        requestNumber: newRequest.requestNumber,
+        ministryName: newRequest.ministry.name,
+        expectedDate: formattedDate,
+        requestId: newRequest.id
+      }).catch((waErr) => {
+        console.warn('⚠️ Could not send WhatsApp to customer:', waErr);
+      });
+    }
+
     return sendSuccess(res, formatRequestItem(newRequest), 'تم إنشاء المعاملة بنجاح', 201);
   } catch (error) {
     next(error);
@@ -836,6 +851,20 @@ export const changeRequestStatus = async (req: Request, res: Response, next: Nex
 
       return reqUpdated;
     });
+
+    if (updated.customer?.phone) {
+      whatsappNotificationService.sendStatusChangeWhatsApp({
+        to: updated.customer.phone,
+        customerName: updated.customer.name,
+        requestNumber: updated.requestNumber,
+        ministryName: updated.ministry.name,
+        newStatus: updated.status,
+        note: bodyData.note || bodyData.reason || null,
+        requestId: updated.id
+      }).catch((waErr) => {
+        console.warn('⚠️ Could not send status change WhatsApp to customer:', waErr);
+      });
+    }
 
     return sendSuccess(res, formatRequestItem(updated), 'تم تغيير حالة المعاملة بنجاح');
   } catch (error) {

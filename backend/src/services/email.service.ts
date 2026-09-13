@@ -6,7 +6,10 @@ interface SendOtpOptions {
   otp: string;
   purpose: 'reset_password' | 'verify_email' | 'account_activation';
   userName?: string;
+  expiresInMinutes?: number;
 }
+
+export type OtpEmailPurpose = SendOtpOptions['purpose'];
 
 const sanitizeSender = (rawFrom?: string, fallbackUser?: string): string => {
   const defaultSender = fallbackUser ? `"منظومة CivicFlow" <${fallbackUser}>` : '"منظومة CivicFlow" <no-reply@civicflow.gov>';
@@ -70,7 +73,8 @@ export const sendOtpEmail = async ({
   email,
   otp,
   purpose,
-  userName = 'المستخدم الكريم'
+  userName = 'المستخدم الكريم',
+  expiresInMinutes = 10
 }: SendOtpOptions): Promise<{ success: boolean; mode: 'smtp' | 'dev' }> => {
   const isReset = purpose === 'reset_password';
   const title = isReset ? 'رمز استعادة وتعيين كلمة المرور' : 'رمز تأكيد البريد الإلكتروني';
@@ -108,7 +112,7 @@ export const sendOtpEmail = async ({
         
         <div class="otp-box">
           <p class="otp-code">${otp}</p>
-          <p class="otp-expiry">⏳ صالح لمدة 15 دقيقة فقط</p>
+          <p class="otp-expiry">⏳ صالح لمدة ${expiresInMinutes} دقيقة فقط — لا تشاركه مع أي شخص</p>
         </div>
 
         <p class="body-text">إذا لم تكن أنت من قام بهذا الطلب، يُرجى تجاهل هذه الرسالة أو إبلاغ المشرف فوراً لحماية حسابك.</p>
@@ -134,7 +138,7 @@ export const sendOtpEmail = async ({
         from: sender,
         to: email,
         subject: `[CivicFlow] ${title}: ${otp}`,
-        text: `رمز التحقق الخاص بك هو: ${otp} (صالح لمدة 15 دقيقة)`,
+        text: `رمز التحقق الخاص بك هو: ${otp} (صالح لمدة ${expiresInMinutes} دقيقة)`,
         html: htmlContent
       });
       console.log(`[EMAIL SERVICE] OTP successfully dispatched to ${email} via SMTP.`);

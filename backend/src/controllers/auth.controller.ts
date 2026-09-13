@@ -11,10 +11,13 @@ import {
 import { AppError } from '../middlewares/error.middleware.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 import { env } from '../config/env.js';
+import { issueOtp, verifyOtp, normalizeEmail } from '../services/otp.service.js';
 
-// Schemas
+// ============================================================================
+// Schemas & Validation
+// ============================================================================
 const loginSchema = z.object({
-  email: z.string().email('صيغة البريد الإلكتروني غير صحيحة'),
+  email: z.string().trim().email('صيغة البريد الإلكتروني غير صحيحة'),
   password: z.string().min(1, 'كلمة المرور مطلوبة')
 });
 
@@ -29,6 +32,25 @@ const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'كلمة المرور الحالية مطلوبة'),
   newPassword: z.string().min(6, 'كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل')
 });
+
+const forgotPasswordOtpSchema = z.object({
+  email: z.string().trim().email('صيغة البريد الإلكتروني غير صحيحة')
+});
+
+const verifyResetOtpSchema = z.object({
+  email: z.string().trim().email('صيغة البريد الإلكتروني غير صحيحة'),
+  otp: z.string().trim().min(4, 'رمز التحقق مطلوب')
+});
+
+const resetPasswordOtpSchema = z.object({
+  email: z.string().trim().email('صيغة البريد الإلكتروني غير صحيحة'),
+  otp: z.string().trim().min(4, 'رمز التحقق مطلوب'),
+  newPassword: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل')
+});
+
+// ============================================================================
+// Auth Controllers
+// ============================================================================
 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -126,6 +148,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       role: user.role.name,
       department: user.department || '',
       status: user.status === 'ACTIVE' ? 'نشط' : 'غير نشط',
+      emailVerified: user.emailVerified || false,
       lastLogin: user.lastLogin ? user.lastLogin.toISOString().replace('T', ' ').substring(0, 16) : 'الآن',
       avatarUrl: user.avatarUrl || undefined,
       assignedRequestsCount: 0,
@@ -137,6 +160,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       {
         user: safeUser,
         accessToken,
+        refreshToken,
         permissions
       },
       'تم تسجيل الدخول بنجاح'
@@ -240,6 +264,7 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
       role: user.role.name,
       department: user.department || '',
       status: user.status === 'ACTIVE' ? 'نشط' : 'غير نشط',
+      emailVerified: user.emailVerified || false,
       lastLogin: user.lastLogin ? user.lastLogin.toISOString().replace('T', ' ').substring(0, 16) : 'الآن',
       avatarUrl: user.avatarUrl || undefined,
       assignedRequestsCount: 0,
@@ -251,6 +276,7 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
       {
         user: safeUser,
         accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
         permissions
       },
       'تم تجديد رمز الجلسة بنجاح'
@@ -317,6 +343,7 @@ export const getMe = async (req: Request, res: Response, next: NextFunction) => 
       role: user.role.name,
       department: user.department || '',
       status: user.status === 'ACTIVE' ? 'نشط' : 'غير نشط',
+      emailVerified: user.emailVerified || false,
       lastLogin: user.lastLogin ? user.lastLogin.toISOString().replace('T', ' ').substring(0, 16) : 'الآن',
       avatarUrl: user.avatarUrl || undefined,
       assignedRequestsCount: user.assignedRequests.length,
@@ -407,34 +434,14 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
   }
 };
 
-import { sendOtpEmail } from '../services/email.service.js';
-
-// --- In-Memory OTP Store with 15-Minute Expiry ---
-interface OTPRecord {
-  otp: string;
-  expiresAt: number;
-}
-const otpStore = new Map<string, OTPRecord>();
-
-const forgotPasswordOtpSchema = z.object({
-  email: z.string().email('صيغة البريد الإلكتروني غير صحيحة')
-});
-
-const verifyResetOtpSchema = z.object({
-  email: z.string().email('صيغة البريد الإلكتروني غير صحيحة'),
-  otp: z.string().min(4, 'رمز التحقق مطلوب')
-});
-
-const resetPasswordOtpSchema = z.object({
-  email: z.string().email('صيغة البريد الإلكتروني غير صحيحة'),
-  otp: z.string().min(4, 'رمز التحقق مطلوب'),
-  newPassword: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل')
-});
+// ============================================================================
+// Password Reset OTP Flow
+// ============================================================================
 
 export const requestPasswordResetOTP = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = forgotPasswordOtpSchema.parse(req.body);
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
 
     const user = await prisma.user.findFirst({
       where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
@@ -444,25 +451,19 @@ export const requestPasswordResetOTP = async (req: Request, res: Response, next:
       throw new AppError('لا يوجد حساب مسجل بهذا البريد الإلكتروني', 404, 'USER_NOT_FOUND');
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore.set(normalizedEmail, {
-      otp,
-      expiresAt: Date.now() + 15 * 60 * 1000 // 15 minutes
-    });
-
-    // Send real email via SMTP / Email Service
-    await sendOtpEmail({
+    await issueOtp({
       email: normalizedEmail,
-      otp,
-      purpose: 'reset_password',
+      purpose: 'RESET_PASSWORD',
+      userId: user.id,
       userName: user.name
     });
 
     return sendSuccess(
       res,
       {
-        email: normalizedEmail
+        email: normalizedEmail,
+        expiresInMinutes: env.OTP_TTL_MINUTES,
+        cooldownSeconds: env.OTP_RESEND_COOLDOWN_SECONDS
       },
       'تم إرسال رمز التحقق (OTP) بنجاح إلى بريدك الإلكتروني.'
     );
@@ -474,21 +475,10 @@ export const requestPasswordResetOTP = async (req: Request, res: Response, next:
 export const verifyResetOTP = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, otp } = verifyResetOtpSchema.parse(req.body);
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
 
-    const record = otpStore.get(normalizedEmail);
-    if (!record) {
-      throw new AppError('لم يتم طلب رمز تحقق لهذا البريد أو انتهت صلاحيته', 400, 'OTP_EXPIRED');
-    }
-
-    if (Date.now() > record.expiresAt) {
-      otpStore.delete(normalizedEmail);
-      throw new AppError('انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد', 400, 'OTP_EXPIRED');
-    }
-
-    if (record.otp !== otp.trim()) {
-      throw new AppError('رمز التحقق غير صحيح', 400, 'INVALID_OTP');
-    }
+    // Validate only — the code is consumed later in resetPasswordWithOTP
+    await verifyOtp({ email: normalizedEmail, otp, purpose: 'RESET_PASSWORD', markUsed: false });
 
     return sendSuccess(res, { verified: true }, 'رمز التحقق صحيح');
   } catch (error) {
@@ -499,12 +489,10 @@ export const verifyResetOTP = async (req: Request, res: Response, next: NextFunc
 export const resetPasswordWithOTP = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, otp, newPassword } = resetPasswordOtpSchema.parse(req.body);
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
 
-    const record = otpStore.get(normalizedEmail);
-    if (!record || Date.now() > record.expiresAt || record.otp !== otp.trim()) {
-      throw new AppError('رمز التحقق غير صالح أو انتهت صلاحيته', 400, 'INVALID_OTP');
-    }
+    // Consume the OTP (enforces single-use + attempt lockout)
+    await verifyOtp({ email: normalizedEmail, otp, purpose: 'RESET_PASSWORD', markUsed: true });
 
     const user = await prisma.user.findFirst({
       where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
@@ -519,9 +507,6 @@ export const resetPasswordWithOTP = async (req: Request, res: Response, next: Ne
       where: { id: user.id },
       data: { passwordHash: newHash }
     });
-
-    // Delete OTP once used
-    otpStore.delete(normalizedEmail);
 
     // Revoke all existing sessions
     await prisma.refreshToken.deleteMany({
@@ -549,6 +534,10 @@ export const resetPasswordWithOTP = async (req: Request, res: Response, next: Ne
   }
 };
 
+// ============================================================================
+// Email Verification OTP Flow
+// ============================================================================
+
 export const sendVerificationOTP = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let targetEmail = '';
@@ -565,25 +554,18 @@ export const sendVerificationOTP = async (req: Request, res: Response, next: Nex
       throw new AppError('البريد الإلكتروني مطلوب لإرسال رمز التحقق', 400, 'EMAIL_REQUIRED');
     }
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore.set(`verify_${targetEmail}`, {
-      otp,
-      expiresAt: Date.now() + 15 * 60 * 1000
-    });
-
-    // Send real email via SMTP / Email Service
-    await sendOtpEmail({
+    await issueOtp({
       email: targetEmail,
-      otp,
-      purpose: 'verify_email',
+      purpose: 'VERIFY_EMAIL',
       userName: targetName
     });
 
     return sendSuccess(
       res,
       {
-        email: targetEmail
+        email: targetEmail,
+        expiresInMinutes: env.OTP_TTL_MINUTES,
+        cooldownSeconds: env.OTP_RESEND_COOLDOWN_SECONDS
       },
       'تم إرسال رمز التحقق لتأكيد الحساب بنجاح إلى بريدك الإلكتروني.'
     );
@@ -595,25 +577,21 @@ export const sendVerificationOTP = async (req: Request, res: Response, next: Nex
 export const verifyEmailOTP = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, otp } = verifyResetOtpSchema.parse(req.body);
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = normalizeEmail(email);
 
-    const record = otpStore.get(`verify_${normalizedEmail}`) || otpStore.get(normalizedEmail);
-    if (!record) {
-      throw new AppError('لم يتم طلب رمز تحقق لهذا البريد أو انتهت صلاحيته', 400, 'OTP_EXPIRED');
+    // Consume the OTP and mark the account as email-verified
+    await verifyOtp({ email: normalizedEmail, otp, purpose: 'VERIFY_EMAIL', markUsed: true });
+
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+    });
+
+    if (user && !user.emailVerified) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true }
+      });
     }
-
-    if (Date.now() > record.expiresAt) {
-      otpStore.delete(`verify_${normalizedEmail}`);
-      throw new AppError('انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد', 400, 'OTP_EXPIRED');
-    }
-
-    if (record.otp !== otp.trim()) {
-      throw new AppError('رمز التحقق غير صحيح', 400, 'INVALID_OTP');
-    }
-
-    // Clean up
-    otpStore.delete(`verify_${normalizedEmail}`);
-    otpStore.delete(normalizedEmail);
 
     return sendSuccess(
       res,

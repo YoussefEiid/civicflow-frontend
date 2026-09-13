@@ -11,7 +11,7 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const { success, error: toastError } = useToast();
 
-  const [email, setEmail] = useState('alzmat66@gmail.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 

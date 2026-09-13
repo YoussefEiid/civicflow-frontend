@@ -46,7 +46,15 @@
    - `NODE_ENV`: `production`
    - `JWT_ACCESS_SECRET`: `civicflow_jwt_access_secret_key_prod_2026_secure`
    - `JWT_REFRESH_SECRET`: `civicflow_jwt_refresh_secret_key_prod_2026_secure`
-   - `FRONTEND_URL`: `https://civicflow-frontend.onrender.com` *(أو رابط الواجهة بعد إنشائها)*
+   - `FRONTEND_URL`: `https://civicflow-frontend-4.onrender.com` *(أو رابط الواجهة الخاص بك على Render)*
+   - `WHATSAPP_PROVIDER`: `wpsender`
+   - `WHATSAPP_API_URL`: `https://backendapi.wpsenderx.com/api/messages/send`
+   - `WHATSAPP_API_KEY`: `wps_7b5db2a829ff4377ad0c6c42ea7fe4af991c191992305e70eab136c8bb89f7d2`
+   - `SMTP_HOST`: `smtp.gmail.com`
+   - `SMTP_PORT`: `587`
+   - `SMTP_USER`: `your_email@gmail.com` *(بريد Gmail لإرسال كود OTP)*
+   - `SMTP_PASS`: `your_16_char_app_password` *(كلمة مرور التطبيقات App Password من Google)*
+   - `SMTP_FROM`: `"منظومة CivicFlow" <your_email@gmail.com>`
 4. اضغط **Create Web Service**.
 
 ---

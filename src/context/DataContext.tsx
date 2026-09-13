@@ -33,7 +33,6 @@ import {
   markAllNotificationsAsRead,
   updateSystemSettings
 } from '../services/api';
-import { initStorage, resetToDefaults } from '../services/mockStorage';
 
 interface DataContextType {
   requests: RequestItem[];
@@ -86,7 +85,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshData = useCallback(async () => {
     try {
-      initStorage();
       const [reqs, custs, mins, emps, rols, notifs, logs, setts] = await Promise.all([
         getRequests().catch(() => []),
         getCustomers().catch(() => []),
@@ -127,7 +125,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshData]);
 
   const resetData = () => {
-    resetToDefaults();
     refreshData();
   };
 

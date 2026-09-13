@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useData } from '../../context/DataContext';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Search, ShieldCheck, Clock, FileCheck, ArrowLeft, Sparkles } from 'lucide-react';
 
 export const PublicTrackPage: React.FC = () => {
   const navigate = useNavigate();
-  const { requests } = useData();
   const [requestNumber, setRequestNumber] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -17,11 +15,6 @@ export const PublicTrackPage: React.FC = () => {
 
     const cleanNum = requestNumber.trim().toUpperCase().replace('#', '');
     navigate(`/track/${cleanNum}`);
-  };
-
-  const fillQuickTrack = (num: string) => {
-    setRequestNumber(num);
-    navigate(`/track/${num}`);
   };
 
   return (
@@ -86,37 +79,6 @@ export const PublicTrackPage: React.FC = () => {
           >
             تقديم طلب الآن
           </button>
-        </div>
-
-        {/* Quick Demo Numbers */}
-        <div className="mt-6 pt-5 border-t border-slate-100">
-          <p className="text-xs font-bold text-slate-400 mb-3">أرقام معاملات تجريبية سريعة للاختبار:</p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => fillQuickTrack('REQ-1025')}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition"
-            >
-              #REQ-1025 (قيد المعالجة)
-            </button>
-            <button
-              onClick={() => fillQuickTrack('REQ-1008')}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-cyan-50 text-cyan-800 hover:bg-cyan-100 border border-cyan-200 transition"
-            >
-              #REQ-1008 (الإجابة جاهزة)
-            </button>
-            <button
-              onClick={() => fillQuickTrack('REQ-1042')}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200 transition"
-            >
-              #REQ-1042 (متأخر)
-            </button>
-            <button
-              onClick={() => fillQuickTrack('REQ-1001')}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition"
-            >
-              #REQ-1001 (تم التسليم)
-            </button>
-          </div>
         </div>
       </div>
 

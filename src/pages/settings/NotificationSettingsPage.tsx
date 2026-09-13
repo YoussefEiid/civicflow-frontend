@@ -146,7 +146,7 @@ export const NotificationSettingsPage: React.FC = () => {
               </div>
               <div>
                 <p className="font-bold text-sm text-teal-950">تفعيل إشعارات WhatsApp التلقائية</p>
-                <p className="text-xs text-teal-700 mt-0.5">إرسال رسائل التحديثات المباشرة إلى هواتف المراجعين</p>
+                <p className="text-xs text-teal-700 mt-0.5">إرسال رسائل التحديثات المباشرة إلى هواتف المراجعين عند التقديم وتغيير الحالة والقرار النهائي</p>
               </div>
             </div>
             <input
@@ -155,6 +155,47 @@ export const NotificationSettingsPage: React.FC = () => {
               onChange={() => {}}
               className="w-5 h-5 text-teal-600 rounded"
             />
+          </div>
+
+          {/* Test WhatsApp Section */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-emerald-600" />
+              <h4 className="text-xs font-bold text-slate-800">اختبار اتصال وإرسال رسالة واتساب (Test WhatsApp)</h4>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+              <input
+                type="text"
+                placeholder="أدخل رقم هاتف للتجربة (مثال: 07821189947)"
+                id="test-phone-input"
+                className="w-full sm:flex-1 px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+              />
+              <button
+                type="button"
+                onClick={async () => {
+                  const input = document.getElementById('test-phone-input') as HTMLInputElement;
+                  const phoneVal = input?.value?.trim();
+                  if (!phoneVal) {
+                    error('يرجى إدخال رقم هاتف صالح للاختبار');
+                    return;
+                  }
+                  try {
+                    const { whatsappService } = await import('../../services/whatsappService');
+                    await whatsappService.sendWhatsApp(
+                      phoneVal,
+                      `🔔 رسالة اختبار تجريبية من منظومة CivicFlow للخدمات والمعاملات الحكومية. تم ربط خدمة الواتساب بنجاح!`
+                    );
+                    success('تم إرسال رسالة الاختبار بنجاح عبر WhatsApp');
+                  } catch (err: any) {
+                    error(err.message || 'تعذر إرسال رسالة الاختبار');
+                  }
+                }}
+                className="w-full sm:w-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                إرسال رسالة تجريبية
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>

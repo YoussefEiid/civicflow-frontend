@@ -13,8 +13,7 @@ import {
   Clock,
   CheckCheck,
   Menu,
-  ExternalLink,
-  UserCheck
+  ExternalLink
 } from 'lucide-react';
 import { GlobalSearchModal } from './GlobalSearchModal';
 
@@ -25,7 +24,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout, switchUser } = useAuth();
+  const { user, logout } = useAuth();
   const { notifications, unreadNotificationsCount, handleMarkAllNotificationsRead, employees } = useData();
   const { canManageSettings } = usePermissions();
 
@@ -222,33 +221,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
                   <span className="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                     {user?.role}
                   </span>
-                </div>
-
-                {/* Quick Role Switcher for Client Demo */}
-                <div className="px-4 py-2 border-b border-slate-100 bg-slate-50/60">
-                  <p className="text-[11px] font-bold text-slate-400 mb-1.5 flex items-center gap-1">
-                    <UserCheck className="w-3.5 h-3.5" />
-                    تبديل المستخدم للعرض التجريبي:
-                  </p>
-                  <div className="space-y-1">
-                    {employees.map((emp) => (
-                      <button
-                        key={emp.id}
-                        onClick={() => {
-                          switchUser(emp.id);
-                          setIsUserMenuOpen(false);
-                        }}
-                        className={`w-full text-right text-xs px-2 py-1 rounded-md transition flex items-center justify-between ${
-                          user?.id === emp.id
-                            ? 'bg-blue-600 text-white font-bold'
-                            : 'hover:bg-slate-200 text-slate-700'
-                        }`}
-                      >
-                        <span>{emp.name}</span>
-                        <span className="text-[10px] opacity-80">({emp.role})</span>
-                      </button>
-                    ))}
-                  </div>
                 </div>
 
                 <div className="py-1">

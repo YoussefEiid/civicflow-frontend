@@ -12,7 +12,6 @@ import {
   FinalResponse,
   RequestAttachment
 } from '../types';
-import { getStoredData, setStoredData, STORAGE_KEYS } from './mockStorage';
 import { requestService } from './requestService';
 import { customerService } from './customerService';
 import { ministryService } from './ministryService';
@@ -26,34 +25,13 @@ import { publicService } from './publicService';
 import { cityService } from './cityService';
 import { requestTypeService } from './requestTypeService';
 
-// Helper to delay simulation
-const delay = (ms = 30) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Audit log helper
+// Activity Logger - backend automatically records audit logs on operations
 export const logActivity = async (
-  action: AuditLog['action'],
-  details: string,
-  requestNumber?: string
+  _action: AuditLog['action'],
+  _details: string,
+  _requestNumber?: string
 ): Promise<void> => {
-  const logs = getStoredData<AuditLog[]>(STORAGE_KEYS.AUDIT_LOGS, []);
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-  const timeStr = now.toTimeString().split(' ')[0];
-
-  const newLog: AuditLog = {
-    id: `log-${Date.now()}`,
-    userId: 'emp-1',
-    userName: 'أحمد علي',
-    userRole: 'مدير النظام',
-    action,
-    requestNumber,
-    details,
-    ipAddress: '192.168.1.10',
-    date: dateStr,
-    time: timeStr
-  };
-
-  setStoredData(STORAGE_KEYS.AUDIT_LOGS, [newLog, ...logs]);
+  // Handled directly server-side in PostgreSQL
 };
 
 // Notification creator helper
@@ -64,55 +42,18 @@ export const createNotification = async (
   requestId?: string,
   requestNumber?: string
 ): Promise<NotificationItem> => {
-  try {
-    return await notificationService.createNotification(title, message, type, requestId, requestNumber);
-  } catch (error) {
-    console.warn('Backend createNotification error, using fallback:', error);
-    const notifications = getStoredData<NotificationItem[]>(STORAGE_KEYS.NOTIFICATIONS, []);
-    const now = new Date();
-    const dateStr = `${now.toISOString().split('T')[0]} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      title,
-      message,
-      requestId,
-      requestNumber,
-      type,
-      read: false,
-      createdAt: dateStr,
-      timeAgo: 'الآن',
-      link: requestId ? `/requests/${requestId}` : undefined
-    };
-
-    setStoredData(STORAGE_KEYS.NOTIFICATIONS, [newNotif, ...notifications]);
-    return newNotif;
-  }
+  return notificationService.createNotification(title, message, type, requestId, requestNumber);
 };
 
-// Calculate expected completion date based on Ministry SLA & Priority
+// Calculate expected completion date based on SLA days & Priority
 export const calculateExpectedDate = (
   receiveDateStr: string,
-  ministryId: string,
+  slaDays = 7,
   priority: RequestPriority = 'عادي'
 ): string => {
-  const ministries = getStoredData<Ministry[]>(STORAGE_KEYS.MINISTRIES, []);
-  const settings = getStoredData<SystemSettings>(STORAGE_KEYS.SETTINGS, {} as SystemSettings);
-  
-  const ministry = ministries.find((m) => m.id === ministryId);
-  let days = ministry ? ministry.slaDays : 7;
-
-  if (settings.sla) {
-    const slaOverride = settings.sla.find((s) => s.ministryId === ministryId);
-    if (slaOverride) {
-      if (priority === 'عاجل') days = slaOverride.urgentDays;
-      else if (priority === 'مهم') days = slaOverride.importantDays;
-      else days = slaOverride.defaultDays;
-    }
-  } else {
-    if (priority === 'عاجل') days = Math.max(2, Math.floor(days / 2));
-    else if (priority === 'مهم') days = Math.max(3, Math.floor(days * 0.75));
-  }
+  let days = slaDays || 7;
+  if (priority === 'عاجل') days = Math.max(2, Math.floor(days / 2));
+  else if (priority === 'مهم') days = Math.max(3, Math.floor(days * 0.75));
 
   const baseDate = new Date(receiveDateStr || new Date());
   baseDate.setDate(baseDate.getDate() + days);
@@ -133,40 +74,19 @@ export const getRequests = async (filters?: {
   fromDate?: string;
   toDate?: string;
 }): Promise<RequestItem[]> => {
-  try {
-    return await requestService.getRequests(filters);
-  } catch (error) {
-    console.warn('Backend getRequests error, using storage fallback:', error);
-    return getStoredData<RequestItem[]>(STORAGE_KEYS.REQUESTS, []);
-  }
+  return requestService.getRequests(filters);
 };
 
 export const getRequestById = async (id: string): Promise<RequestItem | null> => {
-  try {
-    return await requestService.getRequestById(id);
-  } catch (error) {
-    console.warn('Backend getRequestById error, using storage fallback:', error);
-    const items = getStoredData<RequestItem[]>(STORAGE_KEYS.REQUESTS, []);
-    return items.find((r) => r.id === id || r.requestNumber === id) || null;
-  }
+  return requestService.getRequestById(id);
 };
 
 export const createRequest = async (data: Partial<RequestItem>): Promise<RequestItem> => {
-  try {
-    return await requestService.createRequest(data);
-  } catch (error) {
-    console.error('Create request error:', error);
-    throw error;
-  }
+  return requestService.createRequest(data);
 };
 
 export const updateRequest = async (id: string, updates: Partial<RequestItem>): Promise<RequestItem> => {
-  try {
-    return await requestService.updateRequest(id, updates);
-  } catch (error) {
-    console.error('Update request error:', error);
-    throw error;
-  }
+  return requestService.updateRequest(id, updates);
 };
 
 export const changeRequestStatus = async (
@@ -176,48 +96,28 @@ export const changeRequestStatus = async (
   file?: File,
   rejectionReason?: string
 ): Promise<RequestItem> => {
-  try {
-    return await requestService.changeStatus(id, newStatus, note, file, rejectionReason);
-  } catch (error) {
-    console.error('Change status error:', error);
-    throw error;
-  }
+  return requestService.changeStatus(id, newStatus, note, file, rejectionReason);
 };
 
 export const addRequestAttachment = async (
   requestId: string,
   attachment: Omit<RequestAttachment, 'id' | 'uploadedAt'> & { file?: File }
 ): Promise<RequestItem> => {
-  try {
-    await requestService.addAttachment(requestId, attachment);
-    return await requestService.getRequestById(requestId);
-  } catch (error) {
-    console.error('Add attachment error:', error);
-    throw error;
-  }
+  await requestService.addAttachment(requestId, attachment);
+  return requestService.getRequestById(requestId);
 };
 
 export const addFinalResponse = async (
   requestId: string,
   response: Omit<FinalResponse, 'id' | 'issuedAt'> & { file?: File }
 ): Promise<RequestItem> => {
-  try {
-    await requestService.addFinalResponse(requestId, response);
-    return await requestService.getRequestById(requestId);
-  } catch (error) {
-    console.error('Add final response error:', error);
-    throw error;
-  }
+  await requestService.addFinalResponse(requestId, response);
+  return requestService.getRequestById(requestId);
 };
 
 export const deleteRequest = async (id: string): Promise<boolean> => {
-  try {
-    await requestService.deleteRequest(id);
-    return true;
-  } catch (error) {
-    console.error('Delete request error:', error);
-    throw error;
-  }
+  await requestService.deleteRequest(id);
+  return true;
 };
 
 // ==========================================
@@ -225,40 +125,19 @@ export const deleteRequest = async (id: string): Promise<boolean> => {
 // ==========================================
 
 export const getCustomers = async (search?: string): Promise<Customer[]> => {
-  try {
-    return await customerService.getCustomers(search);
-  } catch (error) {
-    console.warn('Backend getCustomers error, using fallback:', error);
-    return getStoredData<Customer[]>(STORAGE_KEYS.CUSTOMERS, []);
-  }
+  return customerService.getCustomers(search);
 };
 
 export const getCustomerById = async (id: string): Promise<Customer | null> => {
-  try {
-    return await customerService.getCustomerById(id);
-  } catch (error) {
-    console.warn('Backend getCustomerById error, using fallback:', error);
-    const items = getStoredData<Customer[]>(STORAGE_KEYS.CUSTOMERS, []);
-    return items.find((c) => c.id === id) || null;
-  }
+  return customerService.getCustomerById(id);
 };
 
 export const createCustomer = async (data: Partial<Customer>): Promise<Customer> => {
-  try {
-    return await customerService.createCustomer(data);
-  } catch (error) {
-    console.error('Create customer error:', error);
-    throw error;
-  }
+  return customerService.createCustomer(data);
 };
 
 export const updateCustomer = async (id: string, updates: Partial<Customer>): Promise<Customer> => {
-  try {
-    return await customerService.updateCustomer(id, updates);
-  } catch (error) {
-    console.error('Update customer error:', error);
-    throw error;
-  }
+  return customerService.updateCustomer(id, updates);
 };
 
 // ==========================================
@@ -266,40 +145,19 @@ export const updateCustomer = async (id: string, updates: Partial<Customer>): Pr
 // ==========================================
 
 export const getMinistries = async (): Promise<Ministry[]> => {
-  try {
-    return await ministryService.getMinistries();
-  } catch (error) {
-    console.warn('Backend getMinistries error, using fallback:', error);
-    return getStoredData<Ministry[]>(STORAGE_KEYS.MINISTRIES, []);
-  }
+  return ministryService.getMinistries();
 };
 
 export const getMinistryById = async (id: string): Promise<Ministry | null> => {
-  try {
-    return await ministryService.getMinistryById(id);
-  } catch (error) {
-    console.warn('Backend getMinistryById error, using fallback:', error);
-    const items = getStoredData<Ministry[]>(STORAGE_KEYS.MINISTRIES, []);
-    return items.find((m) => m.id === id) || null;
-  }
+  return ministryService.getMinistryById(id);
 };
 
 export const createMinistry = async (data: Partial<Ministry>): Promise<Ministry> => {
-  try {
-    return await ministryService.createMinistry(data);
-  } catch (error) {
-    console.error('Create ministry error:', error);
-    throw error;
-  }
+  return ministryService.createMinistry(data);
 };
 
 export const updateMinistry = async (id: string, updates: Partial<Ministry>): Promise<Ministry> => {
-  try {
-    return await ministryService.updateMinistry(id, updates);
-  } catch (error) {
-    console.error('Update ministry error:', error);
-    throw error;
-  }
+  return ministryService.updateMinistry(id, updates);
 };
 
 // ==========================================
@@ -307,68 +165,31 @@ export const updateMinistry = async (id: string, updates: Partial<Ministry>): Pr
 // ==========================================
 
 export const getEmployees = async (): Promise<Employee[]> => {
-  try {
-    return await employeeService.getEmployees();
-  } catch (error) {
-    console.warn('Backend getEmployees error, using fallback:', error);
-    return getStoredData<Employee[]>(STORAGE_KEYS.EMPLOYEES, []);
-  }
+  return employeeService.getEmployees();
 };
 
 export const getEmployeeById = async (id: string): Promise<Employee | null> => {
-  try {
-    return await employeeService.getEmployeeById(id);
-  } catch (error) {
-    console.warn('Backend getEmployeeById error, using fallback:', error);
-    const items = getStoredData<Employee[]>(STORAGE_KEYS.EMPLOYEES, []);
-    return items.find((e) => e.id === id) || null;
-  }
+  return employeeService.getEmployeeById(id);
 };
 
 export const createEmployee = async (data: Partial<Employee>): Promise<Employee> => {
-  try {
-    return await employeeService.createEmployee(data);
-  } catch (error) {
-    console.error('Create employee error:', error);
-    throw error;
-  }
+  return employeeService.createEmployee(data);
 };
 
 export const updateEmployee = async (id: string, updates: Partial<Employee>): Promise<Employee> => {
-  try {
-    return await employeeService.updateEmployee(id, updates);
-  } catch (error) {
-    console.error('Update employee error:', error);
-    throw error;
-  }
+  return employeeService.updateEmployee(id, updates);
 };
 
 export const getRoles = async (): Promise<Role[]> => {
-  try {
-    return await roleService.getRoles();
-  } catch (error) {
-    console.warn('Backend getRoles error, using fallback:', error);
-    return getStoredData<Role[]>(STORAGE_KEYS.ROLES, []);
-  }
+  return roleService.getRoles();
 };
 
 export const getRoleById = async (id: string): Promise<Role | null> => {
-  try {
-    return await roleService.getRoleById(id);
-  } catch (error) {
-    console.warn('Backend getRoleById error, using fallback:', error);
-    const items = getStoredData<Role[]>(STORAGE_KEYS.ROLES, []);
-    return items.find((r) => r.id === id) || null;
-  }
+  return roleService.getRoleById(id);
 };
 
 export const updateRole = async (id: string, updates: Partial<Role>): Promise<Role> => {
-  try {
-    return await roleService.updateRole(id, updates);
-  } catch (error) {
-    console.error('Update role error:', error);
-    throw error;
-  }
+  return roleService.updateRole(id, updates);
 };
 
 // ==========================================
@@ -376,28 +197,15 @@ export const updateRole = async (id: string, updates: Partial<Role>): Promise<Ro
 // ==========================================
 
 export const getNotifications = async (): Promise<NotificationItem[]> => {
-  try {
-    return await notificationService.getNotifications();
-  } catch (error) {
-    console.warn('Backend getNotifications error, using fallback:', error);
-    return getStoredData<NotificationItem[]>(STORAGE_KEYS.NOTIFICATIONS, []);
-  }
+  return notificationService.getNotifications();
 };
 
 export const markNotificationAsRead = async (id: string): Promise<void> => {
-  try {
-    await notificationService.markAsRead(id);
-  } catch (error) {
-    console.error('Mark notification error:', error);
-  }
+  await notificationService.markAsRead(id);
 };
 
 export const markAllNotificationsAsRead = async (): Promise<void> => {
-  try {
-    await notificationService.markAllAsRead();
-  } catch (error) {
-    console.error('Mark all notifications error:', error);
-  }
+  await notificationService.markAllAsRead();
 };
 
 // ==========================================
@@ -410,12 +218,7 @@ export const getAuditLogs = async (filters?: {
   date?: string;
   search?: string;
 }): Promise<AuditLog[]> => {
-  try {
-    return await auditService.getAuditLogs(filters);
-  } catch (error) {
-    console.warn('Backend getAuditLogs error, using fallback:', error);
-    return getStoredData<AuditLog[]>(STORAGE_KEYS.AUDIT_LOGS, []);
-  }
+  return auditService.getAuditLogs(filters);
 };
 
 // ==========================================
@@ -423,28 +226,18 @@ export const getAuditLogs = async (filters?: {
 // ==========================================
 
 export const getSystemSettings = async (): Promise<SystemSettings> => {
-  try {
-    return await settingsService.getSystemSettings();
-  } catch (error) {
-    console.warn('Backend getSystemSettings error, using fallback:', error);
-    return getStoredData<SystemSettings>(STORAGE_KEYS.SETTINGS, {} as SystemSettings);
-  }
+  return settingsService.getSystemSettings();
 };
 
 export const updateSystemSettings = async (updates: Partial<SystemSettings>): Promise<SystemSettings> => {
-  try {
-    return await settingsService.updateSystemSettings(updates);
-  } catch (error) {
-    console.error('Update system settings error:', error);
-    throw error;
-  }
+  return settingsService.updateSystemSettings(updates);
 };
 
 // ==========================================
 // CSV / EXCEL EXPORT (EXCELJS STREAM)
 // ==========================================
 
-export const exportRequestsToCsv = (requests: RequestItem[], filename = 'تقرير_المعاملات_CivicFlow.xlsx') => {
+export const exportRequestsToCsv = (_requests: RequestItem[], _filename = 'تقرير_المعاملات_CivicFlow.xlsx') => {
   reportService.exportRequestsExcel();
 };
 

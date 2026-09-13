@@ -9,7 +9,7 @@ const rawApiUrl =
 const API_BASE_URL = rawApiUrl.replace(/\/+$/, '');
 
 
-let accessToken: string | null = null;
+let accessToken: string | null = isBrowser ? localStorage.getItem('civicflow_access_token') : null;
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value: any) => void;
@@ -29,6 +29,13 @@ const processQueue = (error: any, token: string | null = null) => {
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token;
+  if (isBrowser) {
+    if (token) {
+      localStorage.setItem('civicflow_access_token', token);
+    } else {
+      localStorage.removeItem('civicflow_access_token');
+    }
+  }
 };
 
 export const getAccessToken = () => accessToken;
@@ -114,9 +121,11 @@ export const request = async <T = any>(
     isRefreshing = true;
 
     try {
+      const storedRefreshToken = isBrowser ? localStorage.getItem('civicflow_refresh_token') : null;
       const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: storedRefreshToken || undefined }),
         credentials: 'include'
       });
 
@@ -126,12 +135,16 @@ export const request = async <T = any>(
 
       const refreshData = await refreshRes.json();
       const newAccessToken = refreshData.data?.accessToken;
+      const newRefreshToken = refreshData.data?.refreshToken;
 
       if (!newAccessToken) {
         throw new Error('No access token returned from refresh');
       }
 
       setAccessToken(newAccessToken);
+      if (isBrowser && newRefreshToken) {
+        localStorage.setItem('civicflow_refresh_token', newRefreshToken);
+      }
       processQueue(null, newAccessToken);
 
       reqHeaders['Authorization'] = `Bearer ${newAccessToken}`;
@@ -139,6 +152,11 @@ export const request = async <T = any>(
     } catch (refreshErr) {
       processQueue(refreshErr, null);
       setAccessToken(null);
+      if (isBrowser) {
+        localStorage.removeItem('civicflow_access_token');
+        localStorage.removeItem('civicflow_refresh_token');
+        localStorage.removeItem('civicflow_user');
+      }
       window.dispatchEvent(new CustomEvent('civicflow_auth_expired'));
       throw new ApiError('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً', 401, 'SESSION_EXPIRED');
     } finally {

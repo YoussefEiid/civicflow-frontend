@@ -11,6 +11,7 @@ import { LoginPage } from '../pages/auth/LoginPage';
 import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/auth/ResetPasswordPage';
 import { ProfilePage } from '../pages/auth/ProfilePage';
+import { OtpVerifyPage } from '../pages/auth/OtpVerifyPage';
 
 // Dashboard Page
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
@@ -86,6 +87,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-otp" element={<OtpVerifyPage />} />
       </Route>
 
       {/* Authenticated Admin Management Layout */}
