@@ -12,11 +12,14 @@ import { generateNextCustomerNumber } from '../services/customerNumber.service.j
 import { whatsappNotificationService } from '../services/whatsapp/whatsappNotification.service.js';
 import { env } from '../config/env.js';
 
-const optionalString = z.string().optional().nullable().or(z.literal(''));
+const optionalString = z.preprocess(
+  (v) => (v === null || v === undefined || v === '' ? undefined : String(v).trim()),
+  z.string().optional().nullable()
+);
 
 const publicRequestSchema = z.object({
-  name: z.string({ required_error: 'الاسم الكامل مطلوب' }).trim().min(1, 'الاسم الكامل مطلوب'),
-  phone: z.string({ required_error: 'رقم الهاتف مطلوب' }).trim().min(6, 'رقم الهاتف غير صالح'),
+  name: z.preprocess((v) => (!v ? 'مراجع' : String(v).trim()), z.string().default('مراجع')),
+  phone: z.preprocess((v) => (!v ? '' : String(v).trim()), z.string().min(3, 'يرجى إدخال رقم هاتف صالح')),
   altPhone: optionalString,
   nationalId: optionalString,
   occupation: optionalString,

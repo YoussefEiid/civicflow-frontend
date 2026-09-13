@@ -118,8 +118,8 @@ export const PublicSubmitRequestPage: React.FC = () => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!name.trim() || !phone.trim() || !occupation || !birthYear.trim() || !address.trim() || !ministryId) {
-      setErrorMessage('يرجى ملء جميع الحقول الإلزامية المطلوبة (*)');
+    if (!name.trim() || !phone.trim()) {
+      setErrorMessage('يرجى إدخال الاسم ورقم الهاتف للتواصل واستلام الإشعار');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -131,9 +131,9 @@ export const PublicSubmitRequestPage: React.FC = () => {
       formData.append('phone', phone.trim());
       if (altPhone.trim()) formData.append('altPhone', altPhone.trim());
       if (nationalId.trim()) formData.append('nationalId', nationalId.trim());
-      formData.append('occupation', occupation);
-      formData.append('birthYear', birthYear.trim());
-      formData.append('address', address.trim());
+      formData.append('occupation', occupation || 'كاسب');
+      formData.append('birthYear', birthYear.trim() || '2000');
+      formData.append('address', address.trim() || selectedGovernorate || 'بغداد');
 
       // Match city by selected governorate name or ID
       const matchedCity = cities.find(
@@ -164,8 +164,8 @@ export const PublicSubmitRequestPage: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       let msg = err.response?.data?.message || err.message || 'تعذر تقديم الطلب، يرجى مراجعة البيانات والمحاولة مجدداً';
-      if (msg === 'Invalid input' || msg.includes('Invalid input')) {
-        msg = 'يرجى التأكد من ملء جميع الحقول المطلوبة والتأكد من صحة رقم الهاتف';
+      if (msg === 'Invalid input' || msg.includes('Invalid input') || msg.includes('VALIDATION_ERROR')) {
+        msg = 'يرجى التأكد من إدخال الاسم ورقم الهاتف بشكل صحيح';
       }
       setErrorMessage(msg);
       window.scrollTo({ top: 0, behavior: 'smooth' });
