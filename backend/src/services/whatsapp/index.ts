@@ -4,7 +4,7 @@ import { RealWhatsAppProvider } from './real.whatsapp.js';
 import { env } from '../../config/env.js';
 
 export const whatsAppProvider: IWhatsAppProvider =
-  env.WHATSAPP_PROVIDER === 'mock'
+  env.WHATSAPP_PROVIDER === 'mock' && env.NODE_ENV === 'test'
     ? new MockWhatsAppProvider()
     : new RealWhatsAppProvider();
 
