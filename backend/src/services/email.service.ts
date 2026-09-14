@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
+import { AppError } from '../middlewares/error.middleware.js';
 
 interface SendOtpOptions {
   email: string;
@@ -36,23 +37,9 @@ const getTransporter = () => {
   }
 
   if (user && pass) {
-    // If Gmail host or gmail address, use optimized Gmail service
-    if (host.includes('gmail') || user.includes('@gmail.com') || host === 'smtp.gmail.com') {
-      return nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user,
-          pass
-        },
-        tls: {
-          rejectUnauthorized: false
-        }
-      });
-    }
-
     return nodemailer.createTransport({
-      host,
-      port,
+      host: host || 'smtp.gmail.com',
+      port: port || 587,
       secure: port === 465,
       auth: {
         user,
@@ -60,7 +47,10 @@ const getTransporter = () => {
       },
       tls: {
         rejectUnauthorized: false
-      }
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000
     });
   }
 
@@ -131,7 +121,7 @@ export const sendOtpEmail = async ({
 
   if (!transporter) {
     console.error('[EMAIL SERVICE ERROR] SMTP Transporter could not be initialized.');
-    throw new Error('خدمة إرسال البريد الإلكتروني غير مهيأة بالشكل الصحيح في الخادم');
+    throw new AppError('خدمة إرسال البريد الإلكتروني غير مهيأة بالشكل الصحيح في الخادم', 500, 'SMTP_CONFIG_ERROR');
   }
 
   try {
@@ -148,6 +138,6 @@ export const sendOtpEmail = async ({
     return { success: true, messageId: info.messageId };
   } catch (err: any) {
     console.error(`❌ [EMAIL SERVICE ERROR] Failed to send email to ${email}:`, err?.message || err);
-    throw new Error('تعذر إرسال رسالة البريد الإلكتروني المحتوية على رمز التحقق، يرجى المحاولة لاحقاً');
+    throw new AppError('تعذر إرسال رسالة البريد الإلكتروني المحتوية على رمز التحقق، يرجى المحاولة لاحقاً', 500, 'EMAIL_SEND_FAILED');
   }
 };

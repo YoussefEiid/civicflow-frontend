@@ -24,11 +24,11 @@ const envSchema = z.object({
   WHATSAPP_API_URL: z.string().default('https://backendapi.wpsenderx.com/api/messages/send'),
   WHATSAPP_API_KEY: z.string().default('wps_7b5db2a829ff4377ad0c6c42ea7fe4af991c191992305e70eab136c8bb89f7d2'),
   WHATSAPP_SENDER_PHONE: z.string().default('+9647874120325'),
-  SMTP_HOST: z.string().default('smtp.gmail.com'),
+  SMTP_HOST: z.string().optional().transform(v => (v && v.trim()) || 'smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
-  SMTP_USER: z.string().default('baszmat3@gmail.com'),
-  SMTP_PASS: z.string().default('hquozwytjyfvmoni'),
-  SMTP_FROM: z.string().default('"منظومة CivicFlow" <baszmat3@gmail.com>')
+  SMTP_USER: z.string().optional().transform(v => (v && v.trim()) || 'baszmat3@gmail.com'),
+  SMTP_PASS: z.string().optional().transform(v => (v && v.trim()) || 'hquozwytjyfvmoni'),
+  SMTP_FROM: z.string().optional().transform(v => (v && v.trim()) || '"منظومة CivicFlow" <baszmat3@gmail.com>')
 });
 
 // OTP security settings (optional overrides, safe production defaults enforced)

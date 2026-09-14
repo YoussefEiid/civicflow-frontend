@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../../components/ui/Card';
@@ -6,11 +6,12 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Modal } from '../../components/ui/Modal';
-import { User, Mail, Phone, Shield, Clock, KeyRound, Edit, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Phone, Shield, Clock, KeyRound, Edit, CheckCircle2, Loader2 } from 'lucide-react';
+import { authService } from '../../services/authService';
 
 export const ProfilePage: React.FC = () => {
   const { user, updateProfile } = useAuth();
-  const { success } = useToast();
+  const { success, error: toastError } = useToast();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -18,12 +19,20 @@ export const ProfilePage: React.FC = () => {
 
   // Email verification state
   const [isEmailVerified, setIsEmailVerified] = useState(
-    localStorage.getItem(`email_verified_${user?.email}`) === 'true'
+    Boolean(user?.emailVerified || (user?.email && localStorage.getItem(`email_verified_${user.email}`) === 'true'))
   );
   const [otpInput, setOtpInput] = useState('');
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [verificationError, setVerificationError] = useState('');
+
+  useEffect(() => {
+    if (user?.emailVerified || (user?.email && localStorage.getItem(`email_verified_${user.email}`) === 'true')) {
+      setIsEmailVerified(true);
+    } else {
+      setIsEmailVerified(false);
+    }
+  }, [user?.email, user?.emailVerified]);
 
   // Edit state
   const [name, setName] = useState(user?.name || '');
@@ -41,13 +50,14 @@ export const ProfilePage: React.FC = () => {
     setIsSendingOtp(true);
     setVerificationError('');
     try {
-      const { authService } = await import('../../services/authService');
       await authService.sendVerificationOTP(user.email);
       success('تم إرسال رمز التحقق', `تم إرسال رمز التحقق المكون من 6 أرقام إلى بريدك (${user.email})`);
       setIsVerifyModalOpen(true);
     } catch (err: any) {
       console.error(err);
-      setVerificationError(err.message || 'تعذر إرسال رمز التحقق');
+      const msg = err.message || 'تعذر إرسال رمز التحقق';
+      setVerificationError(msg);
+      toastError('خطأ في الإرسال', msg);
       setIsVerifyModalOpen(true);
     } finally {
       setIsSendingOtp(false);
@@ -61,10 +71,13 @@ export const ProfilePage: React.FC = () => {
     setIsVerifyingOtp(true);
     setVerificationError('');
     try {
-      const { authService } = await import('../../services/authService');
       await authService.verifyEmailOTP(user.email, otpInput.trim());
       setIsEmailVerified(true);
       localStorage.setItem(`email_verified_${user.email}`, 'true');
+      if (user) {
+        const updatedUser = { ...user, emailVerified: true };
+        localStorage.setItem('civicflow_user', JSON.stringify(updatedUser));
+      }
       success('تم تأكيد الحساب', 'تم التحقق من بريدك الإلكتروني وتأكيد الحساب بنجاح ✓');
       setIsVerifyModalOpen(false);
       setOtpInput('');
@@ -93,7 +106,6 @@ export const ProfilePage: React.FC = () => {
     }
     setIsChangingPassword(true);
     try {
-      const { authService } = await import('../../services/authService');
       await authService.changePassword(currentPassword, newPassword);
       success('تم تغيير كلمة المرور بنجاح', 'تم تحديث كلمة المرور في قاعدة البيانات. يرجى استخدامها للدخول القادم.');
       setIsPasswordModalOpen(false);
@@ -169,17 +181,25 @@ export const ProfilePage: React.FC = () => {
               <div className="flex items-center justify-between gap-2">
                 <p className="font-bold text-slate-800 font-mono truncate">{user?.email}</p>
                 {isEmailVerified ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 shrink-0">
-                    <CheckCircle2 className="w-3 h-3" />
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                     مؤكد ✓
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={handleStartEmailVerification}
-                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline shrink-0"
+                    disabled={isSendingOtp}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
                   >
-                    تأكيد برمز OTP
+                    {isSendingOtp ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                        <span>جاري الإرسال...</span>
+                      </>
+                    ) : (
+                      <span>تأكيد برمز OTP</span>
+                    )}
                   </button>
                 )}
               </div>

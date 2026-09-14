@@ -7,38 +7,58 @@ export class RealWhatsAppProvider implements IWhatsAppProvider {
    * Normalizes phone number into international standard (digits only without leading zeros or +)
    */
   private formatPhoneNumber(rawPhone: string): string {
-    let cleaned = rawPhone.replace(/[^\d+]/g, '');
+    if (!rawPhone) return '';
 
-    // Remove leading + or 00
+    // 1. Convert Arabic-Indic (٠-٩) and Persian (۰-۹) digits to standard Latin digits (0-9)
+    let cleaned = rawPhone
+      .replace(/[٠-٩]/g, (d) => (d.charCodeAt(0) - 1632).toString())
+      .replace(/[۰-۹]/g, (d) => (d.charCodeAt(0) - 1776).toString())
+      .replace(/[^\d+]/g, '');
+
+    // 2. Remove leading + or 00
     if (cleaned.startsWith('+')) {
       cleaned = cleaned.substring(1);
     } else if (cleaned.startsWith('00')) {
       cleaned = cleaned.substring(2);
     }
 
+    // 3. Normalize specific country prefixes:
+
     // Iraq formats:
     // 96407... -> 9647...
     if (cleaned.startsWith('96407')) {
       cleaned = '964' + cleaned.substring(4);
     }
-    // 07... (11 digits) -> 9647...
+    // 07... (11 digits, e.g. 07801234567, 0770..., 0750...) -> 9647...
     else if (cleaned.startsWith('07') && cleaned.length === 11) {
       cleaned = '964' + cleaned.substring(1);
     }
     // 7... (10 digits, Iraq mobile prefix without 0) -> 9647...
-    else if (/^7[5789]\d{8}$/.test(cleaned)) {
+    else if (/^7[3-9]\d{8}$/.test(cleaned)) {
       cleaned = '964' + cleaned;
     }
 
-    // Egypt: 010..., 011..., 012..., 015... -> 2010...
-    else if (cleaned.startsWith('01') && cleaned.length === 11) {
+    // Egypt formats:
+    // 2001... -> 201... (accidental leading 0 after country code)
+    else if (cleaned.startsWith('2001') && cleaned.length === 13) {
+      cleaned = '20' + cleaned.substring(3);
+    }
+    // 010..., 011..., 012..., 015... (11 digits) -> 2010...
+    else if (/^01[0125]\d{8}$/.test(cleaned)) {
       cleaned = '2' + cleaned;
     }
 
-    // Saudi Arabia: 05... -> 9665...
+    // Saudi Arabia formats:
+    // 96605... -> 9665...
+    else if (cleaned.startsWith('96605') && cleaned.length === 13) {
+      cleaned = '966' + cleaned.substring(4);
+    }
+    // 05... (10 digits) -> 9665...
     else if (cleaned.startsWith('05') && cleaned.length === 10) {
       cleaned = '966' + cleaned.substring(1);
-    } else if (/^5\d{8}$/.test(cleaned)) {
+    }
+    // 5... (9 digits) -> 9665...
+    else if (/^5\d{8}$/.test(cleaned)) {
       cleaned = '966' + cleaned;
     }
 
@@ -101,6 +121,7 @@ export class RealWhatsAppProvider implements IWhatsAppProvider {
           templateKey: options.templateKey || null,
           messageContent: options.message,
           status: status,
+          errorMessage: errorMessage || null,
           requestId: options.requestId || null
         }
       });

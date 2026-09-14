@@ -181,6 +181,7 @@ export interface Employee {
   department: string;
   assignedRequestsCount: number;
   status: 'نشط' | 'غير نشط';
+  emailVerified?: boolean;
   lastLogin: string;
   avatarUrl?: string;
   permissions?: string[];
