@@ -116,5 +116,42 @@ export const whatsappNotificationService = {
     } catch (err) {
       console.warn('⚠️ WhatsApp final response notification skipped:', err);
     }
+  },
+
+  /**
+   * إرسال رمز التحقق (OTP) عبر واتساب
+   */
+  sendOtpWhatsApp: async (params: {
+    to: string;
+    userName: string;
+    otp: string;
+    purpose: 'verify_email' | 'reset_password' | 'account_activation';
+    expiresInMinutes?: number;
+  }) => {
+    if (!params.to) return { success: false };
+    try {
+      const isReset = params.purpose === 'reset_password';
+      const actionTitle = isReset ? 'استعادة وتعيين كلمة المرور' : 'تأكيد وتفعيل الحساب';
+      const message = [
+        `🔒 *منظومة CivicFlow - رمز التحقق (OTP)*`,
+        `مرحباً بك ${params.userName || 'عزيزنا المستخدم'}،`,
+        `طلبكم لـ: *${actionTitle}*`,
+        ``,
+        `🔑 رمز التحقق الخاص بك هو: *${params.otp}*`,
+        `⏳ الرمز صالح لمدة ${params.expiresInMinutes || 10} دقائق فقط.`,
+        ``,
+        `⚠️ تنبيه أمني: لا تشارك هذا الرمز مع أي شخص لحماية حسابك.`
+      ].join('\n');
+
+      return await whatsAppProvider.sendMessage({
+        to: params.to,
+        message,
+        templateKey: 'otp_verification'
+      });
+    } catch (err) {
+      console.warn('⚠️ WhatsApp OTP notification skipped:', err);
+      return { success: false };
+    }
   }
 };
+

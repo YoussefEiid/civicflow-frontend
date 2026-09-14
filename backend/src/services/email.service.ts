@@ -48,9 +48,9 @@ const getTransporter = () => {
       tls: {
         rejectUnauthorized: false
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000
+      connectionTimeout: 4000,
+      greetingTimeout: 4000,
+      socketTimeout: 6000
     });
   }
 
@@ -116,6 +116,66 @@ export const sendOtpEmail = async ({
     </html>
   `;
 
+  const resendApiKey = (process.env.RESEND_API_KEY || (env as any).RESEND_API_KEY || '').trim();
+  const brevoApiKey = (process.env.BREVO_API_KEY || (env as any).BREVO_API_KEY || '').trim();
+
+  // 1. Try Resend HTTP API (Port 443 HTTPS - Never blocked by Cloud Providers)
+  if (resendApiKey) {
+    try {
+      console.log(`📡 [HTTP EMAIL DISPATCH] Dispatching OTP via Resend API to: ${email}`);
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: env.SMTP_FROM || 'CivicFlow <onboarding@resend.dev>',
+          to: [email],
+          subject: `[CivicFlow] ${title}: ${otp}`,
+          html: htmlContent
+        })
+      });
+      const data: any = await res.json();
+      if (res.ok && data?.id) {
+        console.log(`✅ [RESEND SUCCESS] OTP email dispatched via Resend API. ID: ${data.id}`);
+        return { success: true, messageId: data.id };
+      }
+      console.warn('⚠️ [RESEND WARNING] Resend API returned non-200:', data);
+    } catch (apiErr) {
+      console.warn('⚠️ [RESEND ERROR] Failed sending via Resend API, falling back to SMTP:', apiErr);
+    }
+  }
+
+  // 2. Try Brevo HTTP API (Port 443 HTTPS)
+  if (brevoApiKey) {
+    try {
+      console.log(`📡 [HTTP EMAIL DISPATCH] Dispatching OTP via Brevo API to: ${email}`);
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'منظومة CivicFlow', email: 'baszmat3@gmail.com' },
+          to: [{ email }],
+          subject: `[CivicFlow] ${title}: ${otp}`,
+          htmlContent: htmlContent
+        })
+      });
+      const data: any = await res.json();
+      if (res.ok && data?.messageId) {
+        console.log(`✅ [BREVO SUCCESS] OTP email dispatched via Brevo API. ID: ${data.messageId}`);
+        return { success: true, messageId: data.messageId };
+      }
+      console.warn('⚠️ [BREVO WARNING] Brevo API returned error:', data);
+    } catch (brevoErr) {
+      console.warn('⚠️ [BREVO ERROR] Failed sending via Brevo API, falling back to SMTP:', brevoErr);
+    }
+  }
+
+  // 3. Fallback to Standard SMTP Transport
   const user = (env.SMTP_USER || process.env.SMTP_USER || process.env.EMAIL_USER || 'baszmat3@gmail.com').trim();
   const transporter = getTransporter();
 

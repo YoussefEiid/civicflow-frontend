@@ -4,6 +4,7 @@ import { prisma } from '../config/database.js';
 import { env } from '../config/env.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { sendOtpEmail, OtpEmailPurpose } from './email.service.js';
+import { whatsappNotificationService } from './whatsapp/whatsappNotification.service.js';
 
 export type OtpPurpose = 'VERIFY_EMAIL' | 'RESET_PASSWORD' | 'ACCOUNT_ACTIVATION';
 
@@ -101,6 +102,20 @@ export const issueOtp = async ({
   const now = new Date();
   const expiresAt = new Date(now.getTime() + OTP_CONFIG.ttlMs);
 
+  // Lookup user to check name and phone number
+  let targetUser = null;
+  if (userId) {
+    targetUser = await prisma.user.findUnique({ where: { id: userId } });
+  } else {
+    targetUser = await prisma.user.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }
+    });
+  }
+
+  const effectiveUserId = targetUser?.id || userId || null;
+  const effectiveUserName = targetUser?.name || userName || 'المستخدم الكريم';
+  const targetPhone = targetUser?.phone;
+
   // Upsert: replaces any previous active OTP for this email+purpose.
   // This implements the "invalidate previous unused OTPs" security requirement.
   await prisma.otpVerification.upsert({
@@ -114,7 +129,7 @@ export const issueOtp = async ({
       attempts: 0,
       isUsed: false,
       lockedUntil: null,
-      userId: userId ?? null
+      userId: effectiveUserId
     },
     update: {
       otpHash,
@@ -123,17 +138,52 @@ export const issueOtp = async ({
       attempts: 0,
       isUsed: false,
       lockedUntil: null,
-      userId: userId ?? null
+      userId: effectiveUserId
     }
   });
 
-  await sendOtpEmail({
-    email: normalizedEmail,
-    otp,
-    purpose: purposeToEmail(purpose),
-    userName: userName || 'المستخدم الكريم',
-    expiresInMinutes: env.OTP_TTL_MINUTES
-  });
+  let emailSent = false;
+  let emailError: any = null;
+
+  try {
+    await sendOtpEmail({
+      email: normalizedEmail,
+      otp,
+      purpose: purposeToEmail(purpose),
+      userName: effectiveUserName,
+      expiresInMinutes: env.OTP_TTL_MINUTES
+    });
+    emailSent = true;
+  } catch (err: any) {
+    emailError = err;
+    console.warn(`⚠️ [OTP EMAIL DISPATCH WARNING] Email dispatch failed for ${normalizedEmail}:`, err?.message || err);
+  }
+
+  // Also dispatch via WhatsApp if user phone exists
+  let whatsappSent = false;
+  if (targetPhone) {
+    try {
+      await whatsappNotificationService.sendOtpWhatsApp({
+        to: targetPhone,
+        userName: effectiveUserName,
+        otp,
+        purpose: purposeToEmail(purpose),
+        expiresInMinutes: env.OTP_TTL_MINUTES
+      });
+      whatsappSent = true;
+      console.log(`✅ [OTP WHATSAPP DISPATCH] WhatsApp OTP sent successfully to phone: ${targetPhone}`);
+    } catch (wpErr) {
+      console.warn('⚠️ [OTP WHATSAPP WARNING] WhatsApp OTP dispatch failed:', wpErr);
+    }
+  }
+
+  // If neither channel delivered the OTP:
+  if (!emailSent && !whatsappSent) {
+    if (emailError) {
+      throw emailError;
+    }
+    throw new AppError('تعذر إرسال رمز التحقق، يرجى المحاولة لاحقاً', 500, 'OTP_DELIVERY_FAILED');
+  }
 
   return {
     otp,

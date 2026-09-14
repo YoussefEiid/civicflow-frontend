@@ -60,6 +60,7 @@ const issueSession = async (req: Request, res: Response, user: any) => {
     httpOnly: true,
     secure: env.NODE_ENV === 'production',
     sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+    partitioned: env.NODE_ENV === 'production',
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 
