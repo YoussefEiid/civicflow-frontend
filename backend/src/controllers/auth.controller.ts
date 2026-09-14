@@ -453,27 +453,21 @@ export const requestPasswordResetOTP = async (req: Request, res: Response, next:
       throw new AppError('لا يوجد حساب مسجل بهذا البريد الإلكتروني', 404, 'USER_NOT_FOUND');
     }
 
-    const issued = await issueOtp({
+    await issueOtp({
       email: normalizedEmail,
       purpose: 'RESET_PASSWORD',
       userId: user.id,
       userName: user.name
     });
 
-    const msg = (issued as any).delivered
-      ? 'تم إرسال رمز التحقق (OTP) بنجاح إلى بريدك الإلكتروني.'
-      : `تم إنشاء رمز التحقق لحسابك بنجاح. رمز التحقق هو: ${issued.otp}`;
-
     return sendSuccess(
       res,
       {
         email: normalizedEmail,
         expiresInMinutes: env.OTP_TTL_MINUTES,
-        cooldownSeconds: env.OTP_RESEND_COOLDOWN_SECONDS,
-        otpHint: (issued as any).delivered ? undefined : issued.otp,
-        devOtp: issued.otp
+        cooldownSeconds: env.OTP_RESEND_COOLDOWN_SECONDS
       },
-      msg
+      'تم إرسال رمز التحقق (OTP) بنجاح إلى بريدك الإلكتروني.'
     );
   } catch (error) {
     next(error);
@@ -562,26 +556,20 @@ export const sendVerificationOTP = async (req: Request, res: Response, next: Nex
       throw new AppError('البريد الإلكتروني مطلوب لإرسال رمز التحقق', 400, 'EMAIL_REQUIRED');
     }
 
-    const issued = await issueOtp({
+    await issueOtp({
       email: targetEmail,
       purpose: 'VERIFY_EMAIL',
       userName: targetName
     });
-
-    const msg = (issued as any).delivered
-      ? 'تم إرسال رمز التحقق لتأكيد الحساب بنجاح إلى بريدك الإلكتروني.'
-      : `تم إنشاء رمز التحقق لحسابك بنجاح. رمز التحقق هو: ${issued.otp}`;
 
     return sendSuccess(
       res,
       {
         email: targetEmail,
         expiresInMinutes: env.OTP_TTL_MINUTES,
-        cooldownSeconds: env.OTP_RESEND_COOLDOWN_SECONDS,
-        otpHint: (issued as any).delivered ? undefined : issued.otp,
-        devOtp: issued.otp
+        cooldownSeconds: env.OTP_RESEND_COOLDOWN_SECONDS
       },
-      msg
+      'تم إرسال رمز التحقق لتأكيد الحساب بنجاح إلى بريدك الإلكتروني.'
     );
   } catch (error) {
     next(error);

@@ -175,7 +175,31 @@ export const sendOtpEmail = async ({
     }
   }
 
-  // 3. Fallback to Standard SMTP Transport
+  // 3. Try Webhook / Google Script Relay (Port 443 HTTPS)
+  const webhookUrl = (process.env.GMAIL_WEBHOOK_URL || (env as any).GMAIL_WEBHOOK_URL || '').trim();
+  if (webhookUrl) {
+    try {
+      console.log(`📡 [HTTP WEBHOOK DISPATCH] Dispatching OTP via Webhook to: ${email}`);
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: `[CivicFlow] ${title}: ${otp}`,
+          text: `رمز التحقق الخاص بك في منظومة CivicFlow هو: ${otp} (صالح لمدة ${expiresInMinutes} دقيقة)`,
+          html: htmlContent
+        })
+      });
+      if (res.ok) {
+        console.log(`✅ [WEBHOOK SUCCESS] OTP email dispatched via Webhook.`);
+        return { success: true, messageId: `webhook-${Date.now()}` };
+      }
+    } catch (whErr) {
+      console.warn('⚠️ [WEBHOOK ERROR] Webhook dispatch failed:', whErr);
+    }
+  }
+
+  // 4. Fallback to Standard SMTP Transport
   const user = (env.SMTP_USER || process.env.SMTP_USER || process.env.EMAIL_USER || 'baszmat3@gmail.com').trim();
   const transporter = getTransporter();
 

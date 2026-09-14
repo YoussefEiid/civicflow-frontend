@@ -45,20 +45,13 @@ export const ProfilePage: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  const [receivedOtpHint, setReceivedOtpHint] = useState<string | null>(null);
-
   const handleStartEmailVerification = async () => {
     if (!user?.email) return;
     setIsSendingOtp(true);
     setVerificationError('');
     try {
-      const res: any = await authService.sendVerificationOTP(user.email);
-      const hint = res?.devOtp || res?.otpHint;
-      if (hint && /^\d{6}$/.test(hint)) {
-        setReceivedOtpHint(hint);
-        setOtpInput(hint);
-      }
-      success('تم إرسال رمز التحقق', `تم تجهيز رمز التحقق المكون من 6 أرقام لتأكيد حسابك (${user.email})`);
+      await authService.sendVerificationOTP(user.email);
+      success('تم إرسال رمز التحقق', `تم إرسال رمز التحقق المكون من 6 أرقام إلى بريدك الإلكتروني (${user.email})`);
       setIsVerifyModalOpen(true);
     } catch (err: any) {
       console.error(err);
@@ -309,22 +302,6 @@ export const ProfilePage: React.FC = () => {
             تم إرسال رمز تحقق مكون من 6 أرقام إلى:
             <p className="font-bold font-mono text-blue-950 mt-1">{user?.email}</p>
           </div>
-
-          {receivedOtpHint && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center justify-between">
-              <div>
-                <span className="font-semibold block text-emerald-800">رمز التحقق السريع:</span>
-                <span className="font-mono text-base font-black text-emerald-950 tracking-wider">{receivedOtpHint}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOtpInput(receivedOtpHint)}
-                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700 transition-colors shadow-sm"
-              >
-                تعبئة الرمز
-              </button>
-            </div>
-          )}
 
           {verificationError && (
             <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs">

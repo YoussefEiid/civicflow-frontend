@@ -28,7 +28,9 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().optional().transform(v => (v && v.trim()) || 'baszmat3@gmail.com'),
   SMTP_PASS: z.string().optional().transform(v => (v && v.trim()) || 'hquozwytjyfvmoni'),
-  SMTP_FROM: z.string().optional().transform(v => (v && v.trim()) || '"منظومة CivicFlow" <baszmat3@gmail.com>')
+  SMTP_FROM: z.string().optional().transform(v => (v && v.trim()) || '"منظومة CivicFlow" <baszmat3@gmail.com>'),
+  BREVO_API_KEY: z.string().optional(),
+  RESEND_API_KEY: z.string().optional()
 });
 
 // OTP security settings (optional overrides, safe production defaults enforced)
