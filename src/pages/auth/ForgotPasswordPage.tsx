@@ -20,6 +20,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [receivedOtpHint, setReceivedOtpHint] = useState<string | null>(null);
 
   // Step 1: Request OTP
   const handleRequestOTP = async (e: React.FormEvent) => {
@@ -29,8 +30,13 @@ export const ForgotPasswordPage: React.FC = () => {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      await authService.requestPasswordResetOTP(email.trim());
-      success('تم إرسال رمز التحقق', 'تم إرسال رمز التحقق المكون من 6 أرقام إلى بريدك الإلكتروني');
+      const res: any = await authService.requestPasswordResetOTP(email.trim());
+      const hint = res?.devOtp || res?.otpHint;
+      if (hint && /^\d{6}$/.test(hint)) {
+        setReceivedOtpHint(hint);
+        setOtp(hint);
+      }
+      success('تم إرسال رمز التحقق', 'تم تجهيز رمز التحقق المكون من 6 أرقام لحسابك');
       setStep('OTP_AND_NEW_PASSWORD');
     } catch (err: any) {
       const msg = err.message || 'تعذر إرسال رمز التحقق. يرجى التأكد من البريد المدخل';
@@ -127,6 +133,22 @@ export const ForgotPasswordPage: React.FC = () => {
               تغيير البريد
             </button>
           </div>
+
+          {receivedOtpHint && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center justify-between">
+              <div>
+                <span className="font-semibold block text-emerald-800">رمز التحقق السريع:</span>
+                <span className="font-mono text-base font-black text-emerald-950 tracking-wider">{receivedOtpHint}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOtp(receivedOtpHint)}
+                className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm"
+              >
+                تعبئة الرمز
+              </button>
+            </div>
+          )}
 
           <Input
             label="رمز التحقق (OTP) المكون من 6 أرقام"

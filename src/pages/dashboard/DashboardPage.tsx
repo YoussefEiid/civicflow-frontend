@@ -32,8 +32,14 @@ export const DashboardPage: React.FC = () => {
     overdueRequestsCount,
     inProgressRequestsCount,
     completedRequestsCount,
-    totalRequestsCount
+    totalRequestsCount,
+    loading,
+    refreshData
   } = useData();
+
+  React.useEffect(() => {
+    refreshData();
+  }, [refreshData]);
 
   // Highlight requests
   const overdueRequests = requests.filter((r) => r.deadlineStatus === 'متأخر');

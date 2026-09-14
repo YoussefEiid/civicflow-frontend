@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
 import {
   RequestItem,
   Customer,
@@ -73,6 +74,8 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
+
   const [requests, setRequests] = useState<RequestItem[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [ministries, setMinistries] = useState<Ministry[]>([]);
@@ -112,6 +115,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
+    if (isAuthenticated || user) {
+      refreshData();
+    }
+  }, [isAuthenticated, user?.id, refreshData]);
+
+  useEffect(() => {
     refreshData();
 
     const handleStorageUpdate = () => {
@@ -119,8 +128,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     window.addEventListener('civicflow_data_updated', handleStorageUpdate);
+    window.addEventListener('civicflow_auth_login', handleStorageUpdate);
     return () => {
       window.removeEventListener('civicflow_data_updated', handleStorageUpdate);
+      window.removeEventListener('civicflow_auth_login', handleStorageUpdate);
     };
   }, [refreshData]);
 

@@ -84,6 +84,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     const res = await authService.login(email.trim(), password);
     setUser(res.user);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('civicflow_auth_login'));
+      window.dispatchEvent(new CustomEvent('civicflow_data_updated'));
+    }
     return true;
   };
 
