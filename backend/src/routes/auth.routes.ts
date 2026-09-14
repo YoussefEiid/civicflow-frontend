@@ -10,7 +10,9 @@ import {
   verifyResetOTP,
   resetPasswordWithOTP,
   sendVerificationOTP,
-  verifyEmailOTP
+  verifyEmailOTP,
+  sendPhoneVerificationOTP,
+  verifyPhoneOTP
 } from '../controllers/auth.controller.js';
 import { sendOtp, verifyOtp, resendOtp } from '../controllers/otp.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
@@ -26,6 +28,8 @@ authRouter.post('/verify-reset-otp', authLimiter, verifyResetOTP);
 authRouter.post('/reset-password-otp', authLimiter, resetPasswordWithOTP);
 authRouter.post('/send-verification-otp', authLimiter, sendVerificationOTP);
 authRouter.post('/verify-email-otp', authLimiter, verifyEmailOTP);
+authRouter.post('/send-phone-otp', authLimiter, sendPhoneVerificationOTP);
+authRouter.post('/verify-phone-otp', authLimiter, verifyPhoneOTP);
 
 // Secure email-OTP verification flow
 authRouter.post('/send-otp', authLimiter, sendOtp);

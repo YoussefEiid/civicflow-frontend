@@ -99,28 +99,30 @@ export const authService = {
     return apiClient.post('/auth/verify-email-otp', { email, otp });
   },
 
-  // Secure email-OTP verification flow
-  sendOtp: async (
-    email: string
-  ): Promise<{ email: string; expiresInMinutes: number; cooldownSeconds: number; otpHint?: string }> => {
+  sendPhoneVerificationOTP: async (phone?: string): Promise<{ phone: string }> => {
+    return apiClient.post('/auth/send-phone-otp', { phone });
+  },
+
+  verifyPhoneOTP: async (phone: string, otp: string): Promise<{ phone: string; verified: boolean }> => {
+    return apiClient.post('/auth/verify-phone-otp', { phone, otp });
+  },
+
+  // Generic Email OTP
+  sendOtp: async (email: string): Promise<{ email: string; expiresInMinutes: number; cooldownSeconds: number }> => {
     return apiClient.post('/auth/send-otp', { email });
   },
 
-  verifyOtp: async (
-    email: string,
-    otp: string
-  ): Promise<{ user: Employee; accessToken: string; permissions: string[]; emailVerified: boolean }> => {
-    const data = await apiClient.post('/auth/verify-otp', { email, otp });
-    setAccessToken(data.accessToken);
-    if (isBrowser && data.user) {
-      localStorage.setItem('civicflow_user', JSON.stringify(data.user));
-    }
-    return data;
+  resendOtp: async (email: string): Promise<{ email: string; expiresInMinutes: number; cooldownSeconds: number }> => {
+    return apiClient.post('/auth/resend-otp', { email });
   },
 
-  resendOtp: async (
-    email: string
-  ): Promise<{ email: string; expiresInMinutes: number; cooldownSeconds: number; otpHint?: string }> => {
-    return apiClient.post('/auth/resend-otp', { email });
+  verifyOtp: async (email: string, otp: string): Promise<LoginResponse & { emailVerified: boolean }> => {
+    const data = await apiClient.post<LoginResponse & { emailVerified: boolean }>('/auth/verify-otp', { email, otp });
+    setAccessToken(data.accessToken);
+    if (isBrowser) {
+      if (data.user) localStorage.setItem('civicflow_user', JSON.stringify(data.user));
+      if (data.refreshToken) localStorage.setItem('civicflow_refresh_token', data.refreshToken);
+    }
+    return data;
   }
 };

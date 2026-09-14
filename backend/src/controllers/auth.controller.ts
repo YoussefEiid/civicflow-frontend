@@ -604,3 +604,101 @@ export const verifyEmailOTP = async (req: Request, res: Response, next: NextFunc
     next(error);
   }
 };
+
+// ============================================================================
+// Phone WhatsApp OTP Verification Flow
+// ============================================================================
+
+export const sendPhoneVerificationOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let targetPhone = '';
+    let targetName = 'المستخدم الكريم';
+
+    if (req.body?.phone) {
+      targetPhone = req.body.phone.trim();
+    } else if (req.user?.id) {
+      const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+      targetPhone = dbUser?.phone || '';
+      targetName = dbUser?.name || targetName;
+    }
+
+    if (!targetPhone) {
+      throw new AppError('رقم الهاتف الجوال مطلوب لإرسال رمز التحقق', 400, 'PHONE_REQUIRED');
+    }
+
+    const { whatsappNotificationService } = await import('../services/whatsapp/whatsappNotification.service.js');
+    const { generateOtp, hashOtp, OTP_CONFIG } = await import('../services/otp.service.js');
+
+    const otp = generateOtp();
+    const otpHash = await hashOtp(otp);
+    const key = `phone:${targetPhone.replace(/[^\d]/g, '')}`;
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + OTP_CONFIG.ttlMs);
+
+    await prisma.otpVerification.upsert({
+      where: { email_purpose: { email: key, purpose: 'ACCOUNT_ACTIVATION' } },
+      create: {
+        email: key,
+        purpose: 'ACCOUNT_ACTIVATION',
+        otpHash,
+        expiresAt,
+        lastSentAt: now,
+        attempts: 0,
+        isUsed: false,
+        userId: req.user?.id || null
+      },
+      update: {
+        otpHash,
+        expiresAt,
+        lastSentAt: now,
+        attempts: 0,
+        isUsed: false,
+        lockedUntil: null,
+        userId: req.user?.id || null
+      }
+    });
+
+    await whatsappNotificationService.sendOtpWhatsApp({
+      to: targetPhone,
+      userName: targetName,
+      otp,
+      purpose: 'account_activation',
+      expiresInMinutes: env.OTP_TTL_MINUTES
+    });
+
+    return sendSuccess(
+      res,
+      {
+        phone: targetPhone,
+        expiresInMinutes: env.OTP_TTL_MINUTES,
+        cooldownSeconds: env.OTP_RESEND_COOLDOWN_SECONDS
+      },
+      'تم إرسال رمز التحقق عبر الواتساب بنجاح.'
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyPhoneOTP = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const phone = (req.body?.phone || '').trim();
+    const otp = (req.body?.otp || '').trim();
+
+    if (!phone || !otp) {
+      throw new AppError('رقم الهاتف ورمز التحقق مطلوبان', 400, 'PHONE_AND_OTP_REQUIRED');
+    }
+
+    const key = `phone:${phone.replace(/[^\d]/g, '')}`;
+    await verifyOtp({ email: key, otp, purpose: 'ACCOUNT_ACTIVATION', markUsed: true });
+
+    return sendSuccess(
+      res,
+      { phone, verified: true },
+      'تم التحقق من رقم الهاتف وتأكيد الواتساب بنجاح!'
+    );
+  } catch (error) {
+    next(error);
+  }
+};

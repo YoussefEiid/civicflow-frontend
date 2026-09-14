@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Modal } from '../../components/ui/Modal';
-import { User, Mail, Phone, Shield, Clock, KeyRound, Edit, CheckCircle2, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Shield, Clock, KeyRound, Edit, CheckCircle2, Loader2, MessageSquare } from 'lucide-react';
 import { authService } from '../../services/authService';
 
 export const ProfilePage: React.FC = () => {
@@ -16,6 +16,7 @@ export const ProfilePage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [isVerifyPhoneModalOpen, setIsVerifyPhoneModalOpen] = useState(false);
 
   // Email verification state
   const [isEmailVerified, setIsEmailVerified] = useState(
@@ -26,13 +27,28 @@ export const ProfilePage: React.FC = () => {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [verificationError, setVerificationError] = useState('');
 
+  // Phone WhatsApp verification state
+  const [isPhoneVerified, setIsPhoneVerified] = useState(
+    Boolean(user?.phone && localStorage.getItem(`phone_verified_${user.phone}`) === 'true')
+  );
+  const [phoneOtpInput, setPhoneOtpInput] = useState('');
+  const [isSendingPhoneOtp, setIsSendingPhoneOtp] = useState(false);
+  const [isVerifyingPhoneOtp, setIsVerifyingPhoneOtp] = useState(false);
+  const [phoneVerificationError, setPhoneVerificationError] = useState('');
+
   useEffect(() => {
     if (user?.emailVerified || (user?.email && localStorage.getItem(`email_verified_${user.email}`) === 'true')) {
       setIsEmailVerified(true);
     } else {
       setIsEmailVerified(false);
     }
-  }, [user?.email, user?.emailVerified]);
+
+    if (user?.phone && localStorage.getItem(`phone_verified_${user.phone}`) === 'true') {
+      setIsPhoneVerified(true);
+    } else {
+      setIsPhoneVerified(false);
+    }
+  }, [user?.email, user?.emailVerified, user?.phone]);
 
   // Edit state
   const [name, setName] = useState(user?.name || '');
@@ -85,6 +101,45 @@ export const ProfilePage: React.FC = () => {
       setVerificationError(err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
     } finally {
       setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleStartPhoneVerification = async () => {
+    if (!user?.phone) return;
+    setIsSendingPhoneOtp(true);
+    setPhoneVerificationError('');
+    try {
+      await authService.sendPhoneVerificationOTP(user.phone);
+      success('تم إرسال رمز التحقق (WhatsApp)', `تم إرسال رمز التحقق المكون من 6 أرقام إلى رقم الواتساب (${user.phone}) عبر WPSenderX`);
+      setIsVerifyPhoneModalOpen(true);
+    } catch (err: any) {
+      console.error(err);
+      const msg = err.message || 'تعذر إرسال رمز التحقق عبر الواتساب';
+      setPhoneVerificationError(msg);
+      toastError('خطأ في الإرسال', msg);
+      setIsVerifyPhoneModalOpen(true);
+    } finally {
+      setIsSendingPhoneOtp(false);
+    }
+  };
+
+  const handleConfirmPhoneVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneOtpInput || !user?.phone) return;
+
+    setIsVerifyingPhoneOtp(true);
+    setPhoneVerificationError('');
+    try {
+      await authService.verifyPhoneOTP(user.phone, phoneOtpInput.trim());
+      setIsPhoneVerified(true);
+      localStorage.setItem(`phone_verified_${user.phone}`, 'true');
+      success('تم تأكيد رقم الواتساب', 'تم التحقق من رقم الهاتف وتأكيد الواتساب بنجاح ✓');
+      setIsVerifyPhoneModalOpen(false);
+      setPhoneOtpInput('');
+    } catch (err: any) {
+      setPhoneVerificationError(err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
+    } finally {
+      setIsVerifyingPhoneOtp(false);
     }
   };
 
@@ -207,7 +262,34 @@ export const ProfilePage: React.FC = () => {
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <span className="text-xs font-semibold text-slate-500 block mb-1">رقم الهاتف الجوال</span>
-              <p className="font-bold text-slate-800 font-mono">{user?.phone}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-bold text-slate-800 font-mono truncate">{user?.phone || 'غير مسجل'}</p>
+                {isPhoneVerified ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    موثق واتساب ✓
+                  </span>
+                ) : user?.phone ? (
+                  <button
+                    type="button"
+                    onClick={handleStartPhoneVerification}
+                    disabled={isSendingPhoneOtp}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors shrink-0 disabled:opacity-50 cursor-pointer border border-emerald-200"
+                  >
+                    {isSendingPhoneOtp ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                        <span>جاري الإرسال...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>تأكيد برمز واتساب</span>
+                      </>
+                    )}
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
@@ -335,6 +417,61 @@ export const ProfilePage: React.FC = () => {
               </Button>
               <Button type="submit" variant="primary" size="sm" isLoading={isVerifyingOtp}>
                 تأكيد البريد
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Verify WhatsApp Phone OTP Modal */}
+      <Modal
+        isOpen={isVerifyPhoneModalOpen}
+        onClose={() => setIsVerifyPhoneModalOpen(false)}
+        title="تأكيد وتوثيق رقم الواتساب"
+        maxWidth="sm"
+      >
+        <form onSubmit={handleConfirmPhoneVerification} className="space-y-4" dir="rtl">
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950">
+            <div className="flex items-center gap-2 font-bold mb-1 text-emerald-800">
+              <MessageSquare className="w-4 h-4 text-emerald-600" />
+              <span>رمز التحقق عبر الواتساب (WPSenderX)</span>
+            </div>
+            تم إرسال رمز تحقق فوري إلى رقم الواتساب:
+            <p className="font-bold font-mono text-emerald-900 text-sm mt-1">{user?.phone}</p>
+          </div>
+
+          {phoneVerificationError && (
+            <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs">
+              {phoneVerificationError}
+            </div>
+          )}
+
+          <Input
+            label="رمز التحقق (OTP)"
+            type="text"
+            value={phoneOtpInput}
+            onChange={(e) => setPhoneOtpInput(e.target.value)}
+            placeholder="123456"
+            maxLength={6}
+            required
+            autoFocus
+          />
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleStartPhoneVerification}
+              disabled={isSendingPhoneOtp}
+              className="text-xs font-bold text-emerald-600 hover:text-emerald-800 underline"
+            >
+              {isSendingPhoneOtp ? 'جاري الإرسال...' : 'إعادة إرسال رمز الواتساب'}
+            </button>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsVerifyPhoneModalOpen(false)}>
+                إلغاء
+              </Button>
+              <Button type="submit" variant="primary" size="sm" isLoading={isVerifyingPhoneOtp}>
+                تأكيد الواتساب
               </Button>
             </div>
           </div>
