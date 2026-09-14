@@ -19,8 +19,9 @@ export const SendNotificationModal: React.FC<SendNotificationModalProps> = ({
   const { success } = useToast();
   const [channel, setChannel] = useState<'whatsapp' | 'sms'>('whatsapp');
   const [template, setTemplate] = useState('status');
+  const trackingBase = typeof window !== 'undefined' ? window.location.origin : 'https://civicflow-frontend-4.onrender.com';
   const [customText, setCustomText] = useState(
-    `عزيزي المراجع ${request.customerName}، نود إحاطتكم بآخر تحديثات طلبكم رقم ${request.requestNumber} لدى ${request.ministryName}: حالياً (${request.status}). الرابط: https://civicflow.gov.sa/track/${request.requestNumber}`
+    `عزيزي المراجع ${request.customerName}، نود إحاطتكم بآخر تحديثات طلبكم رقم ${request.requestNumber} لدى ${request.ministryName}: حالياً (${request.status}). الرابط: ${trackingBase}/track/${request.requestNumber}`
   );
   const [isSending, setIsSending] = useState(false);
 
@@ -28,11 +29,11 @@ export const SendNotificationModal: React.FC<SendNotificationModalProps> = ({
     setTemplate(val);
     if (val === 'status') {
       setCustomText(
-        `عزيزي المراجع ${request.customerName}، نود إحاطتكم بآخر مستجدات طلبكم رقم ${request.requestNumber} لدى ${request.ministryName}: حالياً (${request.status}). الرابط: https://civicflow.gov.sa/track/${request.requestNumber}`
+        `عزيزي المراجع ${request.customerName}، نود إحاطتكم بآخر مستجدات طلبكم رقم ${request.requestNumber} لدى ${request.ministryName}: حالياً (${request.status}). الرابط: ${trackingBase}/track/${request.requestNumber}`
       );
     } else if (val === 'ready') {
       setCustomText(
-        `عزيزي المراجع ${request.customerName}، يسعدنا إبلاغكم بجاهزية الإجابة والوثائق للمعاملة رقم ${request.requestNumber}. نرجو مراجعة الفرع أو تحميل الوثيقة عبر الرابط: https://civicflow.gov.sa/track/${request.requestNumber}`
+        `عزيزي المراجع ${request.customerName}، يسعدنا إبلاغكم بجاهزية الإجابة والوثائق للمعاملة رقم ${request.requestNumber}. نرجو مراجعة الفرع أو تحميل الوثيقة عبر الرابط: ${trackingBase}/track/${request.requestNumber}`
       );
     } else if (val === 'docs') {
       setCustomText(

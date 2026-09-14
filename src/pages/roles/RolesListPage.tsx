@@ -10,20 +10,38 @@ import { Shield, Lock, Users, ChevronLeft, Plus, CheckCircle2 } from 'lucide-rea
 
 export const RolesListPage: React.FC = () => {
   const navigate = useNavigate();
-  const { roles, employees } = useData();
-  const { success } = useToast();
+  const { roles, employees, handleCreateRole } = useData();
+  const { success, error: toastError } = useToast();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [roleName, setRoleName] = useState('');
   const [roleDesc, setRoleDesc] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleCreateRole = (e: React.FormEvent) => {
+  const onSubmitRole = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roleName) return;
-    success('تم إضافة الدور بنجاح', `تم إنشاء دور (${roleName})، يمكنك الآن ضبط مصفوفة الصلاحيات`);
-    setIsAddModalOpen(false);
-    setRoleName('');
-    setRoleDesc('');
+    if (!roleName.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const created = await handleCreateRole({
+        name: roleName.trim(),
+        description: roleDesc.trim()
+      });
+
+      success('تم إضافة الدور بنجاح', `تم إنشاء دور (${roleName}) بنجاح ويمكنك الآن ضبط مصفوفة الصلاحيات.`);
+      setIsAddModalOpen(false);
+      setRoleName('');
+      setRoleDesc('');
+
+      if (created?.id) {
+        navigate(`/roles/${created.id}`);
+      }
+    } catch (err: any) {
+      toastError('فشل إنشاء الدور', err?.message || 'حدث خطأ أثناء محاولة إنشاء الدور، يرجى المحاولة لاحقاً');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -113,13 +131,14 @@ export const RolesListPage: React.FC = () => {
         title="إضافة دور إداري جديد"
         maxWidth="md"
       >
-        <form onSubmit={handleCreateRole} className="space-y-4">
+        <form onSubmit={onSubmitRole} className="space-y-4">
           <Input
             label="اسم الدور"
             value={roleName}
             onChange={(e) => setRoleName(e.target.value)}
             placeholder="مثال: مدقق جودة المعاملات"
             required
+            disabled={submitting}
           />
 
           <div>
@@ -129,15 +148,16 @@ export const RolesListPage: React.FC = () => {
               value={roleDesc}
               onChange={(e) => setRoleDesc(e.target.value)}
               placeholder="وصف المهام والمسؤوليات الموكلة لهذا الدور..."
-              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              disabled={submitting}
+              className="w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
             />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={submitting}>
               إلغاء
             </Button>
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" isLoading={submitting}>
               إنشاء الدور
             </Button>
           </div>

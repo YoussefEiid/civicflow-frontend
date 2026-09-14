@@ -3,6 +3,7 @@ import { env } from './config/env.js';
 import { prisma } from './config/database.js';
 import { startSlaBackgroundJob } from './jobs/slaChecker.job.js';
 import { seedDatabase } from './seed.js';
+import { verifySmtpConnection } from './services/email.service.js';
 
 export const IRAQI_GOVERNORATES = [
   'دهوك',
@@ -200,6 +201,11 @@ async function startServer() {
 
     // Start background SLA job
     startSlaBackgroundJob();
+
+    // Safely verify SMTP configuration in the background
+    verifySmtpConnection().catch((smtpErr) => {
+      console.warn('⚠️ SMTP startup verification notice:', smtpErr?.message || smtpErr);
+    });
 
     const server = app.listen(env.PORT, () => {
       console.log(`🚀 CivicFlow Backend running in ${env.NODE_ENV} mode on port ${env.PORT}`);

@@ -8,10 +8,16 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 const rawNodeEnv = (process.env.NODE_ENV || '').trim().toLowerCase();
 const nodeEnv = (rawNodeEnv === 'test' || rawNodeEnv === 'development') ? rawNodeEnv : 'production';
 
+const rawSmtpUser = (process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || '').trim();
+const rawSmtpPass = (process.env.SMTP_PASS || process.env.SMTP_PASSWORD || process.env.EMAIL_PASS || process.env.GMAIL_PASS || process.env.GMAIL_APP_PASSWORD || '').trim().replace(/\s+/g, '');
+const rawSmtpHost = (process.env.SMTP_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com').trim();
+const rawSmtpPort = Number(process.env.SMTP_PORT || process.env.EMAIL_PORT || 587);
+const rawSmtpFrom = (process.env.SMTP_FROM || (rawSmtpUser ? `"منظومة CivicFlow" <${rawSmtpUser}>` : '"منظومة CivicFlow" <no-reply@civicflow.gov>')).trim();
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
   PORT: z.coerce.number().default(5000),
-  FRONTEND_URL: z.string().default('http://localhost:5173'),
+  FRONTEND_URL: z.string().default('https://civicflow-frontend-4.onrender.com'),
   DATABASE_URL: z.string(),
   JWT_ACCESS_SECRET: z.string().default('civicflow_jwt_access_secret_key_super_secure_12345'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
@@ -24,18 +30,18 @@ const envSchema = z.object({
   WHATSAPP_API_URL: z.string().default('https://backendapi.wpsenderx.com/api/messages/send'),
   WHATSAPP_API_KEY: z.string().default('wps_7b5db2a829ff4377ad0c6c42ea7fe4af991c191992305e70eab136c8bb89f7d2'),
   WHATSAPP_SENDER_PHONE: z.string().default('+9647874120325'),
-  SMTP_HOST: z.string().optional().transform(v => (v && v.trim()) || 'smtp.gmail.com'),
-  SMTP_PORT: z.coerce.number().default(587),
-  SMTP_USER: z.string().optional().transform(v => (v && v.trim()) || 'baszmat3@gmail.com'),
-  SMTP_PASS: z.string().optional().transform(v => (v && v.trim()) || 'hquozwytjyfvmoni'),
-  SMTP_FROM: z.string().optional().transform(v => (v && v.trim()) || '"منظومة CivicFlow" <baszmat3@gmail.com>'),
+  SMTP_HOST: z.string().default(rawSmtpHost),
+  SMTP_PORT: z.coerce.number().default(rawSmtpPort),
+  SMTP_USER: z.string().default(rawSmtpUser),
+  SMTP_PASS: z.string().default(rawSmtpPass),
+  SMTP_FROM: z.string().default(rawSmtpFrom),
   BREVO_API_KEY: z.string().optional(),
   RESEND_API_KEY: z.string().optional()
 });
 
 // OTP security settings (optional overrides, safe production defaults enforced)
 const otpSchema = z.object({
-  OTP_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(10),
+  OTP_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(5),
   OTP_LENGTH: z.coerce.number().int().min(4).max(8).default(6),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(5),
   OTP_LOCK_MINUTES: z.coerce.number().int().min(1).max(60).default(10),

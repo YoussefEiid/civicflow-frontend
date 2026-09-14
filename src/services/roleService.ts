@@ -13,7 +13,15 @@ export const roleService = {
     return apiClient.get<Role>(`/roles/${id}`);
   },
 
+  createRole: async (roleData: { name: string; description?: string; permissions?: any[]; extraPermissions?: any }): Promise<Role> => {
+    return apiClient.post<Role>('/roles', roleData);
+  },
+
   updateRole: async (id: string, updates: Partial<Role>): Promise<Role> => {
     return apiClient.patch<Role>(`/roles/${id}`, updates);
+  },
+
+  deleteRole: async (id: string): Promise<void> => {
+    return apiClient.delete<void>(`/roles/${id}`);
   }
 };

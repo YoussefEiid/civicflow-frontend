@@ -213,3 +213,179 @@ export const updateRole = async (req: Request, res: Response, next: NextFunction
     next(error);
   }
 };
+
+export const createRole = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, description, permissions, extraPermissions } = req.body;
+
+    if (!name || !name.trim()) {
+      throw new AppError('اسم الدور مطلوب', 400, 'ROLE_NAME_REQUIRED');
+    }
+
+    const trimmedName = name.trim();
+
+    const existing = await prisma.role.findFirst({
+      where: { name: { equals: trimmedName, mode: 'insensitive' } }
+    });
+
+    if (existing) {
+      throw new AppError(`الدور (${trimmedName}) موجود بالفعل`, 400, 'ROLE_ALREADY_EXISTS');
+    }
+
+    // Collect requested permissions
+    const requestedKeys: string[] = [];
+
+    if (Array.isArray(permissions)) {
+      permissions.forEach((p: any) => {
+        let prefix = 'requests';
+        if (p.module === 'المراجعون') prefix = 'customers';
+        if (p.module === 'الوزارات') prefix = 'ministries';
+        if (p.module === 'الموظفون') prefix = 'users';
+        if (p.module === 'التقارير') prefix = 'reports';
+        if (p.module === 'الإشعارات') prefix = 'notifications';
+        if (p.module === 'الإعدادات') prefix = 'settings';
+        if (p.module === 'سجل العمليات') prefix = 'audit_logs';
+
+        if (p.view) requestedKeys.push(`${prefix}.view`);
+        if (p.create) requestedKeys.push(`${prefix}.create`);
+        if (p.edit) requestedKeys.push(`${prefix}.update`);
+        if (p.delete) requestedKeys.push(`${prefix}.delete`);
+      });
+    }
+
+    if (extraPermissions) {
+      if (extraPermissions.changeStatus) requestedKeys.push('requests.change_status');
+      if (extraPermissions.uploadAttachments) requestedKeys.push('requests.attachments');
+      if (extraPermissions.exportExcel) requestedKeys.push('reports.export');
+      if (extraPermissions.sendNotifications) requestedKeys.push('notifications.view', 'whatsapp.send');
+      if (extraPermissions.manageWhatsapp) requestedKeys.push('whatsapp.manage', 'whatsapp.view');
+      if (extraPermissions.viewAuditLogs) requestedKeys.push('audit_logs.view');
+    }
+
+    const dbPermissions = await prisma.permission.findMany({
+      where: { key: { in: requestedKeys } }
+    });
+
+    const newRole = await prisma.$transaction(async (tx) => {
+      const created = await tx.role.create({
+        data: {
+          name: trimmedName,
+          description: description?.trim() || ''
+        }
+      });
+
+      if (dbPermissions.length > 0) {
+        await tx.rolePermission.createMany({
+          data: dbPermissions.map((p) => ({
+            roleId: created.id,
+            permissionId: p.id
+          }))
+        });
+      }
+
+      if (req.user) {
+        await tx.auditLog.create({
+          data: {
+            userId: req.user.id,
+            userName: req.user.name,
+            userRole: req.user.role,
+            action: 'إضافة جديد',
+            entity: 'Role',
+            entityId: created.id,
+            details: `إنشاء دور جديد: ${trimmedName}`,
+            ipAddress: req.ip
+          }
+        });
+      }
+
+      return created;
+    });
+
+    // Format output
+    const matrix = MODULES_LIST.map((mod) => {
+      let prefix = 'requests';
+      if (mod === 'المراجعون') prefix = 'customers';
+      if (mod === 'الوزارات') prefix = 'ministries';
+      if (mod === 'الموظفون') prefix = 'users';
+      if (mod === 'التقارير') prefix = 'reports';
+      if (mod === 'الإشعارات') prefix = 'notifications';
+      if (mod === 'الإعدادات') prefix = 'settings';
+      if (mod === 'سجل العمليات') prefix = 'audit_logs';
+
+      return {
+        module: mod,
+        view: requestedKeys.includes(`${prefix}.view`),
+        create: requestedKeys.includes(`${prefix}.create`),
+        edit: requestedKeys.includes(`${prefix}.update`),
+        delete: requestedKeys.includes(`${prefix}.delete`)
+      };
+    });
+
+    const formatted = {
+      id: newRole.id,
+      name: newRole.name,
+      description: newRole.description || '',
+      usersCount: 0,
+      permissions: matrix,
+      extraPermissions: extraPermissions || {
+        changeStatus: false,
+        uploadAttachments: false,
+        exportExcel: false,
+        sendNotifications: false,
+        manageWhatsapp: false,
+        viewAuditLogs: false
+      }
+    };
+
+    return sendSuccess(res, formatted, 'تم إنشاء الدور بنجاح', 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteRole = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+
+    const role = await prisma.role.findUnique({
+      where: { id },
+      include: { users: { select: { id: true } } }
+    });
+
+    if (!role) {
+      throw new AppError('الدور غير موجود', 404, 'ROLE_NOT_FOUND');
+    }
+
+    if (role.users.length > 0) {
+      throw new AppError(
+        `لا يمكن حذف هذا الدور لوجود (${role.users.length}) مستخدمين معينين به حالياً`,
+        400,
+        'ROLE_IN_USE'
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.rolePermission.deleteMany({ where: { roleId: id } });
+      await tx.role.delete({ where: { id } });
+
+      if (req.user) {
+        await tx.auditLog.create({
+          data: {
+            userId: req.user.id,
+            userName: req.user.name,
+            userRole: req.user.role,
+            action: 'حذف',
+            entity: 'Role',
+            entityId: id,
+            details: `حذف الدور: ${role.name}`,
+            ipAddress: req.ip
+          }
+        });
+      }
+    });
+
+    return sendSuccess(res, null, 'تم حذف الدور بنجاح');
+  } catch (error) {
+    next(error);
+  }
+};

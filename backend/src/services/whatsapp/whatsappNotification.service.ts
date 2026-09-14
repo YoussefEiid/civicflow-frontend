@@ -1,9 +1,38 @@
 import { whatsAppProvider } from './index.js';
 import { env } from '../../config/env.js';
+import { prisma } from '../../config/database.js';
 
 const getBaseTrackingUrl = (): string => {
-  const frontUrl = env.FRONTEND_URL || 'https://civicflow-frontend-4.onrender.com';
+  let frontUrl = (process.env.FRONTEND_URL || env.FRONTEND_URL || '').trim();
+  if (!frontUrl || frontUrl.includes('localhost') || frontUrl.includes('127.0.0.1')) {
+    frontUrl = 'https://civicflow-frontend-4.onrender.com';
+  }
   return frontUrl.replace(/\/+$/, '');
+};
+
+const renderTemplate = async (
+  templateKey: string,
+  variables: Record<string, string>,
+  defaultFallback: string
+): Promise<string> => {
+  try {
+    const template = await prisma.whatsAppTemplate.findUnique({
+      where: { key: templateKey }
+    });
+
+    if (template && template.content) {
+      let rendered = template.content;
+      for (const [key, value] of Object.entries(variables)) {
+        const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+        rendered = rendered.replace(regex, value || '');
+      }
+      return rendered;
+    }
+  } catch (err) {
+    console.warn(`⚠️ Could not load template ${templateKey} from database, using fallback:`, err);
+  }
+
+  return defaultFallback;
 };
 
 export const whatsappNotificationService = {
@@ -21,7 +50,7 @@ export const whatsappNotificationService = {
     if (!params.to) return;
     try {
       const trackingUrl = `${getBaseTrackingUrl()}/track/${params.requestNumber}`;
-      const message = [
+      const fallbackMessage = [
         `مرحباً بك عزيزي المراجع ${params.customerName}،`,
         `تم استلام طلبكم وقيده في منظومة CivicFlow بنجاح.`,
         `📋 رقم المعاملة: ${params.requestNumber}`,
@@ -32,6 +61,18 @@ export const whatsappNotificationService = {
       ]
         .filter(Boolean)
         .join('\n');
+
+      const message = await renderTemplate(
+        'request_received',
+        {
+          customer_name: params.customerName,
+          request_number: params.requestNumber,
+          ministry: params.ministryName,
+          expected_date: params.expectedDate || 'قريباً',
+          tracking_link: trackingUrl
+        },
+        fallbackMessage
+      );
 
       return await whatsAppProvider.sendMessage({
         to: params.to,
@@ -59,7 +100,7 @@ export const whatsappNotificationService = {
     if (!params.to) return;
     try {
       const trackingUrl = `${getBaseTrackingUrl()}/track/${params.requestNumber}`;
-      const message = [
+      const fallbackMessage = [
         `عزيزي المراجع ${params.customerName}،`,
         `نود إحاطتكم بتحديث جديد على معاملتكم رقم ${params.requestNumber} لدى ${params.ministryName}:`,
         `🔄 الحالة الحالية: ${params.newStatus}`,
@@ -69,6 +110,19 @@ export const whatsappNotificationService = {
       ]
         .filter(Boolean)
         .join('\n');
+
+      const message = await renderTemplate(
+        'status_updated',
+        {
+          customer_name: params.customerName,
+          request_number: params.requestNumber,
+          ministry: params.ministryName,
+          status: params.newStatus,
+          notes: params.note || '',
+          tracking_link: trackingUrl
+        },
+        fallbackMessage
+      );
 
       return await whatsAppProvider.sendMessage({
         to: params.to,
@@ -96,7 +150,7 @@ export const whatsappNotificationService = {
     if (!params.to) return;
     try {
       const trackingUrl = `${getBaseTrackingUrl()}/track/${params.requestNumber}`;
-      const message = [
+      const fallbackMessage = [
         `عزيزي المراجع ${params.customerName}،`,
         `يسعدنا إبلاغكم بصدور الإجابة والقرار النهائي لمعاملتكم رقم ${params.requestNumber}:`,
         `📜 القرار: ${params.decision}`,
@@ -106,6 +160,19 @@ export const whatsappNotificationService = {
       ]
         .filter(Boolean)
         .join('\n');
+
+      const message = await renderTemplate(
+        'final_response_ready',
+        {
+          customer_name: params.customerName,
+          request_number: params.requestNumber,
+          ministry: params.ministryName,
+          decision: params.decision,
+          summary: params.summary || '',
+          tracking_link: trackingUrl
+        },
+        fallbackMessage
+      );
 
       return await whatsAppProvider.sendMessage({
         to: params.to,

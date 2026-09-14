@@ -188,8 +188,16 @@ export const getRoleById = async (id: string): Promise<Role | null> => {
   return roleService.getRoleById(id);
 };
 
+export const createRole = async (roleData: { name: string; description?: string; permissions?: any[]; extraPermissions?: any }): Promise<Role> => {
+  return roleService.createRole(roleData);
+};
+
 export const updateRole = async (id: string, updates: Partial<Role>): Promise<Role> => {
   return roleService.updateRole(id, updates);
+};
+
+export const deleteRole = async (id: string): Promise<void> => {
+  return roleService.deleteRole(id);
 };
 
 // ==========================================

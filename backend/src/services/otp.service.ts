@@ -179,6 +179,15 @@ export const issueOtp = async ({
 
   // If neither channel delivered the OTP:
   if (!emailSent && !whatsappSent) {
+    // Invalidate/clean up OTP record so unsent OTP is never valid
+    try {
+      await prisma.otpVerification.deleteMany({
+        where: { email: normalizedEmail, purpose }
+      });
+    } catch (cleanupErr) {
+      console.warn('⚠️ Could not clean up failed OTP record:', cleanupErr);
+    }
+
     if (emailError) {
       throw emailError;
     }
