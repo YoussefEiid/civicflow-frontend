@@ -341,7 +341,7 @@ export const buildOtpEmailHtml = ({
 };
 
 /**
- * إرسال رسالة بريد إلكتروني حقيقية عبر Nodemailer SMTP
+ * إرسال رسالة بريد إلكتروني حقيقية عبر Resend HTTP API أو Nodemailer SMTP
  */
 export const sendOTPEmail = async ({
   email,
@@ -353,6 +353,81 @@ export const sendOTPEmail = async ({
   const masked = maskEmail(email);
   const { subject, html, text } = buildOtpEmailHtml({ otp, purpose, userName, expiresInMinutes });
 
+  const brevoApiKey = (process.env.BREVO_API_KEY || (env as any).BREVO_API_KEY || '').trim();
+  const resendApiKey = (process.env.RESEND_API_KEY || (env as any).RESEND_API_KEY || '').trim();
+
+  // 1. استخدام Brevo HTTP API (Port 443 HTTPS - يرسل لأي إيميل في العالم مجاناً بدون دومين)
+  if (brevoApiKey) {
+    console.log(`[EMAIL] Dispatching OTP email via Brevo HTTP API to ${masked}`);
+    try {
+      const senderEmail = (process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'baszmat3@gmail.com').trim();
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'منظومة CivicFlow', email: senderEmail },
+          to: [{ email: email, name: userName || 'المستخدم الكريم' }],
+          subject: subject,
+          htmlContent: html,
+          textContent: text
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const errorMsg = data?.message || `HTTP ${res.status}`;
+        console.error(`❌ [EMAIL] Brevo API error: ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      const messageId = data?.messageId || `brevo-${Date.now()}`;
+      console.log(`✅ [EMAIL] OTP email sent successfully via Brevo (${masked}) [ID: ${messageId}]`);
+      return { success: true, messageId };
+    } catch (brevoErr: any) {
+      console.error(`⚠️ [EMAIL] Brevo failed for (${masked}):`, brevoErr?.message || brevoErr);
+    }
+  }
+
+  // 2. استخدام Resend HTTP API (Port 443 HTTPS)
+  if (resendApiKey) {
+    console.log(`[EMAIL] Dispatching OTP email via Resend HTTP API to ${masked}`);
+    try {
+      const resendFrom = (process.env.RESEND_FROM || 'منظومة CivicFlow <onboarding@resend.dev>').trim();
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: resendFrom,
+          to: [email],
+          subject,
+          html,
+          text
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const errorMsg = data?.message || `HTTP ${res.status}`;
+        console.error(`❌ [EMAIL] Resend API error: ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+
+      const messageId = data?.id || `resend-${Date.now()}`;
+      console.log(`✅ [EMAIL] OTP email sent successfully via Resend (${masked}) [ID: ${messageId}]`);
+      return { success: true, messageId };
+    } catch (resendErr: any) {
+      console.error(`⚠️ [EMAIL] Resend failed for (${masked}):`, resendErr?.message || resendErr);
+    }
+  }
+
+  // 3. استخدام Nodemailer SMTP كـ Fallback
   console.log(`[EMAIL] Dispatching OTP email via Nodemailer SMTP to ${masked}`);
 
   const transporter = getTransporter();
