@@ -353,10 +353,57 @@ export const sendOTPEmail = async ({
   const masked = maskEmail(email);
   const { subject, html, text } = buildOtpEmailHtml({ otp, purpose, userName, expiresInMinutes });
 
+  const emailjsServiceId = (process.env.EMAILJS_SERVICE_ID || (env as any).EMAILJS_SERVICE_ID || 'service_lvsou99').trim();
+  const emailjsTemplateId = (process.env.EMAILJS_TEMPLATE_ID || (env as any).EMAILJS_TEMPLATE_ID || 'template_sbp4dbc').trim();
+  const emailjsPublicKey = (process.env.EMAILJS_PUBLIC_KEY || (env as any).EMAILJS_PUBLIC_KEY || 'OwmoePpWQZnCiaCkf').trim();
+  const emailjsPrivateKey = (process.env.EMAILJS_PRIVATE_KEY || (env as any).EMAILJS_PRIVATE_KEY || 'U9uC6g2XpWD4Vr82w15eV').trim();
+
+  // 1. استخدام EmailJS REST API (Port 443 HTTPS - يرسل مباشرة وموثوق 100% بدون حظر من Render)
+  if (emailjsServiceId && emailjsTemplateId && emailjsPublicKey) {
+    console.log(`[EMAIL] Dispatching OTP email via EmailJS HTTP API to ${masked}`);
+    try {
+      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': 'https://civicflow-frontend-4.onrender.com'
+        },
+        body: JSON.stringify({
+          service_id: emailjsServiceId,
+          template_id: emailjsTemplateId,
+          user_id: emailjsPublicKey,
+          accessToken: emailjsPrivateKey || undefined,
+          template_params: {
+            to_email: email,
+            email: email,
+            user_email: email,
+            name: userName || 'المستخدم الكريم',
+            user_name: userName || 'المستخدم الكريم',
+            subject: subject,
+            otp: otp,
+            expires_in: expiresInMinutes,
+            message: `رمز التحقق الخاص بك في منظومة CivicFlow هو: ${otp} (صالح لمدة ${expiresInMinutes} دقائق)`
+          }
+        })
+      });
+
+      if (res.ok) {
+        const messageId = `emailjs-${Date.now()}`;
+        console.log(`✅ [EMAIL] OTP email sent successfully via EmailJS (${masked}) [ID: ${messageId}]`);
+        return { success: true, messageId };
+      } else {
+        const errText = await res.text();
+        console.error(`❌ [EMAIL] EmailJS error (${res.status}): ${errText}`);
+      }
+    } catch (emailjsErr: any) {
+      console.error(`⚠️ [EMAIL] EmailJS failed for (${masked}):`, emailjsErr?.message || emailjsErr);
+    }
+  }
+
   const brevoApiKey = (process.env.BREVO_API_KEY || (env as any).BREVO_API_KEY || '').trim();
   const resendApiKey = (process.env.RESEND_API_KEY || (env as any).RESEND_API_KEY || '').trim();
 
-  // 1. استخدام Brevo HTTP API (Port 443 HTTPS - يرسل لأي إيميل في العالم مجاناً بدون دومين)
+  // 2. استخدام Brevo HTTP API (Port 443 HTTPS)
   if (brevoApiKey) {
     console.log(`[EMAIL] Dispatching OTP email via Brevo HTTP API to ${masked}`);
     try {

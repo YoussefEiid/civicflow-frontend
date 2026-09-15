@@ -19,9 +19,24 @@ async function main() {
   const isVerified = await verifySmtpConnection();
   console.log('SMTP Verified:', isVerified);
 
-  console.log('\n=== TEST 3: Sending Real Test Email to youssefeid88888@gmail.com ===');
+  console.log('\n=== TEST 3: Testing Brevo API Direct ===');
+  const brevoKey = '3bebf541695f4bd4b41c88b2dcd4fd608c-LkyVlGH7EuVFlzhx';
+  process.env.BREVO_API_KEY = brevoKey;
+
+  // Test 1: api-key header
+  const r1 = await fetch('https://api.brevo.com/v3/account', {
+    headers: { 'api-key': brevoKey }
+  });
+  console.log('Brevo test 1 (api-key):', r1.status, await r1.json());
+
+  // Test 2: Bearer header
+  const r2 = await fetch('https://api.brevo.com/v3/account', {
+    headers: { 'Authorization': `Bearer ${brevoKey}` }
+  });
+  console.log('Brevo test 2 (Bearer):', r2.status, await r2.json());
+
   const targetEmail = 'youssefeid88888@gmail.com';
-  console.log('Dispatching test OTP email to:', targetEmail);
+  console.log('Dispatching test OTP email via Brevo to:', targetEmail);
   try {
     const res = await sendOTPEmail({
       email: targetEmail,

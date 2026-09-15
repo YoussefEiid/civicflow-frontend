@@ -36,7 +36,11 @@ const envSchema = z.object({
   SMTP_PASS: z.string().default(rawSmtpPass),
   SMTP_FROM: z.string().default(rawSmtpFrom),
   BREVO_API_KEY: z.string().optional(),
-  RESEND_API_KEY: z.string().optional()
+  RESEND_API_KEY: z.string().optional(),
+  EMAILJS_SERVICE_ID: z.string().default('service_lvsou99'),
+  EMAILJS_TEMPLATE_ID: z.string().default('template_sbp4dbc'),
+  EMAILJS_PUBLIC_KEY: z.string().default('OwmoePpWQZnCiaCkf'),
+  EMAILJS_PRIVATE_KEY: z.string().default('U9uC6g2XpWD4Vr82w15eV')
 });
 
 // OTP security settings (safe production defaults enforced)
