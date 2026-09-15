@@ -67,14 +67,81 @@ export class RealWhatsAppProvider implements IWhatsAppProvider {
 
   async sendMessage(options: SendWhatsAppOptions): Promise<SendWhatsAppResult> {
     const formattedPhone = this.formatPhoneNumber(options.to);
-    
-    // 1. Check UltraMsg Provider
-    const ultraInstance = (process.env.ULTRAMSG_INSTANCE_ID || (env as any).ULTRAMSG_INSTANCE_ID || 'instance191672').trim();
-    const ultraToken = (process.env.ULTRAMSG_TOKEN || (env as any).ULTRAMSG_TOKEN || 'xp6rt5dva1hbclsv').trim();
+    const apiKey = (process.env.WHATSAPP_API_KEY || (env as any).WHATSAPP_API_KEY || 'wps_95e5baeef7556807bc2ccfb3272296e9f03a84d73b92e757ce7a11a0b1ef6141').trim();
+    const apiUrl = (process.env.WHATSAPP_API_URL || (env as any).WHATSAPP_API_URL || 'https://backendapi.wpsenderx.com/api/messages/send').trim();
+    const senderPhone = this.formatPhoneNumber(process.env.WHATSAPP_SENDER_PHONE || (env as any).WHATSAPP_SENDER_PHONE || '201206895603');
+
+    // 1. استخدام WPSender الرسمي في حال توفر المفتاح
+    if (apiKey && apiKey.startsWith('wps_')) {
+      console.log(`📡 [WP SENDER DISPATCH] Sending WhatsApp message from ${senderPhone} to: ${formattedPhone} via ${apiUrl}`);
+      try {
+        const payload = {
+          api_key: apiKey,
+          to: formattedPhone,
+          phone: formattedPhone,
+          number: formattedPhone,
+          recipient: formattedPhone,
+          sender: senderPhone,
+          from: senderPhone,
+          account: senderPhone,
+          sender_phone: senderPhone,
+          message: options.message
+        };
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const responseData = await response.json().catch(() => ({}));
+        const isSuccess =
+          response.ok &&
+          (responseData.status === 'success' ||
+            responseData.success === true ||
+            responseData.data?.success === true ||
+            responseData.status === 'sent');
+
+        const messageId =
+          responseData.data?.messageLogId ? String(responseData.data.messageLogId) :
+          responseData.messageLogId ? String(responseData.messageLogId) :
+          responseData.messageId ||
+          `wps-${Date.now()}`;
+        const status: 'SENT' | 'FAILED' = isSuccess ? 'SENT' : (response.ok ? 'SENT' : 'FAILED');
+        const errorMessage = !isSuccess ? (responseData.message || responseData.error || `HTTP ${response.status}`) : undefined;
+
+        await prisma.whatsAppMessageLog.create({
+          data: {
+            phoneNumber: formattedPhone,
+            templateKey: options.templateKey || null,
+            messageContent: options.message,
+            status: status,
+            errorMessage: errorMessage || null,
+            requestId: options.requestId || null
+          }
+        }).catch(() => {});
+
+        if (isSuccess || response.ok) {
+          console.log(`✅ [WP SENDER SUCCESS] Message dispatched: ${messageId}`);
+          return { success: true, messageId, status: 'SENT' };
+        } else {
+          console.warn(`⚠️ [WP SENDER WARNING] API response:`, responseData);
+        }
+      } catch (wpsErr: any) {
+        console.error(`💥 [WP SENDER ERROR] Failed:`, wpsErr?.message || wpsErr);
+      }
+    }
+
+    // 2. تجربة UltraMsg كـ Fallback في حال توفره
+    const ultraInstance = (process.env.ULTRAMSG_INSTANCE_ID || (env as any).ULTRAMSG_INSTANCE_ID || '').trim();
+    const ultraToken = (process.env.ULTRAMSG_TOKEN || (env as any).ULTRAMSG_TOKEN || '').trim();
 
     if (ultraInstance && ultraToken) {
       const ultraUrl = `https://api.ultramsg.com/${ultraInstance}/messages/chat`;
-      console.log(`📡 [ULTRAMSG DISPATCH] Sending WhatsApp message to: ${formattedPhone} via ${ultraUrl}`);
+      console.log(`📡 [ULTRAMSG DISPATCH] Fallback WhatsApp message to: ${formattedPhone} via ${ultraUrl}`);
 
       try {
         const response = await fetch(ultraUrl, {
@@ -109,96 +176,16 @@ export class RealWhatsAppProvider implements IWhatsAppProvider {
         if (isSuccess) {
           console.log(`✅ [ULTRAMSG SUCCESS] Message dispatched: ${messageId}`);
           return { success: true, messageId, status: 'SENT' };
-        } else {
-          console.warn(`⚠️ [ULTRAMSG WARNING] Response:`, data);
         }
       } catch (ultraErr: any) {
         console.error(`💥 [ULTRAMSG ERROR] Failed:`, ultraErr?.message || ultraErr);
       }
     }
 
-    // 2. Fallback to WPSender or Generic API
-    const apiUrl = process.env.WHATSAPP_API_URL || env.WHATSAPP_API_URL || 'https://backendapi.wpsenderx.com/api/messages/send';
-    const apiKey = (process.env.WHATSAPP_API_KEY || env.WHATSAPP_API_KEY || '').trim();
-    const senderPhone = this.formatPhoneNumber(process.env.WHATSAPP_SENDER_PHONE || env.WHATSAPP_SENDER_PHONE || '201206895603');
-
-    console.log(`📡 [WP SENDER DISPATCH] Fallback WhatsApp message from ${senderPhone} to: ${formattedPhone} via ${apiUrl}`);
-
-    try {
-      const payload = {
-        api_key: apiKey,
-        to: formattedPhone,
-        phone: formattedPhone,
-        number: formattedPhone,
-        recipient: formattedPhone,
-        sender: senderPhone,
-        from: senderPhone,
-        account: senderPhone,
-        sender_phone: senderPhone,
-        message: options.message
-      };
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const responseData = await response.json().catch(() => ({}));
-      const isSuccess =
-        response.ok &&
-        (responseData.status === 'success' ||
-          responseData.success === true ||
-          responseData.data?.success === true ||
-          responseData.status === 'sent');
-
-      const messageId =
-        responseData.data?.messageLogId ||
-        responseData.messageLogId ||
-        responseData.messageId ||
-        responseData.id ||
-        `wps-${Date.now()}`;
-      const status: 'SENT' | 'FAILED' = isSuccess ? 'SENT' : (response.ok ? 'SENT' : 'FAILED');
-      const errorMessage = !isSuccess ? (responseData.message || responseData.error || `HTTP ${response.status}`) : undefined;
-
-      await prisma.whatsAppMessageLog.create({
-        data: {
-          phoneNumber: formattedPhone,
-          templateKey: options.templateKey || null,
-          messageContent: options.message,
-          status: status,
-          errorMessage: errorMessage || null,
-          requestId: options.requestId || null
-        }
-      }).catch(() => {});
-
-      return {
-        success: isSuccess || response.ok,
-        messageId,
-        status,
-        errorMessage
-      };
-    } catch (err: any) {
-      console.error(`💥 [WHATSAPP ERROR] Failed to dispatch WhatsApp:`, err);
-
-      await prisma.whatsAppMessageLog.create({
-        data: {
-          phoneNumber: formattedPhone,
-          templateKey: options.templateKey || null,
-          messageContent: options.message,
-          status: 'FAILED',
-          requestId: options.requestId || null
-        }
-      }).catch(() => {});
-
-      return {
-        success: false,
-        status: 'FAILED',
-        errorMessage: err.message || 'فشل الاتصال بخدمة واتساب'
-      };
-    }
+    return {
+      success: false,
+      status: 'FAILED',
+      errorMessage: 'تعذر إرسال رسالة الواتساب عبر جميع المزودين'
+    };
   }
 }
