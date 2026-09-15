@@ -14,8 +14,8 @@ export interface SendOtpOptions {
 export type OtpEmailPurpose = NonNullable<SendOtpOptions['purpose']>;
 
 /**
- * Mask email address for secure production logging
- * Example: "youssef.eid@gmail.com" -> "y***d@gmail.com"
+ * إخفاء جزء من البريد الإلكتروني في سجلات النظام للأمان
+ * مثال: "youssef.eid@gmail.com" -> "y***d@gmail.com"
  */
 export const maskEmail = (email: string): string => {
   if (!email || !email.includes('@')) return '***@***';
@@ -27,7 +27,7 @@ export const maskEmail = (email: string): string => {
 };
 
 /**
- * Format the sender address
+ * تجهيز عنوان واسم المرسل
  */
 const getSenderAddress = (rawFrom?: string, userEmail?: string): string => {
   if (rawFrom && rawFrom.trim()) {
@@ -40,7 +40,7 @@ const getSenderAddress = (rawFrom?: string, userEmail?: string): string => {
 };
 
 /**
- * Cached singleton Nodemailer transporter for SMTP
+ * كائن النقل Singleton الخاص بـ Nodemailer و Gmail SMTP
  */
 let cachedTransporter: Transporter | null = null;
 
@@ -58,7 +58,7 @@ export const getTransporter = (): Transporter | null => {
     return null;
   }
 
-  // Gmail SMTP port 587 uses STARTTLS (secure: false), port 465 uses SSL/TLS (secure: true)
+  // منفذ 587 في Gmail يستخدم STARTTLS (secure: false)، ومنفذ 465 يستخدم SSL (secure: true)
   const isSecure = port === 465;
 
   cachedTransporter = nodemailer.createTransport({
@@ -81,8 +81,7 @@ export const getTransporter = (): Transporter | null => {
 };
 
 /**
- * Safely verify SMTP connection using transporter.verify()
- * Never logs credentials or secrets.
+ * اختبار الاتصال بخادم البريد SMTP
  */
 export const verifySmtpConnection = async (): Promise<{ success: boolean; error?: string }> => {
   const user = (process.env.SMTP_USER || env.SMTP_USER || '').trim();
@@ -91,14 +90,14 @@ export const verifySmtpConnection = async (): Promise<{ success: boolean; error?
   const port = Number(process.env.SMTP_PORT || env.SMTP_PORT || 587);
 
   if (!user || !pass) {
-    const errorMsg = 'SMTP credentials missing: SMTP_USER or SMTP_PASS is empty';
+    const errorMsg = 'بيانات SMTP مفقودة: SMTP_USER أو SMTP_PASS فارغ';
     console.warn(`⚠️ [EMAIL] ${errorMsg}`);
     return { success: false, error: errorMsg };
   }
 
   const transporter = getTransporter();
   if (!transporter) {
-    const errorMsg = 'Nodemailer transporter could not be initialized';
+    const errorMsg = 'تعذر تهيئة ناقل البريد Nodemailer';
     console.warn(`⚠️ [EMAIL] ${errorMsg}`);
     return { success: false, error: errorMsg };
   }
@@ -117,7 +116,7 @@ export const verifySmtpConnection = async (): Promise<{ success: boolean; error?
 };
 
 /**
- * Generate professional Arabic RTL CivicFlow email template
+ * إنشاء قالب بريد عربي رسمي (RTL) مع رمز الـ OTP
  */
 export const buildOtpEmailHtml = ({
   otp,
@@ -342,7 +341,7 @@ export const buildOtpEmailHtml = ({
 };
 
 /**
- * Sends a real OTP email using Nodemailer SMTP
+ * إرسال رسالة بريد إلكتروني حقيقية عبر Nodemailer SMTP
  */
 export const sendOTPEmail = async ({
   email,

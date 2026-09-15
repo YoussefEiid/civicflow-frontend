@@ -19,20 +19,20 @@ async function main() {
   const isVerified = await verifySmtpConnection();
   console.log('SMTP Verified:', isVerified);
 
-  console.log('\n=== TEST 3: Sending Real Test Email to admin@civicflow.gov ===');
-  const targetEmail = 'admin@civicflow.gov';
+  console.log('\n=== TEST 3: Sending Real Test Email to youssefeid88888@gmail.com ===');
+  const targetEmail = 'youssefeid88888@gmail.com';
   console.log('Dispatching test OTP email to:', targetEmail);
   try {
     const res = await sendOTPEmail({
       email: targetEmail,
       otp,
       purpose: 'verify_email',
-      userName: 'مدير المنظومة',
+      userName: 'الأستاذ يوسف',
       expiresInMinutes: 5
     });
-    console.log('Email dispatch result for admin@civicflow.gov:', res);
+    console.log('Email dispatch result for youssefeid88888@gmail.com:', res);
   } catch (err: any) {
-    console.error('❌ Sending to admin@civicflow.gov failed:', err.message);
+    console.error('❌ Sending to youssefeid88888@gmail.com failed:', err.message);
   }
 
   console.log('\n=== CLEANING UP TEST USER ===');

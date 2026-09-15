@@ -77,20 +77,44 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+const getInitialCached = <T,>(key: string, fallback: T): T => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = localStorage.getItem(`civicflow_cache_${key}`);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const setCached = (key: string, data: any) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(`civicflow_cache_${key}`, JSON.stringify(data));
+  } catch {}
+};
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
 
-  const [requests, setRequests] = useState<RequestItem[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [ministries, setMinistries] = useState<Ministry[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [settings, setSettings] = useState<SystemSettings | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [requests, setRequests] = useState<RequestItem[]>(() => getInitialCached('requests', []));
+  const [customers, setCustomers] = useState<Customer[]>(() => getInitialCached('customers', []));
+  const [ministries, setMinistries] = useState<Ministry[]>(() => getInitialCached('ministries', []));
+  const [employees, setEmployees] = useState<Employee[]>(() => getInitialCached('employees', []));
+  const [roles, setRoles] = useState<Role[]>(() => getInitialCached('roles', []));
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() => getInitialCached('notifications', []));
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => getInitialCached('auditLogs', []));
+  const [settings, setSettings] = useState<SystemSettings | null>(() => getInitialCached('settings', null));
+  const [loading, setLoading] = useState<boolean>(() => {
+    const hasCached = typeof window !== 'undefined' && !!localStorage.getItem('civicflow_cache_requests');
+    return !hasCached;
+  });
+
+  const isRefreshingRef = React.useRef(false);
 
   const refreshData = useCallback(async () => {
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
     try {
       const [reqs, custs, mins, emps, rols, notifs, logs, setts] = await Promise.all([
         getRequests().catch(() => []),
@@ -103,26 +127,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getSystemSettings().catch(() => null)
       ]);
 
-      setRequests(Array.isArray(reqs) ? reqs : (reqs as any)?.requests || []);
-      setCustomers(Array.isArray(custs) ? custs : (custs as any)?.customers || []);
-      setMinistries(Array.isArray(mins) ? mins : (mins as any)?.ministries || []);
-      setEmployees(Array.isArray(emps) ? emps : (emps as any)?.users || (emps as any)?.employees || []);
-      setRoles(Array.isArray(rols) ? rols : (rols as any)?.roles || []);
-      setNotifications(Array.isArray(notifs) ? notifs : (notifs as any)?.notifications || []);
-      setAuditLogs(Array.isArray(logs) ? logs : (logs as any)?.auditLogs || []);
-      setSettings(setts && typeof setts === 'object' ? setts : null);
+      const validReqs = Array.isArray(reqs) ? reqs : (reqs as any)?.requests || [];
+      const validCusts = Array.isArray(custs) ? custs : (custs as any)?.customers || [];
+      const validMins = Array.isArray(mins) ? mins : (mins as any)?.ministries || [];
+      const validEmps = Array.isArray(emps) ? emps : (emps as any)?.users || (emps as any)?.employees || [];
+      const validRols = Array.isArray(rols) ? rols : (rols as any)?.roles || [];
+      const validNotifs = Array.isArray(notifs) ? notifs : (notifs as any)?.notifications || [];
+      const validLogs = Array.isArray(logs) ? logs : (logs as any)?.auditLogs || [];
+      const validSetts = setts && typeof setts === 'object' ? setts : null;
+
+      setRequests(validReqs);
+      setCustomers(validCusts);
+      setMinistries(validMins);
+      setEmployees(validEmps);
+      setRoles(validRols);
+      setNotifications(validNotifs);
+      setAuditLogs(validLogs);
+      setSettings(validSetts);
+
+      setCached('requests', validReqs);
+      setCached('customers', validCusts);
+      setCached('ministries', validMins);
+      setCached('employees', validEmps);
+      setCached('roles', validRols);
+      setCached('notifications', validNotifs);
+      setCached('auditLogs', validLogs);
+      if (validSetts) setCached('settings', validSetts);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
+      isRefreshingRef.current = false;
       setLoading(false);
     }
   }, []);
-
-  useEffect(() => {
-    if (isAuthenticated || user) {
-      refreshData();
-    }
-  }, [isAuthenticated, user?.id, refreshData]);
 
   useEffect(() => {
     refreshData();

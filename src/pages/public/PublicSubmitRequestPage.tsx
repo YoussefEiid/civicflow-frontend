@@ -14,9 +14,12 @@ import {
   File as FileIcon,
   X,
   Plus,
-  ShieldCheck
+  ShieldCheck,
+  MessageSquare,
+  Loader2
 } from 'lucide-react';
 import { publicService, PublicSubmissionResult } from '../../services/publicService';
+import { authService } from '../../services/authService';
 import { City, Ministry, RequestTypeEntity } from '../../types';
 import { IRAQI_GOVERNORATES } from '../../constants/iraqGovernorates';
 
@@ -63,6 +66,59 @@ export const PublicSubmitRequestPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [result, setResult] = useState<PublicSubmissionResult | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // WhatsApp OTP Verification
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [isSendingPhoneOtp, setIsSendingPhoneOtp] = useState(false);
+  const [isVerifyingPhoneOtp, setIsVerifyingPhoneOtp] = useState(false);
+  const [showPhoneOtpModal, setShowPhoneOtpModal] = useState(false);
+  const [phoneOtpInput, setPhoneOtpInput] = useState('');
+  const [phoneOtpError, setPhoneOtpError] = useState('');
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    let timer: any;
+    if (cooldownSeconds > 0) {
+      timer = setTimeout(() => setCooldownSeconds((prev) => prev - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [cooldownSeconds]);
+
+  const handleSendPhoneOtp = async () => {
+    if (!phone || phone.trim().length < 8) {
+      setPhoneOtpError('يرجى إدخال رقم هاتف واتساب صحيح أولاً');
+      return;
+    }
+    setIsSendingPhoneOtp(true);
+    setPhoneOtpError('');
+    try {
+      await authService.sendPhoneVerificationOTP(phone.trim());
+      setShowPhoneOtpModal(true);
+      setCooldownSeconds(60);
+    } catch (err: any) {
+      setPhoneOtpError(err.message || 'تعذر إرسال رمز التحقق عبر الواتساب');
+    } finally {
+      setIsSendingPhoneOtp(false);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async () => {
+    if (!phoneOtpInput || phoneOtpInput.trim().length !== 6) {
+      setPhoneOtpError('يرجى إدخال رمز التحقق المكون من 6 أرقام');
+      return;
+    }
+    setIsVerifyingPhoneOtp(true);
+    setPhoneOtpError('');
+    try {
+      await authService.verifyPhoneOTP(phone.trim(), phoneOtpInput.trim());
+      setIsPhoneVerified(true);
+      setShowPhoneOtpModal(false);
+    } catch (err: any) {
+      setPhoneOtpError(err.message || 'رمز التحقق غير صحيح أو انتهت صلاحيته');
+    } finally {
+      setIsVerifyingPhoneOtp(false);
+    }
+  };
 
   useEffect(() => {
     const loadFormData = async () => {
@@ -310,17 +366,105 @@ export const PublicSubmitRequestPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                    رقم هاتف واتساب <span className="text-rose-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-gray-300">
+                      رقم هاتف واتساب <span className="text-rose-500">*</span>
+                    </label>
+                    {isPhoneVerified ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        موثق عبر واتساب ✓
+                      </span>
+                    ) : phone.trim().length >= 8 ? (
+                      <button
+                        type="button"
+                        onClick={handleSendPhoneOtp}
+                        disabled={isSendingPhoneOtp || cooldownSeconds > 0}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 hover:underline disabled:opacity-50 cursor-pointer"
+                      >
+                        {isSendingPhoneOtp ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>جاري الإرسال...</span>
+                          </>
+                        ) : cooldownSeconds > 0 ? (
+                          <span>إعادة الإرسال بعد ({cooldownSeconds}ث)</span>
+                        ) : (
+                          <>
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>تأكيد بـ رمز OTP</span>
+                          </>
+                        )}
+                      </button>
+                    ) : null}
+                  </div>
                   <input
                     type="tel"
                     required
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value);
+                      if (isPhoneVerified) setIsPhoneVerified(false);
+                    }}
                     placeholder="077********"
-                    className="w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700 text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-right"
+                    className={`w-full px-3.5 py-2.5 text-xs font-mono rounded-xl border ${
+                      isPhoneVerified
+                        ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20'
+                        : 'border-slate-200 dark:border-gray-600 bg-slate-50 dark:bg-gray-700'
+                    } text-slate-900 dark:text-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-right`}
                   />
+
+                  {/* Inline OTP Verification Box */}
+                  {showPhoneOtpModal && !isPhoneVerified && (
+                    <div className="mt-2 p-3 bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2 text-right animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                          <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                          أدخل رمز التحقق (OTP) المرسل لواتساب
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowPhoneOtpModal(false)}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {phoneOtpError && (
+                        <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400">
+                          {phoneOtpError}
+                        </p>
+                      )}
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          value={phoneOtpInput}
+                          onChange={(e) => setPhoneOtpInput(e.target.value)}
+                          placeholder="123456"
+                          className="w-28 px-3 py-1.5 text-center text-sm font-bold font-mono tracking-widest rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-gray-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleVerifyPhoneOtp}
+                          disabled={isVerifyingPhoneOtp || phoneOtpInput.length < 6}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition disabled:opacity-50 cursor-pointer"
+                        >
+                          {isVerifyingPhoneOtp ? 'جاري التحقق...' : 'تأكيد الرمز'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSendPhoneOtp}
+                          disabled={isSendingPhoneOtp || cooldownSeconds > 0}
+                          className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 hover:underline disabled:opacity-50 cursor-pointer"
+                        >
+                          {cooldownSeconds > 0 ? `(${cooldownSeconds}ث)` : 'إعادة إرسال'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div>
