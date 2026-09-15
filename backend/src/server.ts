@@ -4,6 +4,7 @@ import { prisma } from './config/database.js';
 import { startSlaBackgroundJob } from './jobs/slaChecker.job.js';
 import { seedDatabase } from './seed.js';
 import { verifySmtpConnection } from './services/email.service.js';
+import { ensureSystemPermissions } from './controllers/role.controller.js';
 
 export const IRAQI_GOVERNORATES = [
   'دهوك',
@@ -195,9 +196,10 @@ async function startServer() {
       console.warn('⚠️ Seeding check notice:', seedErr);
     }
 
-    // Ensure real accounts and Iraqi governorates exist
+    // Ensure real accounts, Iraqi governorates, and RBAC permissions exist
     await ensureRealAccounts();
     await ensureIraqiGovernorates();
+    await ensureSystemPermissions();
 
     // Start background SLA job
     startSlaBackgroundJob();

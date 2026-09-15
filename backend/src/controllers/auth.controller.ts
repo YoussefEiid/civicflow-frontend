@@ -507,7 +507,7 @@ export const resetPasswordWithOTP = async (req: Request, res: Response, next: Ne
     const newHash = await hashPassword(newPassword);
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: newHash }
+      data: { passwordHash: newHash, emailVerified: true }
     });
 
     // Revoke all existing sessions
@@ -515,20 +515,24 @@ export const resetPasswordWithOTP = async (req: Request, res: Response, next: Ne
       where: { userId: user.id }
     });
 
-    // Audit log
-    await prisma.auditLog.create({
-      data: {
-        userId: user.id,
-        userName: user.name,
-        userRole: 'User',
-        action: 'استعادة كلمة المرور',
-        entity: 'User',
-        entityId: user.id,
-        details: `تم إعادة تعيين كلمة المرور بنجاح عبر رمز التحقق (OTP) للمستخدم (${user.email})`,
-        ipAddress: req.ip || req.socket.remoteAddress,
-        userAgent: req.headers['user-agent']
-      }
-    });
+    // Audit log (safe try-catch)
+    try {
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          userName: user.name,
+          userRole: 'User',
+          action: 'استعادة كلمة المرور',
+          entity: 'User',
+          entityId: user.id,
+          details: `تم إعادة تعيين كلمة المرور بنجاح عبر رمز التحقق (OTP) للمستخدم (${user.email})`,
+          ipAddress: req.ip || req.socket.remoteAddress,
+          userAgent: req.headers['user-agent']
+        }
+      });
+    } catch (auditErr) {
+      console.warn('⚠️ Audit log write skipped for password reset:', auditErr);
+    }
 
     return sendSuccess(res, null, 'تم تعيين كلمة المرور الجديدة بنجاح. يمكنك الآن تسجيل الدخول');
   } catch (error) {

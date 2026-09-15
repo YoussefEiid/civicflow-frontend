@@ -3,7 +3,153 @@ import { prisma } from '../config/database.js';
 import { AppError } from '../middlewares/error.middleware.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
-const MODULES_LIST = ['الطلبات', 'المراجعون', 'الوزارات', 'الموظفون', 'التقارير', 'الإشعارات', 'الإعدادات', 'سجل العمليات'];
+export const MODULES_LIST = [
+  'الطلبات',
+  'المراجعون',
+  'الوزارات',
+  'الموظفون',
+  'التقارير',
+  'الإشعارات',
+  'الإعدادات',
+  'سجل العمليات'
+];
+
+export const ALL_SYSTEM_PERMISSIONS = [
+  // الطلبات
+  { key: 'requests.view', module: 'الطلبات', description: 'عرض قائمة وتفاصيل الطلبات والمعاملات' },
+  { key: 'requests.create', module: 'الطلبات', description: 'تسجيل معاملة جديدة في النظام' },
+  { key: 'requests.update', module: 'الطلبات', description: 'تعديل بيانات المعاملات' },
+  { key: 'requests.delete', module: 'الطلبات', description: 'حذف المعاملات من النظام' },
+  { key: 'requests.change_status', module: 'الطلبات', description: 'تغيير وتحديث حالة المعاملة' },
+  { key: 'requests.attachments', module: 'الطلبات', description: 'إرفاق وتحميل المستندات والملفات' },
+  { key: 'requests.final_response', module: 'الطلبات', description: 'اعتماد وتسجيل الإجابة والقرار النهائي' },
+  { key: 'requests.manage', module: 'الطلبات', description: 'إدارة كاملة لمعاملات النظام' },
+
+  // المراجعون
+  { key: 'customers.view', module: 'المراجعون', description: 'عرض قائمة وسجلات المراجعين' },
+  { key: 'customers.create', module: 'المراجعون', description: 'إضافة مراجع جديد' },
+  { key: 'customers.update', module: 'المراجعون', description: 'تعديل بيانات مراجع' },
+  { key: 'customers.delete', module: 'المراجعون', description: 'حذف مراجع' },
+  { key: 'customers.manage', module: 'المراجعون', description: 'إدارة كاملة لسجلات المراجعين' },
+
+  // الوزارات
+  { key: 'ministries.view', module: 'الوزارات', description: 'عرض الوزارات والجهات الحكومية' },
+  { key: 'ministries.create', module: 'الوزارات', description: 'إضافة وزارة أو جهة جديدة' },
+  { key: 'ministries.update', module: 'الوزارات', description: 'تعديل بيانات ومدد إنجاز الوزارات' },
+  { key: 'ministries.delete', module: 'الوزارات', description: 'حذف جهة أو وزارة' },
+  { key: 'ministries.manage', module: 'الوزارات', description: 'إدارة كاملة لجهات الربط والوزارات' },
+
+  // الموظفون
+  { key: 'users.view', module: 'الموظفون', description: 'عرض قائمة الموظفين والمستخدمين' },
+  { key: 'users.create', module: 'الموظفون', description: 'إضافة موظف جديد' },
+  { key: 'users.update', module: 'الموظفون', description: 'تعديل بيانات وصلاحيات الموظف' },
+  { key: 'users.delete', module: 'الموظفون', description: 'تعطيل أو حذف حساب موظف' },
+  { key: 'users.manage', module: 'الموظفون', description: 'إدارة كاملة لحسابات الموظفين' },
+
+  // التقارير
+  { key: 'reports.view', module: 'التقارير', description: 'عرض لوحة مؤشرات الأداء والتقارير' },
+  { key: 'reports.create', module: 'التقارير', description: 'إنشاء وحفظ تقارير مخصصة' },
+  { key: 'reports.update', module: 'التقارير', description: 'تعديل نماذج ومؤشرات التقارير' },
+  { key: 'reports.delete', module: 'التقارير', description: 'حذف تقارير مخصصة' },
+  { key: 'reports.export', module: 'التقارير', description: 'تصدير التقارير إلى Excel' },
+  { key: 'reports.export_pdf', module: 'التقارير', description: 'تصدير التقارير إلى PDF' },
+  { key: 'reports.manage', module: 'التقارير', description: 'إدارة كاملة للتقارير والإحصاءات' },
+
+  // الإشعارات
+  { key: 'notifications.view', module: 'الإشعارات', description: 'استقبال وعرض إشعارات النظام' },
+  { key: 'notifications.create', module: 'الإشعارات', description: 'إرسال إشعار يدوي' },
+  { key: 'notifications.update', module: 'الإشعارات', description: 'تعديل إعدادات التنبيهات' },
+  { key: 'notifications.delete', module: 'الإشعارات', description: 'حذف الإشعارات' },
+  { key: 'notifications.manage', module: 'الإشعارات', description: 'إدارة كاملة لنظام الإشعارات' },
+
+  // الإعدادات
+  { key: 'settings.view', module: 'الإعدادات', description: 'عرض إعدادات النظام' },
+  { key: 'settings.create', module: 'الإعدادات', description: 'إضافة خيارات وضبط جديد' },
+  { key: 'settings.update', module: 'الإعدادات', description: 'تعديل إعدادات النظام' },
+  { key: 'settings.delete', module: 'الإعدادات', description: 'حذف أو استعادة الإعدادات الافتراضية' },
+  { key: 'settings.manage', module: 'الإعدادات', description: 'إدارة شاملة لإعدادات النظام' },
+
+  // سجل العمليات
+  { key: 'audit_logs.view', module: 'سجل العمليات', description: 'عرض سجل تدقيق العمليات' },
+  { key: 'audit_logs.create', module: 'سجل العمليات', description: 'تسجيل حدث يدوي في السجل' },
+  { key: 'audit_logs.update', module: 'سجل العمليات', description: 'أرشفة وتصنيف السجلات' },
+  { key: 'audit_logs.delete', module: 'سجل العمليات', description: 'حذف أو تصفية السجلات المؤرشفة' },
+  { key: 'audit_logs.export_pdf', module: 'سجل العمليات', description: 'تصدير سجل العمليات إلى PDF' },
+  { key: 'audit_logs.manage', module: 'سجل العمليات', description: 'إدارة كاملة لسجل العمليات' },
+
+  // المدن
+  { key: 'cities.view', module: 'المدن', description: 'عرض قائمة المدن والمناطق' },
+  { key: 'cities.create', module: 'المدن', description: 'إضافة مدينة جديدة' },
+  { key: 'cities.update', module: 'المدن', description: 'تعديل وتفعيل المدن' },
+  { key: 'cities.delete', module: 'المدن', description: 'حذف مدينة' },
+
+  // أنواع الطلبات
+  { key: 'request_types.view', module: 'أنواع الطلبات', description: 'عرض أنواع وتصنيفات المعاملات' },
+  { key: 'request_types.create', module: 'أنواع الطلبات', description: 'إضافة نوع معاملة جديد' },
+  { key: 'request_types.update', module: 'أنواع الطلبات', description: 'تعديل نوع المعاملة' },
+  { key: 'request_types.delete', module: 'أنواع الطلبات', description: 'حذف نوع معاملة' },
+
+  // واتساب
+  { key: 'whatsapp.view', module: 'واتساب', description: 'عرض قوالب وسجلات رسائل WhatsApp' },
+  { key: 'whatsapp.manage', module: 'واتساب', description: 'إدارة إعدادات وتكامل WhatsApp' },
+  { key: 'whatsapp.send', module: 'واتساب', description: 'إرسال إشعارات عبر WhatsApp' }
+];
+
+export async function ensureSystemPermissions() {
+  try {
+    for (const perm of ALL_SYSTEM_PERMISSIONS) {
+      await prisma.permission.upsert({
+        where: { key: perm.key },
+        update: { module: perm.module, description: perm.description },
+        create: perm
+      });
+    }
+    console.log('✅ Ensured all system RBAC permissions are registered in the database.');
+  } catch (err) {
+    console.warn('⚠️ Permissions sync notice:', err);
+  }
+}
+
+export const formatRoleObject = (role: any) => {
+  const permKeys = role.rolePermissions?.map((rp: any) => rp.permission?.key) || [];
+
+  const matrix = MODULES_LIST.map((mod) => {
+    let prefix = 'requests';
+    if (mod === 'المراجعون') prefix = 'customers';
+    if (mod === 'الوزارات') prefix = 'ministries';
+    if (mod === 'الموظفون') prefix = 'users';
+    if (mod === 'التقارير') prefix = 'reports';
+    if (mod === 'الإشعارات') prefix = 'notifications';
+    if (mod === 'الإعدادات') prefix = 'settings';
+    if (mod === 'سجل العمليات') prefix = 'audit_logs';
+
+    return {
+      module: mod,
+      view: permKeys.includes(`${prefix}.view`) || permKeys.includes(`${prefix}.manage`),
+      create: permKeys.includes(`${prefix}.create`) || permKeys.includes(`${prefix}.manage`),
+      edit: permKeys.includes(`${prefix}.update`) || permKeys.includes(`${prefix}.manage`),
+      delete: permKeys.includes(`${prefix}.delete`) || permKeys.includes(`${prefix}.manage`)
+    };
+  });
+
+  const extraPermissions = {
+    changeStatus: permKeys.includes('requests.change_status') || permKeys.includes('requests.manage'),
+    uploadAttachments: permKeys.includes('requests.attachments') || permKeys.includes('requests.manage'),
+    exportExcel: permKeys.includes('reports.export') || permKeys.includes('reports.manage'),
+    sendNotifications: permKeys.includes('notifications.view') || permKeys.includes('whatsapp.send') || permKeys.includes('notifications.manage'),
+    manageWhatsapp: permKeys.includes('whatsapp.manage'),
+    viewAuditLogs: permKeys.includes('audit_logs.view') || permKeys.includes('audit_logs.manage')
+  };
+
+  return {
+    id: role.id,
+    name: role.name,
+    description: role.description || '',
+    usersCount: role.users?.length || 0,
+    permissions: matrix,
+    extraPermissions
+  };
+};
 
 export const getRoles = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -17,47 +163,7 @@ export const getRoles = async (req: Request, res: Response, next: NextFunction) 
       orderBy: { createdAt: 'asc' }
     });
 
-    const formattedRoles = roles.map((role) => {
-      const permKeys = role.rolePermissions.map((rp) => rp.permission.key);
-
-      const matrix = MODULES_LIST.map((mod) => {
-        let prefix = 'requests';
-        if (mod === 'المراجعون') prefix = 'customers';
-        if (mod === 'الوزارات') prefix = 'ministries';
-        if (mod === 'الموظفون') prefix = 'users';
-        if (mod === 'التقارير') prefix = 'reports';
-        if (mod === 'الإشعارات') prefix = 'notifications';
-        if (mod === 'الإعدادات') prefix = 'settings';
-        if (mod === 'سجل العمليات') prefix = 'audit_logs';
-
-        return {
-          module: mod,
-          view: permKeys.includes(`${prefix}.view`) || permKeys.includes(`${prefix}.manage`),
-          create: permKeys.includes(`${prefix}.create`) || permKeys.includes(`${prefix}.manage`),
-          edit: permKeys.includes(`${prefix}.update`) || permKeys.includes(`${prefix}.manage`),
-          delete: permKeys.includes(`${prefix}.delete`) || permKeys.includes(`${prefix}.manage`)
-        };
-      });
-
-      const extraPermissions = {
-        changeStatus: permKeys.includes('requests.change_status'),
-        uploadAttachments: permKeys.includes('requests.attachments'),
-        exportExcel: permKeys.includes('reports.export'),
-        sendNotifications: permKeys.includes('notifications.view') || permKeys.includes('whatsapp.send'),
-        manageWhatsapp: permKeys.includes('whatsapp.manage'),
-        viewAuditLogs: permKeys.includes('audit_logs.view')
-      };
-
-      return {
-        id: role.id,
-        name: role.name,
-        description: role.description || '',
-        usersCount: role.users.length,
-        permissions: matrix,
-        extraPermissions
-      };
-    });
-
+    const formattedRoles = roles.map(formatRoleObject);
     return sendSuccess(res, formattedRoles);
   } catch (error) {
     next(error);
@@ -82,46 +188,7 @@ export const getRoleById = async (req: Request, res: Response, next: NextFunctio
       throw new AppError('الدور غير موجود', 404, 'ROLE_NOT_FOUND');
     }
 
-    const permKeys = role.rolePermissions.map((rp) => rp.permission.key);
-
-    const matrix = MODULES_LIST.map((mod) => {
-      let prefix = 'requests';
-      if (mod === 'المراجعون') prefix = 'customers';
-      if (mod === 'الوزارات') prefix = 'ministries';
-      if (mod === 'الموظفون') prefix = 'users';
-      if (mod === 'التقارير') prefix = 'reports';
-      if (mod === 'الإشعارات') prefix = 'notifications';
-      if (mod === 'الإعدادات') prefix = 'settings';
-      if (mod === 'سجل العمليات') prefix = 'audit_logs';
-
-      return {
-        module: mod,
-        view: permKeys.includes(`${prefix}.view`) || permKeys.includes(`${prefix}.manage`),
-        create: permKeys.includes(`${prefix}.create`) || permKeys.includes(`${prefix}.manage`),
-        edit: permKeys.includes(`${prefix}.update`) || permKeys.includes(`${prefix}.manage`),
-        delete: permKeys.includes(`${prefix}.delete`) || permKeys.includes(`${prefix}.manage`)
-      };
-    });
-
-    const extraPermissions = {
-      changeStatus: permKeys.includes('requests.change_status'),
-      uploadAttachments: permKeys.includes('requests.attachments'),
-      exportExcel: permKeys.includes('reports.export'),
-      sendNotifications: permKeys.includes('notifications.view') || permKeys.includes('whatsapp.send'),
-      manageWhatsapp: permKeys.includes('whatsapp.manage'),
-      viewAuditLogs: permKeys.includes('audit_logs.view')
-    };
-
-    const formatted = {
-      id: role.id,
-      name: role.name,
-      description: role.description || '',
-      usersCount: role.users.length,
-      permissions: matrix,
-      extraPermissions
-    };
-
-    return sendSuccess(res, formatted);
+    return sendSuccess(res, formatRoleObject(role));
   } catch (error) {
     next(error);
   }
@@ -130,7 +197,7 @@ export const getRoleById = async (req: Request, res: Response, next: NextFunctio
 export const updateRole = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { permissions, extraPermissions, description } = req.body;
+    const { name, description, permissions, extraPermissions } = req.body;
 
     const role = await prisma.role.findUnique({ where: { id } });
     if (!role) {
@@ -167,6 +234,21 @@ export const updateRole = async (req: Request, res: Response, next: NextFunction
       if (extraPermissions.viewAuditLogs) requestedKeys.push('audit_logs.view');
     }
 
+    // Ensure all requested permissions exist in the DB
+    for (const key of requestedKeys) {
+      const existing = await prisma.permission.findUnique({ where: { key } });
+      if (!existing) {
+        const foundDefinition = ALL_SYSTEM_PERMISSIONS.find((p) => p.key === key);
+        await prisma.permission.create({
+          data: {
+            key,
+            module: foundDefinition?.module || 'عام',
+            description: foundDefinition?.description || key
+          }
+        });
+      }
+    }
+
     const dbPermissions = await prisma.permission.findMany({
       where: { key: { in: requestedKeys } }
     });
@@ -185,30 +267,55 @@ export const updateRole = async (req: Request, res: Response, next: NextFunction
         });
       }
 
+      // Update role attributes (name and/or description)
+      const updateData: any = {};
+      if (name !== undefined && name.trim()) {
+        updateData.name = name.trim();
+      }
       if (description !== undefined) {
-        await tx.role.update({
-          where: { id },
-          data: { description }
-        });
+        updateData.description = description ? description.trim() : '';
       }
 
-      if (req.user) {
-        await tx.auditLog.create({
-          data: {
-            userId: req.user.id,
-            userName: req.user.name,
-            userRole: req.user.role,
-            action: 'تعديل إعدادات',
-            entity: 'Role',
-            entityId: id,
-            details: `تحديث مصفوفة صلاحيات الدور: ${role.name}`,
-            ipAddress: req.ip
-          }
+      if (Object.keys(updateData).length > 0) {
+        await tx.role.update({
+          where: { id },
+          data: updateData
         });
       }
     });
 
-    return sendSuccess(res, null, 'تم تحديث صلاحيات الدور بنجاح');
+    try {
+      if (req.user) {
+        const userExists = await prisma.user.findUnique({ where: { id: req.user.id } });
+        await prisma.auditLog.create({
+          data: {
+            userId: userExists ? req.user.id : null,
+            userName: req.user.name || 'مستخدم',
+            userRole: req.user.role || 'مدير النظام',
+            action: 'تعديل إعدادات',
+            entity: 'Role',
+            entityId: id,
+            details: `تحديث مصفوفة صلاحيات الدور: ${name || role.name}`,
+            ipAddress: req.ip || req.socket.remoteAddress
+          }
+        });
+      }
+    } catch (auditErr) {
+      console.warn('⚠️ Audit log notice:', auditErr);
+    }
+
+    // Fetch updated role with fresh permissions
+    const updatedRole = await prisma.role.findUnique({
+      where: { id },
+      include: {
+        users: { select: { id: true } },
+        rolePermissions: {
+          include: { permission: true }
+        }
+      }
+    });
+
+    return sendSuccess(res, formatRoleObject(updatedRole), 'تم تحديث صلاحيات الدور بنجاح');
   } catch (error) {
     next(error);
   }
@@ -262,6 +369,21 @@ export const createRole = async (req: Request, res: Response, next: NextFunction
       if (extraPermissions.viewAuditLogs) requestedKeys.push('audit_logs.view');
     }
 
+    // Ensure all requested permissions exist in the DB
+    for (const key of requestedKeys) {
+      const existing = await prisma.permission.findUnique({ where: { key } });
+      if (!existing) {
+        const foundDefinition = ALL_SYSTEM_PERMISSIONS.find((p) => p.key === key);
+        await prisma.permission.create({
+          data: {
+            key,
+            module: foundDefinition?.module || 'عام',
+            description: foundDefinition?.description || key
+          }
+        });
+      }
+    }
+
     const dbPermissions = await prisma.permission.findMany({
       where: { key: { in: requestedKeys } }
     });
@@ -283,61 +405,41 @@ export const createRole = async (req: Request, res: Response, next: NextFunction
         });
       }
 
-      if (req.user) {
-        await tx.auditLog.create({
-          data: {
-            userId: req.user.id,
-            userName: req.user.name,
-            userRole: req.user.role,
-            action: 'إضافة جديد',
-            entity: 'Role',
-            entityId: created.id,
-            details: `إنشاء دور جديد: ${trimmedName}`,
-            ipAddress: req.ip
-          }
-        });
-      }
-
       return created;
     });
 
-    // Format output
-    const matrix = MODULES_LIST.map((mod) => {
-      let prefix = 'requests';
-      if (mod === 'المراجعون') prefix = 'customers';
-      if (mod === 'الوزارات') prefix = 'ministries';
-      if (mod === 'الموظفون') prefix = 'users';
-      if (mod === 'التقارير') prefix = 'reports';
-      if (mod === 'الإشعارات') prefix = 'notifications';
-      if (mod === 'الإعدادات') prefix = 'settings';
-      if (mod === 'سجل العمليات') prefix = 'audit_logs';
+    try {
+      if (req.user) {
+        const userExists = await prisma.user.findUnique({ where: { id: req.user.id } });
+        await prisma.auditLog.create({
+          data: {
+            userId: userExists ? req.user.id : null,
+            userName: req.user.name || 'مستخدم',
+            userRole: req.user.role || 'مدير النظام',
+            action: 'إضافة جديد',
+            entity: 'Role',
+            entityId: newRole.id,
+            details: `إنشاء دور جديد: ${trimmedName}`,
+            ipAddress: req.ip || req.socket.remoteAddress
+          }
+        });
+      }
+    } catch (auditErr) {
+      console.warn('⚠️ Audit log notice:', auditErr);
+    }
 
-      return {
-        module: mod,
-        view: requestedKeys.includes(`${prefix}.view`),
-        create: requestedKeys.includes(`${prefix}.create`),
-        edit: requestedKeys.includes(`${prefix}.update`),
-        delete: requestedKeys.includes(`${prefix}.delete`)
-      };
+    // Fetch full role with relations
+    const fullCreated = await prisma.role.findUnique({
+      where: { id: newRole.id },
+      include: {
+        users: { select: { id: true } },
+        rolePermissions: {
+          include: { permission: true }
+        }
+      }
     });
 
-    const formatted = {
-      id: newRole.id,
-      name: newRole.name,
-      description: newRole.description || '',
-      usersCount: 0,
-      permissions: matrix,
-      extraPermissions: extraPermissions || {
-        changeStatus: false,
-        uploadAttachments: false,
-        exportExcel: false,
-        sendNotifications: false,
-        manageWhatsapp: false,
-        viewAuditLogs: false
-      }
-    };
-
-    return sendSuccess(res, formatted, 'تم إنشاء الدور بنجاح', 201);
+    return sendSuccess(res, formatRoleObject(fullCreated), 'تم إنشاء الدور بنجاح', 201);
   } catch (error) {
     next(error);
   }
@@ -367,22 +469,27 @@ export const deleteRole = async (req: Request, res: Response, next: NextFunction
     await prisma.$transaction(async (tx) => {
       await tx.rolePermission.deleteMany({ where: { roleId: id } });
       await tx.role.delete({ where: { id } });
+    });
 
+    try {
       if (req.user) {
-        await tx.auditLog.create({
+        const userExists = await prisma.user.findUnique({ where: { id: req.user.id } });
+        await prisma.auditLog.create({
           data: {
-            userId: req.user.id,
-            userName: req.user.name,
-            userRole: req.user.role,
+            userId: userExists ? req.user.id : null,
+            userName: req.user.name || 'مستخدم',
+            userRole: req.user.role || 'مدير النظام',
             action: 'حذف',
             entity: 'Role',
             entityId: id,
             details: `حذف الدور: ${role.name}`,
-            ipAddress: req.ip
+            ipAddress: req.ip || req.socket.remoteAddress
           }
         });
       }
-    });
+    } catch (auditErr) {
+      console.warn('⚠️ Audit log notice:', auditErr);
+    }
 
     return sendSuccess(res, null, 'تم حذف الدور بنجاح');
   } catch (error) {

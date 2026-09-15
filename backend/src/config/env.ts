@@ -39,15 +39,14 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional()
 });
 
-// OTP security settings (optional overrides, safe production defaults enforced)
+// OTP security settings (safe production defaults enforced)
 const otpSchema = z.object({
   OTP_TTL_MINUTES: z.coerce.number().int().min(1).max(60).default(5),
   OTP_LENGTH: z.coerce.number().int().min(4).max(8).default(6),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(5),
   OTP_LOCK_MINUTES: z.coerce.number().int().min(1).max(60).default(10),
   OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().min(30).max(300).default(60),
-  OTP_BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(14).default(10),
-  OTP_EXPOSE_IN_RESPONSE: z.enum(['true', 'false']).default('false')
+  OTP_BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(14).default(10)
 });
 
 const parsed = envSchema.safeParse({
