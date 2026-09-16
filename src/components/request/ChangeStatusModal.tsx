@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { RequestItem, RequestStatus } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -72,6 +72,11 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
 
     if (requiresApprovalDoc && files.length === 0) {
       setValidationError('يلزم إرفاق مستند الموافقة الرسمية للانتقال إلى حالة "موافقة"');
+      return;
+    }
+
+    if (requiresFinalDoc && files.length === 0) {
+      setValidationError('لا يمكن تغيير الحالة إلى "الإجابة جاهزة" بدون إرفاق مستند الإجابة والقرار النهائي.');
       return;
     }
 
@@ -156,10 +161,10 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
                 {requiresSendingDoc && 'مستند الإرسال / الخطاب الصادر للجهة *'}
                 {requiresApprovalDoc && 'مستند الموافقة الرسمية *'}
                 {requiresDeliveryDoc && 'مستند إثبات التسليم والتوقيع *'}
-                {requiresFinalDoc && 'مستند الإجابة والقرار النهائي (اختياري)'}
+                {requiresFinalDoc && 'مستند الإجابة والقرار النهائي *'}
                 {requiresRejectionReason && 'مستند قرار الرفض (اختياري)'}
               </span>
-              {(requiresSendingDoc || requiresApprovalDoc || requiresDeliveryDoc) && (
+              {(requiresSendingDoc || requiresApprovalDoc || requiresDeliveryDoc || requiresFinalDoc) && (
                 <span className="text-[10px] text-rose-600 font-normal">إلزامي لاعتماد الحالة</span>
               )}
             </label>
@@ -167,7 +172,7 @@ export const ChangeStatusModal: React.FC<ChangeStatusModalProps> = ({
               type="file"
               multiple
               accept=".pdf,.doc,.docx,image/*"
-              required={(requiresSendingDoc || requiresApprovalDoc || requiresDeliveryDoc) && files.length === 0}
+              required={(requiresSendingDoc || requiresApprovalDoc || requiresDeliveryDoc || requiresFinalDoc) && files.length === 0}
               onChange={handleAddFiles}
               className="text-xs text-slate-600 dark:text-gray-400 file:ml-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-800 hover:file:bg-blue-200"
             />

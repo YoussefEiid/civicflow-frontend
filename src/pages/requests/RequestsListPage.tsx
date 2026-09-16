@@ -239,9 +239,14 @@ export const RequestsListPage: React.FC = () => {
     );
   };
 
-  const handleBulkChangeStatus = async (newStatus: RequestStatus, note?: string) => {
+  const handleBulkChangeStatus = async (
+    newStatus: RequestStatus,
+    note?: string,
+    file?: File,
+    rejectionReason?: string
+  ) => {
     for (const reqId of selectedIds) {
-      await handleChangeStatus(reqId, newStatus, note);
+      await handleChangeStatus(reqId, newStatus, note, file, rejectionReason);
     }
     success('تم تحديث الحالات بنجاح', `تم تحديث حالة (${selectedIds.length}) طلبات بنجاح إلى "${newStatus}"`);
     setSelectedIds([]);
