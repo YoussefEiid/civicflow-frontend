@@ -114,9 +114,10 @@ export const EditRequestPage: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              label="عنوان المعاملة"
+              label="عنوان / الطلب"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              placeholder="مثال: طلب نقل، تظلم، استثناء..."
               required
             />
 

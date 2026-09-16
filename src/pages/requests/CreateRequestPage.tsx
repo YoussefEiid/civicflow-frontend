@@ -184,7 +184,7 @@ export const CreateRequestPage: React.FC = () => {
 
   const handleSave = async (stayOnPage = false) => {
     if (!title.trim()) {
-      warning('حقل مطلوب', 'يرجى إدخال عنوان المعاملة');
+      warning('حقل مطلوب', 'يرجى إدخال عنوان الطلب');
       return;
     }
 
@@ -505,11 +505,11 @@ export const CreateRequestPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <Input
-                  label="عنوان / موضوع المعاملة"
+                  label="عنوان / الطلب"
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="مثال: طلب نقل كفالة، ترخيص مزاولة نشاط تجاري..."
+                  placeholder="مثال: طلب نقل، تظلم، استثناء..."
                 />
               </div>
 
