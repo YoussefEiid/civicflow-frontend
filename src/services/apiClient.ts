@@ -130,6 +130,15 @@ export const request = async <T = any>(
       });
 
       if (!refreshRes.ok) {
+        if (refreshRes.status === 401 || refreshRes.status === 403) {
+          setAccessToken(null);
+          if (isBrowser) {
+            localStorage.removeItem('civicflow_access_token');
+            localStorage.removeItem('civicflow_refresh_token');
+            localStorage.removeItem('civicflow_user');
+          }
+          window.dispatchEvent(new CustomEvent('civicflow_auth_expired'));
+        }
         throw new Error('Refresh failed');
       }
 
@@ -151,14 +160,7 @@ export const request = async <T = any>(
       return handleResponse<T>(await fetch(url, { ...config, headers: reqHeaders }));
     } catch (refreshErr) {
       processQueue(refreshErr, null);
-      setAccessToken(null);
-      if (isBrowser) {
-        localStorage.removeItem('civicflow_access_token');
-        localStorage.removeItem('civicflow_refresh_token');
-        localStorage.removeItem('civicflow_user');
-      }
-      window.dispatchEvent(new CustomEvent('civicflow_auth_expired'));
-      throw new ApiError('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً', 401, 'SESSION_EXPIRED');
+      throw new ApiError('انتهت صلاحية الجلسة أو تعذر الاتصال بالخادم', 401, 'SESSION_EXPIRED');
     } finally {
       isRefreshing = false;
     }

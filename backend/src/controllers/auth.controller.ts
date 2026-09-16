@@ -101,10 +101,10 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
-    // Persist refresh token in database (7 days expiry)
+    // Persist refresh token in database (90 days expiry for persistent login)
     const tokenHashStr = hashToken(refreshToken);
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + 90);
 
     await prisma.refreshToken.create({
       data: {
@@ -129,13 +129,13 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       }
     });
 
-    // Set Refresh Token as HTTP-Only Cookie
+    // Set Refresh Token as HTTP-Only Cookie (90 days persistence)
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
       sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       partitioned: env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 90 * 24 * 60 * 60 * 1000 // 90 days
     });
 
     const permissions = user.role.rolePermissions.map((rp) => rp.permission.key);
@@ -234,9 +234,9 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
     const newAccessToken = generateAccessToken(tokenPayload);
     const newRefreshToken = generateRefreshToken(tokenPayload);
 
-    // Save new refresh token
+    // Save new refresh token (90 days)
     const newExpiresAt = new Date();
-    newExpiresAt.setDate(newExpiresAt.getDate() + 7);
+    newExpiresAt.setDate(newExpiresAt.getDate() + 90);
 
     await prisma.refreshToken.create({
       data: {
@@ -246,13 +246,13 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
       }
     });
 
-    // Set new cookie
+    // Set new cookie (90 days)
     res.cookie('refreshToken', newRefreshToken, {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
       sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
       partitioned: env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 90 * 24 * 60 * 60 * 1000 // 90 days
     });
 
     const permissions = user.role.rolePermissions.map((rp) => rp.permission.key);
