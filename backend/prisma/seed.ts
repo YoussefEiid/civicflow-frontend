@@ -162,13 +162,13 @@ async function main() {
 
   // 4. Seed Users (Bcrypt hashed password)
   const saltRounds = 10;
-  const defaultPasswordHash = await bcrypt.hash('demo123456', saltRounds);
+  const defaultPasswordHash = await bcrypt.hash('CivicFlow@Secure2026', saltRounds);
 
   const adminUser = await prisma.user.create({
     data: {
-      name: 'أحمد علي',
-      email: 'ahmed.ali@civicflow.gov',
-      phone: '0500000001',
+      name: 'أحمد (مدير النظام)',
+      email: 'alzmat66@gmail.com',
+      phone: '07700000001',
       passwordHash: defaultPasswordHash,
       roleId: adminRole.id,
       department: 'الإدارة العامة والمتابعة',
@@ -178,11 +178,24 @@ async function main() {
     }
   });
 
+  const assistantAdminUser = await prisma.user.create({
+    data: {
+      name: 'مدير النظام المساعد',
+      email: 'alzmat99@gmail.com',
+      phone: '07700000002',
+      passwordHash: defaultPasswordHash,
+      roleId: adminRole.id,
+      department: 'الإدارة العامة والمتابعة',
+      status: UserStatus.ACTIVE,
+      lastLogin: new Date()
+    }
+  });
+
   const supervisorUser = await prisma.user.create({
     data: {
-      name: 'محمد حسن',
-      email: 'm.hassan@civicflow.gov',
-      phone: '0500000002',
+      name: 'مشرف النظام',
+      email: 'baszmat3@gmail.com',
+      phone: '07700000003',
       passwordHash: defaultPasswordHash,
       roleId: supervisorRole.id,
       department: 'قسم الاتصال والتنسيق الحكومي',
@@ -191,32 +204,19 @@ async function main() {
     }
   });
 
-  const followUpUser = await prisma.user.create({
+  const followUpSupervisorUser = await prisma.user.create({
     data: {
-      name: 'سارة محمود',
-      email: 'sara.m@civicflow.gov',
-      phone: '0500000003',
+      name: 'مشرف المتابعة',
+      email: 'mbas89077@gmail.com',
+      phone: '07700000004',
       passwordHash: defaultPasswordHash,
-      roleId: followUpRole.id,
+      roleId: supervisorRole.id,
       department: 'إدارة متابعة المعاملات والسجلات',
       status: UserStatus.ACTIVE,
       lastLogin: new Date()
     }
   });
-
-  const receptionistUser = await prisma.user.create({
-    data: {
-      name: 'خالد إبراهيم',
-      email: 'khaled.i@civicflow.gov',
-      phone: '0500000004',
-      passwordHash: defaultPasswordHash,
-      roleId: receptionistRole.id,
-      department: 'مركز خدمة المراجعين والصادر والوارد',
-      status: UserStatus.ACTIVE,
-      lastLogin: new Date()
-    }
-  });
-  console.log('✅ Seeded 4 standard users with hashed passwords.');
+  console.log('✅ Seeded 4 authorized accounts with secure passwords.');
 
   // 5. Seed Request Statuses
   const statusesData = [
@@ -397,7 +397,7 @@ async function main() {
       requestNumber: 'REQ-1025',
       customerId: createdCustomers[0].id,
       ministryId: createdMinistries['MOH'],
-      assignedEmployeeId: followUpUser.id,
+      assignedEmployeeId: followUpSupervisorUser.id,
       title: 'طلب ترخيص منشأة صحية خاصة وتجديد السجل الطبي',
       details: 'المعاملة تتضمن مراجعة المخططات الهندسية للمركز الطبي واعتماد الكادر التمريضي والأجهزة المعتمدة طبقاً للاشتراطات التنظيمية.',
       requestType: 'إصدار تصريح',
@@ -413,7 +413,7 @@ async function main() {
           {
             oldStatus: null,
             newStatus: 'استلام الطلب',
-            changedById: receptionistUser.id,
+            changedById: assistantAdminUser.id,
             employeeName: 'خالد إبراهيم',
             note: 'تم استقبال المراجع وتسجيل الطلب وإرفاق المستندات الأولية.',
             createdAt: new Date('2026-08-28T10:15:00Z')
@@ -429,7 +429,7 @@ async function main() {
           {
             oldStatus: 'قيد المراجعة',
             newStatus: 'تم إرسال الطلب للجهة',
-            changedById: followUpUser.id,
+            changedById: followUpSupervisorUser.id,
             employeeName: 'سارة محمود',
             note: 'تم تصدير المعاملة رسمياً إلى الإدارة العامة للتراخيص بوزارة الصحة برقم صادر 440912.',
             createdAt: new Date('2026-08-29T09:00:00Z')
@@ -437,7 +437,7 @@ async function main() {
           {
             oldStatus: 'تم إرسال الطلب للجهة',
             newStatus: 'قيد المعالجة',
-            changedById: followUpUser.id,
+            changedById: followUpSupervisorUser.id,
             employeeName: 'سارة محمود',
             note: 'المعاملة قيد الدراسة لدى اللجنة الفنية بوزارة الصحة.',
             createdAt: new Date('2026-08-30T13:45:00Z')
@@ -499,7 +499,7 @@ async function main() {
           {
             oldStatus: null,
             newStatus: 'استلام الطلب',
-            changedById: receptionistUser.id,
+            changedById: assistantAdminUser.id,
             employeeName: 'خالد إبراهيم',
             note: 'تم استلام المعاملة ورفع الوثائق.',
             createdAt: new Date('2026-08-22T08:30:00Z')
@@ -539,7 +539,7 @@ async function main() {
           {
             oldStatus: null,
             newStatus: 'استلام الطلب',
-            changedById: receptionistUser.id,
+            changedById: assistantAdminUser.id,
             employeeName: 'خالد إبراهيم',
             note: 'استلام أصول الشهادات والسجل الأكاديمي.',
             createdAt: new Date('2026-08-15T09:00:00Z')
