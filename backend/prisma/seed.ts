@@ -162,7 +162,7 @@ async function main() {
 
   // 4. Seed Users (Bcrypt hashed password)
   const saltRounds = 10;
-  const defaultPasswordHash = await bcrypt.hash('CivicFlow@Secure2026', saltRounds);
+  const defaultPasswordHash = await bcrypt.hash('CivicFlow@Master2026#X', saltRounds);
 
   const adminUser = await prisma.user.create({
     data: {
@@ -308,11 +308,9 @@ async function main() {
     }
   ];
 
-  const createdMinistries: Record<string, string> = {};
   for (const m of ministriesData) {
     const { sla, ...minDetails } = m;
     const min = await prisma.ministry.create({ data: minDetails });
-    createdMinistries[min.code] = min.id;
     await prisma.sLASetting.create({
       data: {
         ministryId: min.id,
@@ -322,256 +320,7 @@ async function main() {
   }
   console.log(`✅ Seeded ${ministriesData.length} ministries with SLA configurations.`);
 
-  // 7. Seed Customers
-  const customersData = [
-    {
-      name: 'محمد أحمد علي',
-      phone: '0501234567',
-      altPhone: '0559876543',
-      nationalId: '1092837465',
-      email: 'mohammed.ali@example.com',
-      address: 'الرياض - حي الملز - شارع الستين',
-      notes: 'مراجع دائم لمعاملات وزارة الصحة والترخيص المهني الطبي.',
-      status: CustomerStatus.ACTIVE
-    },
-    {
-      name: 'أحمد محمود حسن',
-      phone: '0562345678',
-      altPhone: '0114567890',
-      nationalId: '1083746592',
-      email: 'ahmed.m@example.com',
-      address: 'جدة - حي الروضة - طريق الملك عبدالعزيز',
-      notes: 'يرغب في استلام الإشعارات وتحديثات المعاملات عبر WhatsApp فقط.',
-      status: CustomerStatus.ACTIVE
-    },
-    {
-      name: 'سارة محمد عبدالله',
-      phone: '0543456789',
-      nationalId: '1074658392',
-      email: 'sara.abdullah@example.com',
-      address: 'الدمام - حي الشاطئ - شارع الخليج',
-      notes: 'معاملة تجديد رخصة وتصديق شهادات أكاديمية.',
-      status: CustomerStatus.ACTIVE
-    },
-    {
-      name: 'خالد عبدالله',
-      phone: '0534567890',
-      altPhone: '0581122334',
-      nationalId: '1065748392',
-      email: 'khaled.ab@example.com',
-      address: 'مكة المكرمة - حي العزيزية',
-      notes: 'معاملة إفراغ عقاري وتوثيق وكالة في وزارة العدل.',
-      status: CustomerStatus.ACTIVE
-    },
-    {
-      name: 'محمود السيد',
-      phone: '0525678901',
-      nationalId: '1056847392',
-      email: 'mahmoud.sayed@example.com',
-      address: 'المدينة المنورة - حي سلطانة',
-      notes: 'طلب إعفاء وتظلم إداري بوزارة التضامن الاجتماعي.',
-      status: CustomerStatus.ACTIVE
-    },
-    {
-      name: 'نور أحمد',
-      phone: '0596789012',
-      altPhone: '0509988776',
-      nationalId: '1047958392',
-      email: 'nour.ahmed@example.com',
-      address: 'الخبر - حي العقربية - شارع 10',
-      notes: 'معاملات تصديق قنصلي بوزارة الخارجية.',
-      status: CustomerStatus.ACTIVE
-    }
-  ];
-
-  const createdCustomers: any[] = [];
-  for (const c of customersData) {
-    const cust = await prisma.customer.create({ data: c });
-    createdCustomers.push(cust);
-  }
-  console.log(`✅ Seeded ${customersData.length} customers.`);
-
-  // 8. Seed Requests with status history, attachments, and final responses
-  const req1 = await prisma.request.create({
-    data: {
-      requestNumber: 'REQ-1025',
-      customerId: createdCustomers[0].id,
-      ministryId: createdMinistries['MOH'],
-      assignedEmployeeId: followUpSupervisorUser.id,
-      title: 'طلب ترخيص منشأة صحية خاصة وتجديد السجل الطبي',
-      details: 'المعاملة تتضمن مراجعة المخططات الهندسية للمركز الطبي واعتماد الكادر التمريضي والأجهزة المعتمدة طبقاً للاشتراطات التنظيمية.',
-      requestType: 'إصدار تصريح',
-      status: 'قيد المعالجة',
-      priority: PriorityLevel.URGENT,
-      receiveDate: new Date('2026-08-28'),
-      expectedCompletionDate: new Date('2026-09-04'),
-      deadlineStatus: 'اقترب الموعد',
-      daysRemainingOrOverdue: 1,
-      internalNotes: 'المراجع استفسر هاتفياً اليوم وتم إبلاغه أن المعاملة قيد الاعتماد النهائي وستصدر خلال 24 ساعة.',
-      statusHistory: {
-        create: [
-          {
-            oldStatus: null,
-            newStatus: 'استلام الطلب',
-            changedById: assistantAdminUser.id,
-            employeeName: 'خالد إبراهيم',
-            note: 'تم استقبال المراجع وتسجيل الطلب وإرفاق المستندات الأولية.',
-            createdAt: new Date('2026-08-28T10:15:00Z')
-          },
-          {
-            oldStatus: 'استلام الطلب',
-            newStatus: 'قيد المراجعة',
-            changedById: supervisorUser.id,
-            employeeName: 'محمد حسن',
-            note: 'تم فحص المرفقات والتأكد من مطابقة شروط التقديم المبدئية.',
-            createdAt: new Date('2026-08-28T11:30:00Z')
-          },
-          {
-            oldStatus: 'قيد المراجعة',
-            newStatus: 'تم إرسال الطلب للجهة',
-            changedById: followUpSupervisorUser.id,
-            employeeName: 'سارة محمود',
-            note: 'تم تصدير المعاملة رسمياً إلى الإدارة العامة للتراخيص بوزارة الصحة برقم صادر 440912.',
-            createdAt: new Date('2026-08-29T09:00:00Z')
-          },
-          {
-            oldStatus: 'تم إرسال الطلب للجهة',
-            newStatus: 'قيد المعالجة',
-            changedById: followUpSupervisorUser.id,
-            employeeName: 'سارة محمود',
-            note: 'المعاملة قيد الدراسة لدى اللجنة الفنية بوزارة الصحة.',
-            createdAt: new Date('2026-08-30T13:45:00Z')
-          }
-        ]
-      },
-      attachments: {
-        create: [
-          {
-            name: 'السجل_التجاري_المعتمد.pdf',
-            filePath: 'uploads/demo_commercial_reg.pdf',
-            fileSize: '2.4 MB',
-            fileType: 'PDF',
-            mimeType: 'application/pdf',
-            uploadedBy: 'خالد إبراهيم',
-            uploadedAt: new Date('2026-08-28T10:15:00Z')
-          },
-          {
-            name: 'المخطط_الهندسي_للمنشأة.pdf',
-            filePath: 'uploads/demo_engineering_plan.pdf',
-            fileSize: '8.1 MB',
-            fileType: 'PDF',
-            mimeType: 'application/pdf',
-            uploadedBy: 'خالد إبراهيم',
-            uploadedAt: new Date('2026-08-28T10:16:00Z')
-          },
-          {
-            name: 'كشف_الأجهزة_الطبية.xlsx',
-            filePath: 'uploads/demo_medical_devices.xlsx',
-            fileSize: '540 KB',
-            fileType: 'Excel',
-            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            uploadedBy: 'سارة محمود',
-            uploadedAt: new Date('2026-08-30T14:20:00Z')
-          }
-        ]
-      }
-    }
-  });
-
-  const req2 = await prisma.request.create({
-    data: {
-      requestNumber: 'REQ-1042',
-      customerId: createdCustomers[1].id,
-      ministryId: createdMinistries['MOI'],
-      assignedEmployeeId: supervisorUser.id,
-      title: 'تجديد تصريح إقامة استثنائية ونقل كفالة مهنية',
-      details: 'طلب نقل خدمات وتجديد الإقامة مع تقديم استثناء لظروف العمل والتنقل.',
-      requestType: 'تجديد رخصة',
-      status: 'قيد المعالجة',
-      priority: PriorityLevel.URGENT,
-      receiveDate: new Date('2026-08-22'),
-      expectedCompletionDate: new Date('2026-08-27'),
-      deadlineStatus: 'متأخر',
-      daysRemainingOrOverdue: -7,
-      internalNotes: 'تم إرسال تذكير عاجل لمنسق وزارة الداخلية للاستعجال بالرد.',
-      statusHistory: {
-        create: [
-          {
-            oldStatus: null,
-            newStatus: 'استلام الطلب',
-            changedById: assistantAdminUser.id,
-            employeeName: 'خالد إبراهيم',
-            note: 'تم استلام المعاملة ورفع الوثائق.',
-            createdAt: new Date('2026-08-22T08:30:00Z')
-          },
-          {
-            oldStatus: 'استلام الطلب',
-            newStatus: 'قيد المعالجة',
-            changedById: supervisorUser.id,
-            employeeName: 'محمد حسن',
-            note: 'قيد المتابعة لدى الجوازات.',
-            createdAt: new Date('2026-08-24T10:00:00Z')
-          }
-        ]
-      }
-    }
-  });
-
-  const req3 = await prisma.request.create({
-    data: {
-      requestNumber: 'REQ-1088',
-      customerId: createdCustomers[2].id,
-      ministryId: createdMinistries['MOE'],
-      assignedEmployeeId: adminUser.id,
-      title: 'معادلة شهادة ماجستير صادرة من جامعة دولية',
-      details: 'طلب معادلة الدرجة العلمية في هندسة البرمجيات مصدقة من سفارة المملكة والمكتب الثقافي.',
-      requestType: 'طلب شهادة رسمية',
-      status: 'الإجابة جاهزة',
-      priority: PriorityLevel.IMPORTANT,
-      receiveDate: new Date('2026-08-15'),
-      expectedCompletionDate: new Date('2026-08-23'),
-      completedDate: new Date('2026-08-22'),
-      deadlineStatus: 'ضمن المدة',
-      daysRemainingOrOverdue: 0,
-      internalNotes: 'صدر قرار المعادلة الإيجابي وتم حفظ نسخة في الأرشيف المركزي.',
-      statusHistory: {
-        create: [
-          {
-            oldStatus: null,
-            newStatus: 'استلام الطلب',
-            changedById: assistantAdminUser.id,
-            employeeName: 'خالد إبراهيم',
-            note: 'استلام أصول الشهادات والسجل الأكاديمي.',
-            createdAt: new Date('2026-08-15T09:00:00Z')
-          },
-          {
-            oldStatus: 'استلام الطلب',
-            newStatus: 'الإجابة جاهزة',
-            changedById: adminUser.id,
-            employeeName: 'أحمد علي',
-            note: 'تم اعتماد قرار المعادلة وإصدار الشهادة الرسمية.',
-            createdAt: new Date('2026-08-22T14:00:00Z')
-          }
-        ]
-      },
-      finalResponse: {
-        create: {
-          decision: 'موافقة',
-          summary: 'تمت معادلة درجة الماجستير بنجاح بمثيلاتها في الجامعات السعودية مع منح الدرجة الأكاديمية المستحقة.',
-          documentNumber: 'MOE-EQ-2026-4491',
-          issuedAt: new Date('2026-08-22T14:00:00Z'),
-          issuedBy: 'أحمد علي',
-          attachmentName: 'وثيقة_المعادلة_النهائية.pdf',
-          attachmentPath: 'uploads/demo_final_response.pdf',
-          deliveredToCustomer: false
-        }
-      }
-    }
-  });
-
-  console.log('✅ Seeded 3 detailed requests with status histories and final responses.');
-
-  // 9. Seed WhatsApp Templates
+  // 7. Seed WhatsApp Templates
   const waTemplates = [
     {
       key: 'receive_request',
@@ -610,7 +359,7 @@ async function main() {
   }
   console.log(`✅ Seeded ${waTemplates.length} WhatsApp templates.`);
 
-  // 10. Seed System Settings
+  // 8. Seed System Settings
   await prisma.systemSetting.create({
     data: {
       key: 'general',
@@ -659,35 +408,7 @@ async function main() {
     }
   });
 
-  // 11. Seed Notifications & Audit Logs
-  await prisma.notification.create({
-    data: {
-      userId: adminUser.id,
-      title: 'استلام طلب جديد',
-      message: 'تم تسجيل الطلب #REQ-1025 بنجاح لدى وزارة الصحة',
-      requestId: req1.id,
-      requestNumber: 'REQ-1025',
-      type: 'system',
-      read: false,
-      link: `/requests/${req1.id}`
-    }
-  });
-
-  await prisma.auditLog.create({
-    data: {
-      userId: adminUser.id,
-      userName: 'أحمد علي',
-      userRole: 'مدير النظام',
-      action: 'إضافة طلب',
-      requestNumber: 'REQ-1025',
-      entity: 'Request',
-      entityId: req1.id,
-      details: 'إنشاء طلب جديد رقم REQ-1025 للمراجع محمد أحمد علي',
-      ipAddress: '127.0.0.1'
-    }
-  });
-
-  console.log('🎉 Database seeding successfully completed!');
+  console.log('🎉 Database cleanly reset and initialized with 4 secure accounts!');
 }
 
 main()
