@@ -174,10 +174,16 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
   const data = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
+    if (response.status === 503 || (typeof data === 'object' && data?.maintenance)) {
+      if (isBrowser) {
+        window.dispatchEvent(new CustomEvent('civicflow_maintenance_mode'));
+      }
+    }
+
     const errorMsg =
       (typeof data === 'object' && data !== null ? (data.message || data.error?.message) : null) ||
       (typeof data === 'string' && data ? data : 'حدث خطأ في الخادم');
-    const errorCode = data?.error?.code || `HTTP_${response.status}`;
+    const errorCode = data?.error?.code || (response.status === 503 ? 'MAINTENANCE_MODE' : `HTTP_${response.status}`);
     const errorDetails = data?.error?.details;
     throw new ApiError(errorMsg, response.status, errorCode, errorDetails);
   }

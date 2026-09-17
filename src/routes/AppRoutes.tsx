@@ -69,8 +69,21 @@ import { PublicTrackPage } from '../pages/public/PublicTrackPage';
 import { PublicTrackResultPage } from '../pages/public/PublicTrackResultPage';
 import { PublicSubmitRequestPage } from '../pages/public/PublicSubmitRequestPage';
 import { NotFoundPage } from '../pages/public/NotFoundPage';
+import { MaintenancePage } from '../pages/public/MaintenancePage';
+import { useMaintenance } from '../context/MaintenanceContext';
 
 export const AppRoutes: React.FC = () => {
+  const { isMaintenanceMode } = useMaintenance();
+
+  // If maintenance mode is active, block all routes and render dedicated Maintenance Screen
+  if (isMaintenanceMode) {
+    return (
+      <Routes>
+        <Route path="*" element={<MaintenancePage />} />
+      </Routes>
+    );
+  }
+
   return (
     <Routes>
       {/* Public Routes (No Auth Layout) */}

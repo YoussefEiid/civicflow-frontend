@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import { env } from './config/env.js';
 import { errorHandler } from './middlewares/error.middleware.js';
+import { maintenanceMiddleware } from './middlewares/maintenance.middleware.js';
 import { sendSuccess } from './utils/apiResponse.js';
 import { apiRouter } from './routes/index.js';
 
@@ -58,10 +59,29 @@ if (env.NODE_ENV !== 'production') {
   app.use('/uploads', express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)));
 }
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  return sendSuccess(res, { timestamp: new Date().toISOString() }, 'API is running');
+// Health check & Infrastructure monitoring endpoint (Always accessible for Render / Ping)
+app.get(['/api/health', '/health'], (req, res) => {
+  return res.json({
+    success: true,
+    status: 'ok',
+    maintenance: Boolean(env.MAINTENANCE_MODE),
+    timestamp: new Date().toISOString()
+  });
 });
+
+// Dedicated Maintenance Status check endpoint (Always accessible)
+app.get(['/api/maintenance/status', '/api/system/status'], (req, res) => {
+  return res.json({
+    success: true,
+    maintenance: Boolean(env.MAINTENANCE_MODE),
+    message: env.MAINTENANCE_MODE
+      ? 'الخدمة متوقفة مؤقتًا للصيانة'
+      : 'الخدمة تعمل بشكل طبيعي'
+  });
+});
+
+// Production Maintenance Mode Guard
+app.use(maintenanceMiddleware);
 
 // Mount API Router
 app.use('/api', apiRouter);

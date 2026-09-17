@@ -41,7 +41,15 @@ const envSchema = z.object({
   EMAILJS_SERVICE_ID: z.string().default('service_lvsou99'),
   EMAILJS_TEMPLATE_ID: z.string().default('template_sbp4dbc'),
   EMAILJS_PUBLIC_KEY: z.string().default('OwmoePpWQZnCiaCkf'),
-  EMAILJS_PRIVATE_KEY: z.string().default('U9uC6g2XpWD4Vr82w15eV')
+  EMAILJS_PRIVATE_KEY: z.string().default('U9uC6g2XpWD4Vr82w15eV'),
+  MAINTENANCE_MODE: z
+    .union([z.boolean(), z.string()])
+    .transform((val) => {
+      if (typeof val === 'boolean') return val;
+      const str = String(val).trim().toLowerCase();
+      return str === 'true' || str === '1' || str === 'yes';
+    })
+    .default(false)
 });
 
 // OTP security settings (safe production defaults enforced)
